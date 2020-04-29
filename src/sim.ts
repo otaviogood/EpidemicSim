@@ -149,6 +149,10 @@ export class Sim {
     canvasHeight = 768;
     paused = false;
     infectedVisuals:number[][] = [];
+
+    constructor() {
+        generator = new MersenneTwister(1234567890);
+    }
     // Normalizes positions so they are in the [0..1] range on x and y.
     // Returns [x, y] tuple.
     latLonToPos(lat: number, lon: number): number[] {

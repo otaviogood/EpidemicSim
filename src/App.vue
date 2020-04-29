@@ -17,10 +17,27 @@
             @click="clicked"
         ></canvas>
         <p>
-            <button type="button" class="" style="font-size:48px;float:left;margin-right:16px;" @click="playPause">⏯️</button>
-            <strong>Currently Infected: {{ currentlyInfected }}</strong><br/>
-            <strong>Total Infected: {{ totalInfected }}</strong><br/>
-            Hours: {{ hoursElapsed }}<br/>
+            <button
+                type="button"
+                class=""
+                style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;"
+                @click="playPause"
+            >
+                ⏯️
+            </button>
+            <button
+                type="button"
+                class=""
+                style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;"
+                @click="restart"
+            >
+                🔁
+            </button>
+            <strong>Currently Infected: {{ currentlyInfected }}</strong
+            ><br />
+            <strong>Total Infected: {{ totalInfected }}</strong
+            ><br />
+            Hours: {{ hoursElapsed }}<br />
             Days: {{ Math.floor(hoursElapsed / 24) }}
         </p>
     </div>
@@ -87,6 +104,10 @@ export default Vue.extend({
         },
         playPause: function(event: any) {
             sim.playPause();
+        },
+        restart: function(event: any) {
+            sim = new Sim();
+            parseCSV(sim); // this await doesn't work. :/
         },
     },
 });
