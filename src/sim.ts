@@ -218,6 +218,7 @@ export class Sim {
         this.pop.index(1).time_since_start = Sim.time_till_contagious + 1;
         this.pop.index(2).time_since_start = Sim.time_till_contagious + 1;
         this.pop.index(3).time_since_start = Sim.time_till_contagious + 1;
+        this.totalInfected = 4;
         this.numActive = 4;
 
         window.requestAnimationFrame(() => this.draw());
@@ -242,7 +243,8 @@ export class Sim {
             if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
             for (let x = 0; x < this.infected_array.length; x++) {
                 ctx.fillStyle = "#ff3fff";
-                ctx.fillRect(x, 0, 1, this.infected_array[x] / 2);
+                let height = this.infected_array[x] / 2;
+                ctx.fillRect(x, canvas.height - height, 1, height);
             }
         }
     }
