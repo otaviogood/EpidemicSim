@@ -18,7 +18,8 @@
         ></canvas>
         <p>
             <button type="button" class="" style="font-size:48px;float:left;margin-right:16px;" @click="playPause">⏯️</button>
-            <strong>Currently Infected: {{ totalInfected }}</strong><br/>
+            <strong>Currently Infected: {{ currentlyInfected }}</strong><br/>
+            <strong>Total Infected: {{ totalInfected }}</strong><br/>
             Hours: {{ hoursElapsed }}<br/>
             Days: {{ Math.floor(hoursElapsed / 24) }}
         </p>
@@ -37,6 +38,7 @@ export default Vue.extend({
             animId: -1,
             name: "Epidemic Sim",
             hoursElapsed: 0,
+            currentlyInfected: 0,
             totalInfected: 0,
         };
     },
@@ -60,7 +62,8 @@ export default Vue.extend({
             if (sim.numActive > 0 && !sim.paused) {
                 sim.run_simulation(1);
                 self.hoursElapsed = sim.time_steps_since_start;
-                self.totalInfected = sim.numActive;
+                self.currentlyInfected = sim.numActive;
+                self.totalInfected = sim.totalInfected;
                 sim.draw();
             }
 

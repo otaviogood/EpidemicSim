@@ -134,6 +134,7 @@ export class Sim {
 
     time_steps_since_start = 0;
     infected_array: number[] = [];
+    currentlyInfected = 0;
     totalInfected = 0;
     numActive = 0;
 
@@ -147,6 +148,7 @@ export class Sim {
     canvasWidth = 768;
     canvasHeight = 768;
     paused = false;
+    infectedVisuals:number[][] = [];
     // Normalizes positions so they are in the [0..1] range on x and y.
     // Returns [x, y] tuple.
     latLonToPos(lat: number, lon: number): number[] {
@@ -274,7 +276,7 @@ export class Sim {
     }
 
     draw() {
-        this.totalInfected = 0;
+        this.currentlyInfected = 0;
         const canvas = <HTMLCanvasElement>document.getElementById("map-canvas");
         if (canvas.getContext) {
             const ctx = canvas.getContext("2d");
@@ -315,7 +317,7 @@ export class Sim {
                 if (person.time_since_start >= 0) {
                     color = "rgb(255, 165, 0)";
                     radius = 5;
-                    this.totalInfected++;
+                    this.currentlyInfected++;
                 }
                 if (person.time_since_start >= Sim.time_till_contagious) {
                     color = "rgb(255, 0, 0)";
@@ -336,12 +338,21 @@ export class Sim {
                 }
                 // if (person.debug != 0) color = RandomFast.ToRGB(person.debug);
                 this.drawCircle(ctx, person.xpos, person.ypos, radius, color);
-                for (let t = 0; t < person.targets.length; t++) {
-                    const other = this.pop.index(person.targets[t]);
-                    this.drawLine(ctx, person.xpos, person.ypos, other.xpos, other.ypos, "rgb(100,100,100)");
-                }
             }
-            if ((this.time_steps_since_start & 31) == 0) this.infected_array.push(this.totalInfected);
+            
+            // Animate infection circles and delete things from the list that are old.
+            let tempIV:number[][] = [];
+            for (let i = 0; i < this.infectedVisuals.length; i++) {
+                let x = this.infectedVisuals[i][0];
+                let y = this.infectedVisuals[i][1];
+                let t = (this.time_steps_since_start - this.infectedVisuals[i][2]) / 2;
+                let alpha = Math.max(0, 200 - t) / 200.0;
+                this.drawCircle(ctx, x, y, t, "rgba(255,50,10," + alpha.toString() + ")", false);
+                if (alpha > 0.0) tempIV.push(this.infectedVisuals[i]);
+            }
+            this.infectedVisuals = tempIV;
+
+            if ((this.time_steps_since_start & 31) == 0) this.infected_array.push(this.currentlyInfected);
 
             this.drawGraph();
             // if ((this.numActive > 0) && (!this.paused)) {

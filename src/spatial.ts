@@ -28,7 +28,6 @@ export class Person {
     ypos: number = 0;
     symptoms: boolean = true;
     occupation: number = 0;
-    targets: Int32Array = new Int32Array();
     debug: number = 0;
     homeIndex = -1;
     officeIndex = -1;
@@ -54,8 +53,11 @@ export class Person {
     }
 
     // Get exposed... won't be contagious for a while still though...
-    becomeSick() {
+    becomeSick(sim:Sim) {
         this.time_since_start = 0.0;
+        let info: [number, number, number] = [this.xpos, this.ypos, sim.time_steps_since_start];
+        sim.infectedVisuals.push(info);
+        sim.totalInfected++;
     }
 
     spread(time_steps_since_start:number, index:number, pop:Spatial, generator:MersenneTwister, currentHour:number, sim:Sim) {
@@ -66,28 +68,21 @@ export class Person {
                 let members = sim.allHouseholds[this.homeIndex].residents;
                 let targetIndex = members[RandomFast.HashIntApprox(seed, 0, members.length)];
                 let prob = Sim.small_r;
-                if (generator.random() < prob - 1.0 && pop.index(targetIndex).time_since_start < 0) pop.index(targetIndex).becomeSick();
+                if (generator.random() < prob - 1.0 && pop.index(targetIndex).time_since_start < 0) pop.index(targetIndex).becomeSick(sim);
             }
             else if (activity == ActivityType.work) {
                 let members = sim.allOffices[this.officeIndex].residents;
                 let targetIndex = members[RandomFast.HashIntApprox(seed, 0, members.length)];
                 let prob = Sim.small_r;
-                if (generator.random() < prob - 1.0 && pop.index(targetIndex).time_since_start < 0) pop.index(targetIndex).becomeSick();
+                if (generator.random() < prob - 1.0 && pop.index(targetIndex).time_since_start < 0) pop.index(targetIndex).becomeSick(sim);
             }
             else if (activity == ActivityType.shopping) {
                 // For now randomly infects _anyone_ in the city...
                 let members = sim.allOffices[this.officeIndex].residents;
                 let targetIndex = RandomFast.HashIntApprox(seed, 0, sim.pop.length);
                 let prob = Sim.small_r;
-                if (generator.random() < prob - 1.0 && pop.index(targetIndex).time_since_start < 0) pop.index(targetIndex).becomeSick();
+                if (generator.random() < prob - 1.0 && pop.index(targetIndex).time_since_start < 0) pop.index(targetIndex).becomeSick(sim);
             }
-            // let seed = Math.trunc(time_steps_since_start / Sim.time_steps_till_change_target + index);
-            // let target_person_index = RandomFast.HashIntApprox(seed, 0, pop.length);
-            // this.targets = new Int32Array(1);
-            // this.targets[0] = target_person_index;
-            // if (generator.random() < Sim.small_r - 1.0 && pop.index(target_person_index).time_since_start < 0) pop.index(target_person_index).becomeSick();
-        } else if (this.time_since_start >= Sim.time_virus_is_active && this.targets.length > 0) {
-            this.targets = new Int32Array();
         }
 
     }
@@ -207,6 +202,7 @@ export class Grid {
             }
             if (map.size > 100) done = true;
 
+            // Spiral out: https://stackoverflow.com/questions/3706219/algorithm-for-iterating-over-an-outward-spiral-on-a-discrete-2d-grid-from-the-or/14010215#14010215
             switch (leg) {
                 case 0:
                     ++x;
