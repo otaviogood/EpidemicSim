@@ -56,7 +56,7 @@ export async function parseCSV(sim: Sim) {
                 const facility = row["residential_facility_type"];
                 const units = row["dwelling_units"];
                 if (facility) {
-                    const res: boolean = facility.startsWith("RESIDENTIAL");
+                    const res: boolean = facility.includes("RESIDENTIAL");
                     // 3 people per "dwelling unit" - arbitrary, but got SF to population 800,000 residents.
                     let capacity: number = (parseInt(units) | 0) * 3;
                     capacity = Math.max(1, capacity);
@@ -286,6 +286,16 @@ export class Sim {
         }
     }
 
+    drawRect(ctx: any, x: number, y: number, width: number, height:number, color: string = "rgb(255, 255, 255)", fill: boolean = true) {
+        if (fill) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x * this.scalex, y * this.scaley, width * this.scalex, height * this.scaley);
+        } else {
+            ctx.strokeStyle = color;
+            ctx.drawRect(x * this.scalex, y * this.scaley, width * this.scalex, height * this.scaley);
+        }
+    }
+
     draw() {
         this.currentlyInfected = 0;
         const canvas = <HTMLCanvasElement>document.getElementById("map-canvas");
@@ -294,11 +304,11 @@ export class Sim {
             if (!ctx) return;
             if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.globalAlpha = 0.2;
-            ctx.drawImage(img, -80, 54, 900, 700);
+            ctx.drawImage(img, -60, 60, 900, 700);
             ctx.globalAlpha = 1.0;
             [this.canvasWidth, this.canvasHeight] = [canvas.width, canvas.height];
-            this.scalex = canvas.width + 40.0; // - 64.0;
-            this.scaley = canvas.height - 80.0;
+            this.scalex = canvas.width + 0.0; // - 64.0;
+            this.scaley = canvas.height - 10.0;
 
             if (this.selectedHouseholdIndex >= 0) {
                 let hh: HouseHold = this.allHouseholds[this.selectedHouseholdIndex];
@@ -322,7 +332,7 @@ export class Sim {
             }
 
             // Rendering is by far the bottleneck, so target this many rendered points and skip the rest.
-            const skip = (this.pop.length / 512) | 0;
+            const skip = (this.pop.length / 256) | 0;
             for (let i = 0; i < this.pop.length; i += skip) {
                 let person = this.pop.index(i);
                 let color = "#000000";
@@ -352,6 +362,10 @@ export class Sim {
                 }
                 // if (person.debug != 0) color = RandomFast.ToRGB(person.debug);
                 this.drawCircle(ctx, person.xpos, person.ypos, radius, color);
+            }
+            for (let i = 0; i < 128; i++) {
+                let office = this.allOffices[i];
+                this.drawRect(ctx, office.xpos, office.ypos, .005, .007, "rgb(160, 160, 160)");
             }
 
             // Animate infection circles and delete things from the list that are old.
