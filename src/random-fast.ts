@@ -23,9 +23,9 @@ export default class RandomFast {
     RandFloat(): number {
         this.randomState = RandomFast.SmallHashA(this.randomState);
         // Add these 2 lines for extra randomness. And change last line to tempState.
-        //uint tempState = (randomState << 13) | (randomState >> 19);
-        //tempState = SmallHashB(tempState);
-        return Number((this.randomState >> 8) & 0xffffff) * RandomFast.invMax24Bit;
+        let tempState = (this.randomState << 13) | (this.randomState >> 19);
+        tempState = RandomFast.SmallHashB(tempState);
+        return Number((tempState >> 8) & 0xffffff) * RandomFast.invMax24Bit;
     }
 
     // This will be biased...

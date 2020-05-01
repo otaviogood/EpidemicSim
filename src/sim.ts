@@ -5,6 +5,10 @@ import { Person, Spatial, Grid } from "./spatial";
 var MersenneTwister = require("mersenne-twister");
 var generator = new MersenneTwister(1234567890);
 import RandomFast from "./random-fast";
+// import latlons from "../../contact_tracing/private_traces/devon/Location History/Semantic Location History/2020/2020_APRIL.json";
+
+// const allLocations = (<any>latlons).timelineObjects;
+// console.log(allLocations);
 
 class HouseHold {
     xpos: number = 0;
@@ -111,6 +115,7 @@ function shuffleArrayInPlace(array: any) {
 }
 
 export class Sim {
+    rfast: RandomFast = new RandomFast(1234567890);
     pop: Spatial = new Spatial();
 
     static readonly time_step_hours = 1; // hours
@@ -148,7 +153,7 @@ export class Sim {
     canvasWidth = 768;
     canvasHeight = 768;
     paused = false;
-    infectedVisuals:number[][] = [];
+    infectedVisuals: number[][] = [];
 
     constructor() {
         generator = new MersenneTwister(1234567890);
@@ -163,7 +168,7 @@ export class Sim {
 
     async setup() {
         shuffleArrayInPlace(this.allHouseholds);
-        this.allHouseholds = this.allHouseholds.slice(0, Math.min(this.allHouseholds.length, 50)); // HACK!!!! Limit # of houses for debugging
+        this.allHouseholds = this.allHouseholds.slice(0, Math.min(this.allHouseholds.length, 500000)); // HACK!!!! Limit # of houses for debugging
         for (let i = 0; i < this.allHouseholds.length; i++) {
             let hh = this.allHouseholds[i];
             [hh.xpos, hh.ypos] = this.latLonToPos(hh.lat, hh.lon);
@@ -316,12 +321,14 @@ export class Sim {
                 }
             }
 
-            for (let i = 0; i < this.pop.length; i++) {
+            // Rendering is by far the bottleneck, so target this many rendered points and skip the rest.
+            const skip = (this.pop.length / 512) | 0;
+            for (let i = 0; i < this.pop.length; i += skip) {
                 let person = this.pop.index(i);
                 let color = "#000000";
                 let radius = 2;
                 if (person.time_since_start >= 0) {
-                    color = "rgb(255, 165, 0)";
+                    color = "rgb(255, 192, 0)";
                     radius = 5;
                     this.currentlyInfected++;
                 }
@@ -329,6 +336,7 @@ export class Sim {
                     color = "rgb(255, 0, 0)";
                 }
                 if (person.time_since_start >= Sim.time_virus_is_active) {
+                    radius = 2;
                     color = "rgb(0, 64, 255)";
                 }
                 // if (person.symptoms) {
@@ -345,18 +353,34 @@ export class Sim {
                 // if (person.debug != 0) color = RandomFast.ToRGB(person.debug);
                 this.drawCircle(ctx, person.xpos, person.ypos, radius, color);
             }
-            
+
             // Animate infection circles and delete things from the list that are old.
-            let tempIV:number[][] = [];
+            let tempIV: number[][] = [];
             for (let i = 0; i < this.infectedVisuals.length; i++) {
-                let x = this.infectedVisuals[i][0];
-                let y = this.infectedVisuals[i][1];
                 let t = (this.time_steps_since_start - this.infectedVisuals[i][2]) / 2;
-                let alpha = Math.max(0, 200 - t) / 200.0;
-                this.drawCircle(ctx, x, y, t, "rgba(255,50,10," + alpha.toString() + ")", false);
+                let alpha = Math.max(0, 100 - t) / 100.0;
                 if (alpha > 0.0) tempIV.push(this.infectedVisuals[i]);
+
+                const maxDraws = 32;  // Limit the number of circles that can be drawn for performance.
+                if (i > this.infectedVisuals.length - maxDraws) {
+                    let x = this.infectedVisuals[i][0];
+                    let y = this.infectedVisuals[i][1];
+                    this.drawCircle(ctx, x, y, t + 2, "rgba(255,50,10," + alpha.toString() + ")", false);
+                }
             }
             this.infectedVisuals = tempIV;
+
+            // for (let i = 0; i < allLocations.length; i++) {
+            //     if (allLocations[i].placeVisit) {
+            //         let loc = allLocations[i].placeVisit;
+            //         let lat = Number.parseFloat(loc.centerLatE7) * 0.0000001;
+            //         let lon = Number.parseFloat(loc.centerLngE7) * 0.0000001;
+            //         console.log(lat + ", " + lon);
+
+            //         let [x,y] = this.latLonToPos(lon, lat);
+            //         this.drawCircle(ctx, x, y, 2, "rgb(255,255,255)");
+            //     }
+            // }
 
             if ((this.time_steps_since_start & 31) == 0) this.infected_array.push(this.currentlyInfected);
 
