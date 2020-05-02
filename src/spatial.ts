@@ -14,6 +14,11 @@ enum ActivityType {
     shopping,
 }
 
+const home_density: number = 0.5;
+const office_density: number = 1.75;
+const shopping_density: number = 1.5;
+
+let rtemp = new RandomFast(1234567);
 export class Person {
     // prettier-ignore
     static readonly activities = [ActivityType.home, ActivityType.home, ActivityType.home, ActivityType.home, 
@@ -32,19 +37,22 @@ export class Person {
     homeIndex = -1;
     officeIndex = -1;
 
-    constructor(generator:MersenneTwister) {
+    constructor(generator: MersenneTwister) {
         this.xpos = generator.random();
         this.ypos = generator.random();
     }
 
     get isSick() {
-        return (this.time_since_start >= 0.0) && (this.time_since_start < Sim.time_virus_is_active);
+        return this.time_since_start >= 0.0 && this.time_since_start < Sim.time_virus_is_active;
     }
     get isContagious() {
         return this.time_since_start > Sim.time_till_contagious && this.time_since_start < Sim.time_virus_is_active;
     }
+    get isVulnerable() {
+        return this.time_since_start < 0;
+    }
     // Returns true if this person is sick.
-    stepTime():boolean {
+    stepTime(): boolean {
         if (this.isSick) {
             this.time_since_start = this.time_since_start + Sim.time_step_hours;
             return true;
@@ -53,38 +61,75 @@ export class Person {
     }
 
     // Get exposed... won't be contagious for a while still though...
-    becomeSick(sim:Sim) {
+    becomeSick(sim: Sim) {
         this.time_since_start = 0.0;
         let info: [number, number, number] = [this.xpos, this.ypos, sim.time_steps_since_start];
         sim.infectedVisuals.push(info);
         sim.totalInfected++;
     }
 
-    spread(time_steps_since_start:number, index:number, pop:Spatial, generator:MersenneTwister, currentHour:number, sim:Sim) {
+    // For now, density can be thought of as your distance to the closest person.
+    // Clamped at 0.5 minimum
+    // This returns a [0..1] probability multiplier for probability of spreading the virus.
+    probabilityMultiplierFromDensity(density: number): number {
+        density = Math.max(0.5, density);
+        return 0.5 / density;
+    }
+
+    // This should be a function of density and how much you mix with people.
+    // How much you mix can be measured as a fraction of all the people in the space that you will come in range of???
+    // Density will affect the outcome based on distance to other people???
+    // TODO: optimize me using "real math". :)
+    // TODO: maxPeopleYouCanSpreadItToInYourRadius is totally arbitrary
+    howManyCatchItInThisTimeStep(
+        generator: MersenneTwister,
+        prob: number,
+        popSize: number,
+        maxPeopleYouCanSpreadItToInYourRadius: number = 30
+    ): number {
+        popSize = Math.min(popSize, maxPeopleYouCanSpreadItToInYourRadius);
+        let total = 0;
+        for (let i = 0; i < popSize; i++) {
+            if (generator.random() < prob /*- 1.0*/) total++;
+            // if (rtemp.RandFloat() < prob /*- 1.0*/) total++;
+        }
+        return total;
+    }
+
+    spreadInAPlace(residents: number[], density: number, pop: Spatial, generator: MersenneTwister, sim: Sim, seed: number) {
+        let prob = Sim.prob_baseline_timestep * this.probabilityMultiplierFromDensity(density);
+        let numSpread = this.howManyCatchItInThisTimeStep(generator, prob, residents.length);
+        for (let i = 0; i < numSpread; i++) {
+            let targetIndex = residents[RandomFast.HashIntApprox(seed, 0, residents.length)];
+            if (pop.index(targetIndex).isVulnerable) pop.index(targetIndex).becomeSick(sim);
+        }
+    }
+
+    spread(
+        time_steps_since_start: number,
+        index: number,
+        pop: Spatial,
+        generator: MersenneTwister,
+        currentHour: number,
+        sim: Sim
+    ) {
         let activity = Person.activities[currentHour];
+        let seed = Math.trunc(time_steps_since_start + index); // Unique for time step and each person
         if (this.isContagious) {
-            let seed = Math.trunc(time_steps_since_start + index);
             if (activity == ActivityType.home) {
-                let members = sim.allHouseholds[this.homeIndex].residents;
-                let targetIndex = members[RandomFast.HashIntApprox(seed, 0, members.length)];
-                let prob = Sim.small_r;
-                if (generator.random() < prob - 1.0 && pop.index(targetIndex).time_since_start < 0) pop.index(targetIndex).becomeSick(sim);
-            }
-            else if (activity == ActivityType.work) {
-                let members = sim.allOffices[this.officeIndex].residents;
-                let targetIndex = members[RandomFast.HashIntApprox(seed, 0, members.length)];
-                let prob = Sim.small_r;
-                if (generator.random() < prob - 1.0 && pop.index(targetIndex).time_since_start < 0) pop.index(targetIndex).becomeSick(sim);
-            }
-            else if (activity == ActivityType.shopping) {
-                // For now randomly infects _anyone_ in the city...
-                let members = sim.allOffices[this.officeIndex].residents;
-                let targetIndex = RandomFast.HashIntApprox(seed, 0, sim.pop.length);
-                let prob = Sim.small_r;
-                if (generator.random() < prob - 1.0 && pop.index(targetIndex).time_since_start < 0) pop.index(targetIndex).becomeSick(sim);
+                this.spreadInAPlace(sim.allHouseholds[this.homeIndex].residents, home_density, pop, generator, sim, seed);
+            } else if (activity == ActivityType.work) {
+                this.spreadInAPlace(sim.allOffices[this.officeIndex].residents, office_density, pop, generator, sim, seed);
+            } else if (activity == ActivityType.shopping) {
+                // // For now randomly infects _anyone_ in the city...
+                let prob = Sim.prob_baseline_timestep * this.probabilityMultiplierFromDensity(shopping_density);
+                let numSpread = this.howManyCatchItInThisTimeStep(generator, prob, 100);
+                for (let i = 0; i < numSpread; i++) {
+                    let targetIndex = RandomFast.HashIntApprox(seed, 0, sim.pop.length);
+                    if (pop.index(targetIndex).isVulnerable) pop.index(targetIndex).becomeSick(sim);
+                }
             }
         }
-
     }
 }
 
@@ -92,7 +137,6 @@ export class Place {
     xpos: number = 0;
     ypos: number = 0;
 }
-
 
 export class Spatial {
     protected population: Person[] = [];
@@ -229,4 +273,3 @@ export class Grid {
         return Array.from(mapAsc.values()).slice(0, k);
     }
 }
-

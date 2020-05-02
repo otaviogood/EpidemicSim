@@ -2,8 +2,9 @@ var Papa = require("papaparse");
 import "@babel/polyfill"; // This is for using ES2017 features, like async/await.
 import { Person, Spatial, Grid } from "./spatial";
 // https://github.com/boo1ean/mersenne-twister
-var MersenneTwister = require("mersenne-twister");
-var generator = new MersenneTwister(1234567890);
+// var MersenneTwister = require("mersenne-twister");
+import MersenneTwister from "mersenne-twister";
+var generator: MersenneTwister; // = new MersenneTwister(1234567890);
 import RandomFast from "./random-fast";
 // import latlons from "../../contact_tracing/private_traces/devon/Location History/Semantic Location History/2020/2020_APRIL.json";
 
@@ -122,7 +123,8 @@ export class Sim {
     // for doubling time and r number, https://arxiv.org/ftp/arxiv/papers/2003/2003.09320.pdf page 9
     static readonly r = 2.5; // virus reproductive number
     static readonly r_time_interval = 4 * 24; // number of time steps (minutes) to do the r
-    static readonly small_r = Math.exp(Math.log(Sim.r) / Sim.r_time_interval);
+    static readonly r_baseline_interval = Math.exp(Math.log(Sim.r) / Sim.r_time_interval);
+    static readonly prob_baseline_timestep = 0.000959;
     static readonly time_virus_is_active = 14 * 24;
     static readonly time_till_contagious = 5 * 24; // TODO: made-up number
     static readonly miss_rate = 0.03; // false negatives - a friend told me this number.
@@ -139,7 +141,6 @@ export class Sim {
 
     time_steps_since_start = 0;
     infected_array: number[] = [];
-    currentlyInfected = 0;
     totalInfected = 0;
     numActive = 0;
 
@@ -249,10 +250,10 @@ export class Sim {
         if (canvas.getContext) {
             const ctx = canvas.getContext("2d");
             if (!ctx) return;
-            if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             for (let x = 0; x < this.infected_array.length; x++) {
                 ctx.fillStyle = "#ff3fff";
-                let height = this.infected_array[x] / 2;
+                let height = (this.infected_array[x] / this.pop.length) * canvas.height;
                 ctx.fillRect(x, canvas.height - height, 1, height);
             }
         }
@@ -286,7 +287,15 @@ export class Sim {
         }
     }
 
-    drawRect(ctx: any, x: number, y: number, width: number, height:number, color: string = "rgb(255, 255, 255)", fill: boolean = true) {
+    drawRect(
+        ctx: any,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        color: string = "rgb(255, 255, 255)",
+        fill: boolean = true
+    ) {
         if (fill) {
             ctx.fillStyle = color;
             ctx.fillRect(x * this.scalex, y * this.scaley, width * this.scalex, height * this.scaley);
@@ -297,7 +306,6 @@ export class Sim {
     }
 
     draw() {
-        this.currentlyInfected = 0;
         const canvas = <HTMLCanvasElement>document.getElementById("map-canvas");
         if (canvas.getContext) {
             const ctx = canvas.getContext("2d");
@@ -340,7 +348,6 @@ export class Sim {
                 if (person.time_since_start >= 0) {
                     color = "rgb(255, 192, 0)";
                     radius = 5;
-                    this.currentlyInfected++;
                 }
                 if (person.time_since_start >= Sim.time_till_contagious) {
                     color = "rgb(255, 0, 0)";
@@ -365,7 +372,7 @@ export class Sim {
             }
             for (let i = 0; i < 128; i++) {
                 let office = this.allOffices[i];
-                this.drawRect(ctx, office.xpos, office.ypos, .005, .007, "rgb(160, 160, 160)");
+                this.drawRect(ctx, office.xpos, office.ypos, 0.005, 0.007, "rgb(160, 160, 160)");
             }
 
             // Animate infection circles and delete things from the list that are old.
@@ -375,7 +382,7 @@ export class Sim {
                 let alpha = Math.max(0, 100 - t) / 100.0;
                 if (alpha > 0.0) tempIV.push(this.infectedVisuals[i]);
 
-                const maxDraws = 32;  // Limit the number of circles that can be drawn for performance.
+                const maxDraws = 32; // Limit the number of circles that can be drawn for performance.
                 if (i > this.infectedVisuals.length - maxDraws) {
                     let x = this.infectedVisuals[i][0];
                     let y = this.infectedVisuals[i][1];
@@ -396,7 +403,8 @@ export class Sim {
             //     }
             // }
 
-            if ((this.time_steps_since_start & 31) == 0) this.infected_array.push(this.currentlyInfected);
+            // Every day, save off total infected so i can graph it.
+            if (this.time_steps_since_start % 24 == 0) this.infected_array.push(this.totalInfected);
 
             this.drawGraph();
             // if ((this.numActive > 0) && (!this.paused)) {

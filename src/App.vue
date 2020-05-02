@@ -5,7 +5,7 @@
         </h1>
         <canvas
             style="float:right;display:block;background-color:#123456"
-            width="256px"
+            width="365px"
             height="512px"
             id="graph-canvas"
         ></canvas>
@@ -38,7 +38,8 @@
             <strong>Total Infected: {{ totalInfected }}</strong
             ><br />
             Hours: {{ hoursElapsed }}<br />
-            Days: {{ Math.floor(hoursElapsed / 24) }}
+            Days: {{ Math.floor(hoursElapsed / 24) }}<br />
+            Sim Time (Milliseconds): {{ Math.round(milliseconds) }}<br />
         </p>
     </div>
 </template>
@@ -57,6 +58,7 @@ export default Vue.extend({
             hoursElapsed: 0,
             currentlyInfected: 0,
             totalInfected: 0,
+            milliseconds: 0,
         };
     },
     created: function() {
@@ -77,10 +79,14 @@ export default Vue.extend({
         tickAnim: function() {
             let self = this;
             if (sim.numActive > 0 && !sim.paused) {
+                let timer = performance.now();
+
                 sim.run_simulation(1);
                 self.hoursElapsed = sim.time_steps_since_start;
                 self.currentlyInfected = sim.numActive;
                 self.totalInfected = sim.totalInfected;
+                let t2 = performance.now();
+                self.milliseconds = t2 - timer;
                 sim.draw();
             }
 
