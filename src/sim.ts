@@ -41,8 +41,8 @@ export async function parseCSV(sim: Sim) {
             let rows;
             rows = results.data;
             console.log("Finished:", rows[0]);
-            let totalHomes = 0;
-            let totalOffices = 0;
+            let totalHomeCapacity = 0;
+            let totalOfficeCapacity = 0;
             // header = rows[0];
             for (let i = 0; i < rows.length; i++) {
                 let row = rows[i];
@@ -58,16 +58,22 @@ export async function parseCSV(sim: Sim) {
                 const units = row["dwelling_units"];
                 if (facility) {
                     const res: boolean = facility.includes("RESIDENTIAL");
-                    // 3 people per "dwelling unit" - arbitrary, but got SF to population 800,000 residents.
+                    // 3 people per "dwelling unit" - arbitrary, but got SF to population 843,821 residents.
+                    // https://housing.datasf.org/data-browser/population-and-households/average-household-size/
                     let capacity: number = (parseInt(units) | 0) * 3;
                     capacity = Math.max(1, capacity);
                     if (res) {
                         // home
-                        totalHomes += capacity;
-                        sim.allHouseholds.push(new HouseHold(lat, lon, capacity));
+                        totalHomeCapacity += capacity;
+                        while (capacity > 0) {
+                            // TODO: make house-size distribution better. This has no large houses. This has avg household size of 2.18. SF is 2.32.
+                            let subUnit = Math.min(2 + (generator.random_int31() & 1), capacity);
+                            sim.allHouseholds.push(new HouseHold(lat, lon, subUnit));
+                            capacity -= subUnit;
+                        }
                     } else {
                         // office
-                        totalOffices += capacity;
+                        totalOfficeCapacity += capacity;
                         sim.allOffices.push(new HouseHold(lat, lon, capacity));
                     }
                     sim.maxLat = Math.max(sim.maxLat, lat);
@@ -86,8 +92,11 @@ export async function parseCSV(sim: Sim) {
                 if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
             }
             // console.log("num buildings: " + sim.allHousePositions.length);
-            console.log("total residential from file: " + totalHomes);
-            console.log("total offices from file: " + totalOffices);
+            console.log("total home capacity from file: " + totalHomeCapacity);
+            console.log("total offices from file: " + totalOfficeCapacity);
+            console.log(sim.allHouseholds.length);
+            console.log("Average household size: " + totalHomeCapacity / sim.allHouseholds.length);
+
             sim.setup();
         },
     });
@@ -124,7 +133,7 @@ export class Sim {
     static readonly r = 2.5; // virus reproductive number
     static readonly r_time_interval = 4 * 24; // number of time steps (minutes) to do the r
     static readonly r_baseline_interval = Math.exp(Math.log(Sim.r) / Sim.r_time_interval);
-    static readonly prob_baseline_timestep = 0.000959;
+    static readonly prob_baseline_timestep = 0.002;
     static readonly time_virus_is_active = 14 * 24;
     static readonly time_till_contagious = 5 * 24; // TODO: made-up number
     static readonly miss_rate = 0.03; // false negatives - a friend told me this number.

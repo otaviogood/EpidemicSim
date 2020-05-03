@@ -23,9 +23,9 @@ export class Person {
     // prettier-ignore
     static readonly activities = [ActivityType.home, ActivityType.home, ActivityType.home, ActivityType.home, 
         ActivityType.home, ActivityType.home, ActivityType.home, ActivityType.home, 
-        ActivityType.home, ActivityType.train, ActivityType.work, ActivityType.work,
+        ActivityType.home, ActivityType.car, ActivityType.work, ActivityType.work,
         ActivityType.work, ActivityType.work, ActivityType.work, ActivityType.work,
-        ActivityType.work, ActivityType.work, ActivityType.train, ActivityType.shopping, 
+        ActivityType.work, ActivityType.work, ActivityType.car, ActivityType.shopping, 
         ActivityType.shopping, ActivityType.home, ActivityType.home, ActivityType.home, ];
 
     time_since_start: number = -1;
