@@ -40,6 +40,14 @@ export default class RandomFast {
         return (Math.abs(tempState >> 10) % (b - a)) + a;
     }
 
+    static HashInt32(seed:number) {
+        seed = RandomFast.SmallHashA(seed);
+        // Add these 2 lines for extra randomness. And change last line to tempState.
+        let tempState = (seed << 13) | (seed >> 19);
+        tempState = RandomFast.SmallHashB(tempState) | 0;
+        return tempState;
+    }
+
     // This will be biased...
     // range is from [a..b) --> b is not included
     static HashIntApprox(seed:number, fromInclusive:number, toExclusive:number) {

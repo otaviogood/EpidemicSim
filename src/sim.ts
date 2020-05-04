@@ -133,9 +133,6 @@ export class Sim {
     static readonly r = 2.5; // virus reproductive number
     static readonly r_time_interval = 4 * 24; // number of time steps (minutes) to do the r
     static readonly r_baseline_interval = Math.exp(Math.log(Sim.r) / Sim.r_time_interval);
-    static readonly prob_baseline_timestep = 0.002;
-    static readonly time_virus_is_active = 14 * 24;
-    static readonly time_till_contagious = 5 * 24; // TODO: made-up number
     static readonly miss_rate = 0.03; // false negatives - a friend told me this number.
     static readonly time_steps_till_change_target = 4; // This changes the r number effectively. Bad I guess.???
 
@@ -152,6 +149,7 @@ export class Sim {
     infected_array: number[] = [];
     totalInfected = 0;
     numActive = 0;
+    totalDead = 0;
 
     selectedHouseholdIndex = -1;
     selectedPerson = -1;
@@ -196,7 +194,7 @@ export class Sim {
         let done = false;
         let i = 0;
         while (!done) {
-            let person = new Person(generator);
+            let person = new Person(generator, this.pop.length);
 
             let hh = this.allHouseholds[householdIndex];
             if (hh.residents.length >= hh.capacity) {
@@ -233,10 +231,10 @@ export class Sim {
         //     this.pop.index(near[i]).occupation = 2;
         // }
         // this.pop.index(near).occupation = 2;
-        this.pop.index(0).time_since_start = Sim.time_till_contagious + 1;
-        this.pop.index(1).time_since_start = Sim.time_till_contagious + 1;
-        this.pop.index(2).time_since_start = Sim.time_till_contagious + 1;
-        this.pop.index(3).time_since_start = Sim.time_till_contagious + 1;
+        this.pop.index(0).time_since_start = Person.time_till_contagious + 1;
+        this.pop.index(1).time_since_start = Person.time_till_contagious + 1;
+        this.pop.index(2).time_since_start = Person.time_till_contagious + 1;
+        this.pop.index(3).time_since_start = Person.time_till_contagious + 1;
         this.totalInfected = 4;
         this.numActive = 4;
 
@@ -259,11 +257,21 @@ export class Sim {
         if (canvas.getContext) {
             const ctx = canvas.getContext("2d");
             if (!ctx) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (let x = 0; x < this.infected_array.length; x++) {
-                ctx.fillStyle = "#ff3fff";
-                let height = (this.infected_array[x] / this.pop.length) * canvas.height;
-                ctx.fillRect(x, canvas.height - height, 1, height);
+            //            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let x = this.infected_array.length - 1;
+
+            ctx.fillStyle = "#ffcf5f";
+            let height = (this.infected_array[x] / this.pop.length) * canvas.height;
+            ctx.fillRect(x, canvas.height - height, 1, height);
+
+            ctx.fillStyle = "#ffffff";
+            height = (this.numActive / this.pop.length) * canvas.height;
+            ctx.fillRect(x, canvas.height - height, 1, 5);
+
+            if (this.totalDead > 0) {
+                ctx.fillStyle = "#ff3711";
+                height = (this.totalDead / this.pop.length) * canvas.height;
+                ctx.fillRect(x, canvas.height - height, 1, 3);
             }
         }
     }
@@ -358,10 +366,10 @@ export class Sim {
                     color = "rgb(255, 192, 0)";
                     radius = 5;
                 }
-                if (person.time_since_start >= Sim.time_till_contagious) {
+                if (person.time_since_start >= Person.time_till_contagious) {
                     color = "rgb(255, 0, 0)";
                 }
-                if (person.time_since_start >= Sim.time_virus_is_active) {
+                if (person.time_since_start >= Person.time_virus_is_communicable) {
                     radius = 2;
                     color = "rgb(0, 64, 255)";
                 }

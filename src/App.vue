@@ -3,12 +3,26 @@
         <h1>
             {{ name }}
         </h1>
-        <canvas
-            style="float:right;display:block;background-color:#123456"
-            width="365px"
-            height="512px"
-            id="graph-canvas"
-        ></canvas>
+        <span style="float:right;border:1px solid #aaaaaa;padding:6px;background-color:#cceeff;border-radius:8px">
+            <canvas
+                style="display:block;background-color:#123456;margin-bottom:4px"
+                width="365px"
+                height="512px"
+                id="graph-canvas"
+            ></canvas>
+            <span style="background-color:#ffcf5f;display:inline-block;width:14px;height:14px;margin-right:4px"></span
+            ><strong>Total Infected: {{ totalInfected }}</strong
+            ><br />
+            <span style="background-color:#ffffff;display:inline-block;width:14px;height:14px;margin-right:4px"></span
+            ><strong>Currently Infected: {{ currentlyInfected }}</strong
+            ><br />
+            <span style="background-color:#ff3711;display:inline-block;width:14px;height:14px;margin-right:4px"></span
+            ><strong>Total dead: {{ totalDead }}</strong
+            ><br />
+            <hr />
+            <span style="width:180px;display:inline-block">Hours: {{ hoursElapsed }}</span>
+            Days: {{ Math.floor(hoursElapsed / 24) }}<br />
+        </span>
         <canvas
             style="display:block;background-color:#123456"
             width="768px"
@@ -33,12 +47,6 @@
             >
                 🔁
             </button>
-            <strong>Currently Infected: {{ currentlyInfected }}</strong
-            ><br />
-            <strong>Total Infected: {{ totalInfected }}</strong
-            ><br />
-            Hours: {{ hoursElapsed }}<br />
-            Days: {{ Math.floor(hoursElapsed / 24) }}<br />
             Sim Time (Milliseconds): {{ Math.round(milliseconds) }}<br />
         </p>
     </div>
@@ -59,6 +67,7 @@ export default Vue.extend({
             currentlyInfected: 0,
             totalInfected: 0,
             milliseconds: 0,
+            totalDead: 0,
         };
     },
     created: function() {
@@ -85,6 +94,7 @@ export default Vue.extend({
                 self.hoursElapsed = sim.time_steps_since_start;
                 self.currentlyInfected = sim.numActive;
                 self.totalInfected = sim.totalInfected;
+                self.totalDead = sim.totalDead;
                 let t2 = performance.now();
                 self.milliseconds = t2 - timer;
                 sim.draw();
