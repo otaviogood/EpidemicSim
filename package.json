@@ -8,8 +8,8 @@
   "license": "ISC",
   "scripts": {
     "clean": "rm dist/bundle.js",
-    "start": "parcel src/index.html src/sf_map_osm.jpg",
-    "build-prod": "parcel build src/index.html src/sf_map_osm.jpg"
+    "start": "parcel src/index.html",
+    "build-prod": "parcel build src/index.html"
   },
   "dependencies": {
     "@types/mersenne-twister": "^1.1.2",

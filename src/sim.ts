@@ -27,6 +27,7 @@ export function loadImage(url: string) {
         let i = new Image();
         i.onload = () => r(i);
         i.src = url;
+        if (i.width == 0) alert("ERROR: Probably couldn't load jpg map image."); 
     });
 }
 
@@ -43,6 +44,7 @@ export async function parseCSV(sim: Sim) {
             let rows;
             rows = results.data;
             console.log("Finished:", rows[0]);
+            if (rows.length < 100) alert("ERROR: Probably couldn't find building csv file to load.");
             let totalHomeCapacity = 0;
             let totalOfficeCapacity = 0;
             // header = rows[0];
@@ -426,7 +428,7 @@ export class Sim {
                 if (i > this.infectedVisuals.length - maxDraws) {
                     let x = this.infectedVisuals[i][0];
                     let y = this.infectedVisuals[i][1];
-                    this.drawCircle(ctx, x, y, t + 2, "rgba(255,50,10," + alpha.toString() + ")", false);
+                    this.drawCircle(ctx, x, y, t + 2, "rgba(255,100,10," + alpha.toString() + ")", false);
                 }
             }
             this.infectedVisuals = tempIV;
