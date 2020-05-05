@@ -8,14 +8,16 @@
   "license": "ISC",
   "scripts": {
     "clean": "rm dist/bundle.js",
-    "start": "parcel src/index.html",
-    "build-prod": "parcel build src/index.html"
+    "start": "npm run copystuff && parcel src/index.html",
+    "build-prod": "parcel build src/index.html",
+    "copystuff": "shx cp src/sf_map_osm.jpg dist && shx cp src/San_Francisco_Buildings_Trimmed.csv dist"
   },
   "dependencies": {
     "@types/mersenne-twister": "^1.1.2",
     "@types/node": "^13.11.0",
     "mersenne-twister": "^1.1.0",
     "papaparse": "^5.2.0",
+    "shx": "^0.3.2",
     "vue": "^2.6.11",
     "vue-hot-reload-api": "^2.3.4"
   },

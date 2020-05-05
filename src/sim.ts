@@ -27,7 +27,7 @@ export function loadImage(url: string) {
         let i = new Image();
         i.onload = () => r(i);
         i.src = url;
-        if (i.width == 0) alert("ERROR: Probably couldn't load jpg map image."); 
+        // if (i.width == 0) alert("ERROR: Probably couldn't load jpg map image."); 
     });
 }
 
