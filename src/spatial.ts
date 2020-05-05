@@ -26,7 +26,7 @@ export class Person {
         ActivityType.home, ActivityType.car, ActivityType.work, ActivityType.work,
         ActivityType.work, ActivityType.work, ActivityType.work, ActivityType.work,
         ActivityType.work, ActivityType.work, ActivityType.car, ActivityType.shopping, 
-        ActivityType.shopping, ActivityType.home, ActivityType.home, ActivityType.home, ];
+        ActivityType.home, ActivityType.home, ActivityType.home, ActivityType.home, ];
 
     static readonly prob_baseline_timestep = 0.002;
     // https://www.nature.com/articles/s41591-020-0869-5
@@ -216,13 +216,14 @@ export class Person {
             } else if (activity == ActivityType.work) {
                 this.spreadInAPlace(sim.allOffices[this.officeIndex].residents, office_density, pop, generator, sim, seed);
             } else if (activity == ActivityType.shopping) {
-                // // For now randomly infects _anyone_ in the city...
-                let prob = Person.prob_baseline_timestep * this.probabilityMultiplierFromDensity(shopping_density);
-                let numSpread = this.howManyCatchItInThisTimeStep(generator, prob, 100);
-                for (let i = 0; i < numSpread; i++) {
-                    let targetIndex = RandomFast.HashIntApprox(seed, 0, sim.pop.length);
-                    if (pop.index(targetIndex).isVulnerable) pop.index(targetIndex).becomeSick(sim);
-                }
+                this.spreadInAPlace(sim.allSuperMarkets[this.marketIndex].residents, shopping_density, pop, generator, sim, seed);
+                // // // For now randomly infects _anyone_ in the city...
+                // let prob = Person.prob_baseline_timestep * this.probabilityMultiplierFromDensity(shopping_density);
+                // let numSpread = this.howManyCatchItInThisTimeStep(generator, prob, 100);
+                // for (let i = 0; i < numSpread; i++) {
+                //     let targetIndex = RandomFast.HashIntApprox(seed, 0, sim.pop.length);
+                //     if (pop.index(targetIndex).isVulnerable) pop.index(targetIndex).becomeSick(sim);
+                // }
             }
         }
 
