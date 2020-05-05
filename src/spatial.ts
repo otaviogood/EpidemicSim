@@ -48,7 +48,9 @@ export class Person {
     static readonly handwashing_probability_multiplier = 0.76;
     // 4.1% of cases completely asymptomatic in a Korean call center study that made sure to do follow-up tests.
     // https://wwwnc.cdc.gov/eid/article/26/8/20-1274_article
-    static readonly fully_asymptomatic = 0.041;
+    // Among the cases with relevant information (n=329, 28.48%), 49 (14.89%) were asymptomatic, 256 (77.81%) mild to moderate, and 24 (7.29%) severe.
+    // https://www.medrxiv.org/content/10.1101/2020.03.21.20040329v1.full.pdf
+    static readonly fully_asymptomatic = 0.1489;
 
     // From: https://science.sciencemag.org/content/early/2020/04/09/science.abb6936/tab-figures-data
     // Relative infectiousness of asymptomatics
@@ -205,9 +207,9 @@ export class Person {
         currentHour: number,
         sim: Sim
     ) {
-        let activity = Person.activities[currentHour];
-        let seed = Math.trunc(time_steps_since_start + index); // Unique for time step and each person
         if (this.isContagious) {
+            let activity = Person.activities[currentHour];
+            let seed = Math.trunc(time_steps_since_start + index); // Unique for time step and each person
             if (activity == ActivityType.home) {
                 this.spreadInAPlace(sim.allHouseholds[this.homeIndex].residents, home_density, pop, generator, sim, seed);
             } else if (activity == ActivityType.work) {

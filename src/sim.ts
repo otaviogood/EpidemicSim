@@ -8,6 +8,8 @@ var generator: MersenneTwister; // = new MersenneTwister(1234567890);
 import RandomFast from "./random-fast";
 // import latlons from "../../contact_tracing/private_traces/devon/Location History/Semantic Location History/2020/2020_APRIL.json";
 
+import supermarkets from "../utils/sfSupermarkets.json";
+
 // const allLocations = (<any>latlons).timelineObjects;
 // console.log(allLocations);
 
@@ -46,12 +48,13 @@ export async function parseCSV(sim: Sim) {
             // header = rows[0];
             for (let i = 0; i < rows.length; i++) {
                 let row = rows[i];
-                const latS = row["building_latitude"].trim();
-                const lonS = row["building_longitude"].trim();
+                const lonS = row["building_latitude"].trim();  // THIS FILE HAS LAT/LON SWITCHED!!!! :(
+                const latS = row["building_longitude"].trim();
                 let lat = Number.parseFloat(latS);
                 let lon = Number.parseFloat(lonS);
+                
                 // HACK!!!! Only 2 digits of precision in lat/lon from file, so let's randomize the rest.
-                lat += generator.random() * 0.01 + 0.005;
+                lat += generator.random() * 0.01;// + 0.005;
                 lon += generator.random() * 0.01 - 0.005;
 
                 const facility = row["residential_facility_type"];
@@ -76,16 +79,18 @@ export async function parseCSV(sim: Sim) {
                         totalOfficeCapacity += capacity;
                         sim.allOffices.push(new HouseHold(lat, lon, capacity));
                     }
-                    sim.maxLat = Math.max(sim.maxLat, lat);
-                    sim.minLat = Math.min(sim.minLat, lat);
-                    sim.maxLon = Math.max(sim.maxLon, lon);
-                    sim.minLon = Math.min(sim.minLon, lon);
+                    // sim.maxLat = Math.max(sim.maxLat, lat);
+                    // sim.minLat = Math.min(sim.minLat, lat);
+                    // sim.maxLon = Math.max(sim.maxLon, lon);
+                    // sim.minLon = Math.min(sim.minLon, lon);
                 }
             }
             console.log("sim.minlat: " + sim.minLat);
             console.log("sim.maxlat: " + sim.maxLat);
             console.log("sim.minlon: " + sim.minLon);
             console.log("sim.maxlon: " + sim.maxLon);
+            console.log("aspect ratio: " + (sim.maxLat - sim.minLat) / (sim.maxLon - sim.minLon));
+
             const canvas = <HTMLCanvasElement>document.getElementById("graph-canvas");
             if (canvas.getContext) {
                 const ctx = canvas.getContext("2d");
@@ -103,7 +108,7 @@ export async function parseCSV(sim: Sim) {
     // });
     // console.log("loaded CSV");
 
-    img = await loadImage("sf_map.jpg");
+    img = await loadImage("sf_map_osm.jpg");
     console.log("loaded image");
 }
 
@@ -140,10 +145,10 @@ export class Sim {
     // allOfficePositions: any[] = [];
     allHouseholds: HouseHold[] = [];
     allOffices: HouseHold[] = [];
-    maxLat: number = -Number.MAX_VALUE;
-    minLat: number = Number.MAX_VALUE;
-    maxLon: number = -Number.MAX_VALUE;
-    minLon: number = Number.MAX_VALUE;
+    maxLat: number = 37.815;//-Number.MAX_VALUE;
+    minLat: number = 37.708;//Number.MAX_VALUE;
+    maxLon: number = -122.354;//-Number.MAX_VALUE;
+    minLon: number = -122.526;//Number.MAX_VALUE;
 
     time_steps_since_start = 0;
     infected_array: number[] = [];
@@ -169,8 +174,8 @@ export class Sim {
     // Normalizes positions so they are in the [0..1] range on x and y.
     // Returns [x, y] tuple.
     latLonToPos(lat: number, lon: number): number[] {
-        let ypos = 1.0 - (lon - this.minLon) / (this.maxLon - this.minLon);
-        let xpos = (lat - this.minLat) / (this.maxLat - this.minLat);
+        let xpos = (lon - this.minLon) / (this.maxLon - this.minLon);
+        let ypos = 1.0 - (lat - this.minLat) / (this.maxLat - this.minLat);
         return [xpos, ypos];
     }
 
@@ -328,12 +333,12 @@ export class Sim {
             const ctx = canvas.getContext("2d");
             if (!ctx) return;
             if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.globalAlpha = 0.2;
-            ctx.drawImage(img, -60, 60, 900, 700);
+            ctx.globalAlpha = 0.3;
+            ctx.drawImage(img, 0, 0);
             ctx.globalAlpha = 1.0;
             [this.canvasWidth, this.canvasHeight] = [canvas.width, canvas.height];
-            this.scalex = canvas.width + 0.0; // - 64.0;
-            this.scaley = canvas.height - 10.0;
+            this.scalex = canvas.width;
+            this.scaley = canvas.height * 0.787;
 
             if (this.selectedHouseholdIndex >= 0) {
                 let hh: HouseHold = this.allHouseholds[this.selectedHouseholdIndex];
@@ -391,6 +396,24 @@ export class Sim {
                 let office = this.allOffices[i];
                 this.drawRect(ctx, office.xpos, office.ypos, 0.005, 0.007, "rgb(160, 160, 160)");
             }
+            for (let i = 0; i < supermarkets.length; i++) {
+                let market = supermarkets[i];
+                let lat:any = market[0]!;
+                let lon:any = market[1]!;
+                
+                let [x, y] = this.latLonToPos(parseFloat(lat), parseFloat(lon));
+                this.drawRect(ctx, x, y, 0.005, 0.007, "rgb(60, 255, 60)");
+            }
+            // Reference point to check lat/lon
+            // let [x, y] = this.latLonToPos(37.7615, -122.44);  // middle of range
+            // this.drawCircle(ctx, x, y, 2, "rgb(60, 255, 240)");
+            // [x, y] = this.latLonToPos(37.810515, -122.424476);  // aquatic park
+            // this.drawCircle(ctx, x, y, 2, "rgb(6, 155, 240)");
+            // [x, y] = this.latLonToPos(37.774746, -122.454676);  // upper right of GG park
+            // this.drawCircle(ctx, x, y, 2, "rgb(60, 255, 40)");
+            // [x, y] = this.latLonToPos(37.708787, -122.374493);  // east candlestick point
+            // this.drawCircle(ctx, x, y, 2, "rgb(160, 255, 40)");
+
 
             // Animate infection circles and delete things from the list that are old.
             let tempIV: number[][] = [];
@@ -415,7 +438,7 @@ export class Sim {
             //         let lon = Number.parseFloat(loc.centerLngE7) * 0.0000001;
             //         console.log(lat + ", " + lon);
 
-            //         let [x,y] = this.latLonToPos(lon, lat);
+            //         let [x,y] = this.latLonToPos(lat, lon);
             //         this.drawCircle(ctx, x, y, 2, "rgb(255,255,255)");
             //     }
             // }
