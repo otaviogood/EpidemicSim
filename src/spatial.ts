@@ -111,6 +111,7 @@ export class Person {
     dead: boolean = false;
     homeIndex = -1;
     officeIndex = -1;
+    marketIndex = -1;
 
     constructor(generator: MersenneTwister, protected id: number) {
         this.xpos = generator.random();

@@ -143,10 +143,9 @@ export class Sim {
     static readonly miss_rate = 0.03; // false negatives - a friend told me this number.
     static readonly time_steps_till_change_target = 4; // This changes the r number effectively. Bad I guess.???
 
-    // allHousePositions: any[] = [];
-    // allOfficePositions: any[] = [];
     allHouseholds: HouseHold[] = [];
     allOffices: HouseHold[] = [];
+    allSuperMarkets: HouseHold[] = [];
     maxLat: number = 37.815;//-Number.MAX_VALUE;
     minLat: number = 37.708;//Number.MAX_VALUE;
     maxLon: number = -122.354;//-Number.MAX_VALUE;
@@ -182,6 +181,14 @@ export class Sim {
     }
 
     async setup() {
+        for (const sm of supermarkets) {
+            let lat:any = sm[0]!;
+            let lon:any = sm[1]!;
+            let hh = new HouseHold(parseFloat(lat), parseFloat(lon), 200);  // TODO: supermarket capacity???
+            [hh.xpos, hh.ypos] = this.latLonToPos(hh.lat, hh.lon);
+            this.allSuperMarkets.push(hh);
+        }
+
         shuffleArrayInPlace(this.allHouseholds);
         this.allHouseholds = this.allHouseholds.slice(0, Math.min(this.allHouseholds.length, 500000)); // HACK!!!! Limit # of houses for debugging
         for (let i = 0; i < this.allHouseholds.length; i++) {
@@ -196,6 +203,8 @@ export class Sim {
         }
 
         // Allocate people to their houses and offices.
+        console.log("Generating people data...");
+        
         let householdIndex = 0;
         const numHouses = this.allHouseholds.length;
         let done = false;
@@ -203,6 +212,7 @@ export class Sim {
         while (!done) {
             let person = new Person(generator, this.pop.length);
 
+            // Assign a random household, without overflowing the capacity
             let hh = this.allHouseholds[householdIndex];
             if (hh.residents.length >= hh.capacity) {
                 householdIndex++;
@@ -214,6 +224,7 @@ export class Sim {
             person.ypos = hh.ypos;
             person.homeIndex = householdIndex;
 
+            // Assign a random office
             let randOff = RandomFast.HashIntApprox(i, 0, this.allOffices.length);
             let office = this.allOffices[randOff];
             // If the office is over capacity, do one extra try to find another office.
@@ -224,6 +235,22 @@ export class Sim {
             }
             office.residents.push(this.pop.length);
             person.officeIndex = randOff;
+
+            // Assign a semi-random, but close-to-your-house supermarket as your favorite place to go
+            let randMarket = this.rfast.RandIntApprox(0, this.allSuperMarkets.length);
+            let marketDist = Number.MAX_VALUE;
+            // Gotta get spatial data structure to work so i can query for nearest things. This is a hacky patchy job for now...
+            for (let j = 0; j < 20; j++) {
+                let market = this.allSuperMarkets[randMarket];
+                let dx = (person.xpos - market.xpos);
+                let dy = (person.ypos - market.ypos);
+                let distSq = dx*dx + dy*dy;
+                if (distSq < marketDist) {
+                    marketDist = distSq;
+                    person.marketIndex = randMarket;
+                }
+                randMarket = this.rfast.RandIntApprox(0, this.allSuperMarkets.length);
+            }
 
             this.pop.add(person);
             i++;
@@ -352,12 +379,13 @@ export class Sim {
                     let popIndex = hh.residents[i];
                     let person: Person = this.pop.index(popIndex);
                     let office = this.allOffices[person.officeIndex];
+                    let market = this.allSuperMarkets[person.marketIndex];
                     this.drawLine(
                         ctx,
                         hh.xpos + RandomFast.HashFloat(i) * 0.02 - 0.01,
                         hh.ypos + RandomFast.HashFloat(i + 1000) * 0.02 - 0.01,
-                        office.xpos,
-                        office.ypos,
+                        market.xpos,
+                        market.ypos,
                         RandomFast.HashRGB(i)
                     );
                 }
@@ -477,8 +505,7 @@ export class Sim {
         }
         this.selectedHouseholdIndex = bestIndex;
         let hh = this.allHouseholds[this.selectedHouseholdIndex];
-        console.log("capactity: " + hh.capacity);
-        console.log("residents: " + hh.residents.length);
+        console.log("capactity: " + hh.capacity + ",    residents: " + hh.residents.length);
 
         this.lastMouseX = x;
         this.lastMouseY = y;

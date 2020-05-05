@@ -7,7 +7,7 @@
             <canvas
                 style="display:block;background-color:#123456;margin-bottom:4px"
                 width="365px"
-                height="512px"
+                height="384px"
                 id="graph-canvas"
             ></canvas>
             <span style="background-color:#ffcf5f;display:inline-block;width:14px;height:14px;margin-right:4px"></span
