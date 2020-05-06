@@ -8,7 +8,8 @@ var generator: MersenneTwister; // = new MersenneTwister(1234567890);
 import RandomFast from "./random-fast";
 // import latlons from "../../contact_tracing/private_traces/devon/Location History/Semantic Location History/2020/2020_APRIL.json";
 
-import supermarkets from "../utils/sfSupermarkets.json";
+import supermarketJSON from "../utils/sfSupermarkets.json";
+import hospitalJSON from "../utils/sfHospitals.json";
 
 // const allLocations = (<any>latlons).timelineObjects;
 // console.log(allLocations);
@@ -18,6 +19,17 @@ class HouseHold {
     ypos: number = 0;
     residents: number[] = [];
     constructor(readonly lat: number, readonly lon: number, readonly capacity: number) {}
+
+    latLonToPos(sim: Sim) {
+        [this.xpos, this.ypos] = sim.latLonToPos(this.lat, this.lon);
+    }
+    static genHousehold(sim: Sim, lat: any, lon: any, capacity: number): HouseHold {
+        let lat2: any = lat!;
+        let lon2: any = lon!;
+        let hh = new HouseHold(parseFloat(lat2), parseFloat(lon2), capacity);
+        hh.latLonToPos(sim);
+        return hh;
+    }
 }
 
 var img: any;
@@ -27,7 +39,7 @@ export function loadImage(url: string) {
         let i = new Image();
         i.onload = () => r(i);
         i.src = url;
-        // if (i.width == 0) alert("ERROR: Probably couldn't load jpg map image."); 
+        // if (i.width == 0) alert("ERROR: Probably couldn't load jpg map image.");
     });
 }
 
@@ -50,13 +62,13 @@ export async function parseCSV(sim: Sim) {
             // header = rows[0];
             for (let i = 0; i < rows.length; i++) {
                 let row = rows[i];
-                const lonS = row["building_latitude"].trim();  // THIS FILE HAS LAT/LON SWITCHED!!!! :(
+                const lonS = row["building_latitude"].trim(); // THIS FILE HAS LAT/LON SWITCHED!!!! :(
                 const latS = row["building_longitude"].trim();
                 let lat = Number.parseFloat(latS);
                 let lon = Number.parseFloat(lonS);
-                
+
                 // HACK!!!! Only 2 digits of precision in lat/lon from file, so let's randomize the rest.
-                lat += generator.random() * 0.01;// + 0.005;
+                lat += generator.random() * 0.01; // + 0.005;
                 lon += generator.random() * 0.01 - 0.005;
 
                 const facility = row["residential_facility_type"];
@@ -146,10 +158,11 @@ export class Sim {
     allHouseholds: HouseHold[] = [];
     allOffices: HouseHold[] = [];
     allSuperMarkets: HouseHold[] = [];
-    maxLat: number = 37.815;//-Number.MAX_VALUE;
-    minLat: number = 37.708;//Number.MAX_VALUE;
-    maxLon: number = -122.354;//-Number.MAX_VALUE;
-    minLon: number = -122.526;//Number.MAX_VALUE;
+    allHospitals: HouseHold[] = [];
+    maxLat: number = 37.815; //-Number.MAX_VALUE;
+    minLat: number = 37.708; //Number.MAX_VALUE;
+    maxLon: number = -122.354; //-Number.MAX_VALUE;
+    minLon: number = -122.526; //Number.MAX_VALUE;
 
     time_steps_since_start = 0;
     infected_array: number[] = [];
@@ -181,30 +194,19 @@ export class Sim {
     }
 
     async setup() {
-        for (const sm of supermarkets) {
-            let lat:any = sm[0]!;
-            let lon:any = sm[1]!;
-            let hh = new HouseHold(parseFloat(lat), parseFloat(lon), 200);  // TODO: supermarket capacity???
-            [hh.xpos, hh.ypos] = this.latLonToPos(hh.lat, hh.lon);
-            this.allSuperMarkets.push(hh);
-        }
+        for (const sm of supermarketJSON) this.allSuperMarkets.push(HouseHold.genHousehold(this, sm[0], sm[1], 200)); // TODO: supermarket capacity???
+        for (const h of hospitalJSON) this.allHospitals.push(HouseHold.genHousehold(this, h[0], h[1], 200)); // TODO: hospital capacity???
 
         shuffleArrayInPlace(this.allHouseholds);
         this.allHouseholds = this.allHouseholds.slice(0, Math.min(this.allHouseholds.length, 500000)); // HACK!!!! Limit # of houses for debugging
-        for (let i = 0; i < this.allHouseholds.length; i++) {
-            let hh = this.allHouseholds[i];
-            [hh.xpos, hh.ypos] = this.latLonToPos(hh.lat, hh.lon);
-        }
+        for (let i = 0; i < this.allHouseholds.length; i++) this.allHouseholds[i].latLonToPos(this);
         shuffleArrayInPlace(this.allOffices);
-        this.allOffices = this.allOffices.slice(0, this.allHouseholds.length / 2); // HACK!!!! Force houses to have half as many as there are houses
-        for (let i = 0; i < this.allOffices.length; i++) {
-            let hh = this.allOffices[i];
-            [hh.xpos, hh.ypos] = this.latLonToPos(hh.lat, hh.lon);
-        }
+        this.allOffices = this.allOffices.slice(0, this.allHouseholds.length / 2); // HACK!!!! Force offices to have half as many as there are houses
+        for (let i = 0; i < this.allOffices.length; i++) this.allOffices[i].latLonToPos(this);
 
         // Allocate people to their houses and offices.
         console.log("Generating people data...");
-        
+
         let householdIndex = 0;
         const numHouses = this.allHouseholds.length;
         let done = false;
@@ -242,14 +244,30 @@ export class Sim {
             // Gotta get spatial data structure to work so i can query for nearest things. This is a hacky patchy job for now...
             for (let j = 0; j < 20; j++) {
                 let market = this.allSuperMarkets[randMarket];
-                let dx = (person.xpos - market.xpos);
-                let dy = (person.ypos - market.ypos);
-                let distSq = dx*dx + dy*dy;
+                let dx = person.xpos - market.xpos;
+                let dy = person.ypos - market.ypos;
+                let distSq = dx * dx + dy * dy;
                 if (distSq < marketDist) {
                     marketDist = distSq;
                     person.marketIndex = randMarket;
                 }
                 randMarket = this.rfast.RandIntApprox(0, this.allSuperMarkets.length);
+            }
+
+            // Assign a semi-random, but close-to-your-house hospital as your favorite place to go
+            let randHospital = this.rfast.RandIntApprox(0, this.allHospitals.length);
+            let hospitalDist = Number.MAX_VALUE;
+            // Gotta get spatial data structure to work so i can query for nearest things. This is a hacky patchy job for now...
+            for (let j = 0; j < 5; j++) {
+                let hospital = this.allHospitals[randHospital];
+                let dx = person.xpos - hospital.xpos;
+                let dy = person.ypos - hospital.ypos;
+                let distSq = dx * dx + dy * dy;
+                if (distSq < hospitalDist) {
+                    hospitalDist = distSq;
+                    person.hospitalIndex = randHospital;
+                }
+                randHospital = this.rfast.RandIntApprox(0, this.allHospitals.length);
             }
 
             this.pop.add(person);
@@ -426,13 +444,21 @@ export class Sim {
                 let office = this.allOffices[i];
                 this.drawRect(ctx, office.xpos, office.ypos, 0.005, 0.007, "rgb(160, 160, 160)");
             }
-            for (let i = 0; i < supermarkets.length; i++) {
-                let market = supermarkets[i];
-                let lat:any = market[0]!;
-                let lon:any = market[1]!;
-                
+            for (let i = 0; i < supermarketJSON.length; i++) {
+                let market = supermarketJSON[i];
+                let lat: any = market[0]!;
+                let lon: any = market[1]!;
+
                 let [x, y] = this.latLonToPos(parseFloat(lat), parseFloat(lon));
                 this.drawRect(ctx, x, y, 0.005, 0.007, "rgb(60, 255, 60)");
+            }
+            for (let i = 0; i < hospitalJSON.length; i++) {
+                let hospital = hospitalJSON[i];
+                let lat: any = hospital[0]!;
+                let lon: any = hospital[1]!;
+
+                let [x, y] = this.latLonToPos(parseFloat(lat), parseFloat(lon));
+                this.drawRect(ctx, x, y, 0.005, 0.007, "rgb(255, 25, 20)");
             }
             // Reference point to check lat/lon
             // let [x, y] = this.latLonToPos(37.7615, -122.44);  // middle of range
@@ -443,7 +469,6 @@ export class Sim {
             // this.drawCircle(ctx, x, y, 2, "rgb(60, 255, 40)");
             // [x, y] = this.latLonToPos(37.708787, -122.374493);  // east candlestick point
             // this.drawCircle(ctx, x, y, 2, "rgb(160, 255, 40)");
-
 
             // Animate infection circles and delete things from the list that are old.
             let tempIV: number[][] = [];

@@ -3,6 +3,7 @@
 const fs = require("fs");
 var osmread = require("./node_modules/osm-read/osm-read-pbf");
 
+// San Francisco limits
 let latMin = 37.708;
 let latMax = 37.815;
 let lonMin = -122.526;
@@ -18,8 +19,8 @@ function localFilterNodes() {
         endDocument: function() {
             console.log("document end");
             console.log("nodes: " + nodeMap.size);
-            const sfNodes = JSON.stringify(Object.fromEntries(nodeMap));
-            fs.writeFileSync("sfNodes.json", sfNodes);
+            const localNodes = JSON.stringify(Object.fromEntries(nodeMap));
+            fs.writeFileSync("localNodes.json", localNodes);
         },
         node: function(node) {
             let lat = parseFloat(node.lat);
@@ -68,7 +69,7 @@ function localFilterWays() {
             console.log("document end");
             console.log("ways: " + wayMap.size);
             const localWays = JSON.stringify(Object.fromEntries(wayMap));
-            fs.writeFileSync("sfWays.json", localWays);
+            fs.writeFileSync("localWays.json", localWays);
         },
         way: function(way) {
             let nodeRefs = way.nodeRefs;
@@ -87,40 +88,48 @@ function localFilterWays() {
     });
 }
 
-// Filter out all nodes and ways from a certain area (lat/lon)
-localFilterNodes();
-// nodeMap = loadJSON("./sfNodes.json");
-localFilterWays();
+// // Filter out all nodes and ways from a certain area (lat/lon)
+// localFilterNodes();
+// // nodeMap = loadJSON("./localNodes.json");
+// localFilterWays();
 
 // Find all supermarkets in our region
-// let allPlaces = [];
-// nodeMap = loadJSON("./sfNodes.json");
-// for (const [id, val] of nodeMap) {
-//     let ts = JSON.stringify(val.tags);
-//     if (ts.includes("supermarket")) {
-//         let lat = parseFloat(val.lat);
-//         let lon = parseFloat(val.lon);
-//         allPlaces.push([lat, lon, val.tags.name]);
-//         // console.log(val);
-//     }
-// }
-// console.log("----------------------------------------------------");
-// // console.log(nodeMap.get("26819236"));
-// wayMap = loadJSON("./sfWays.json");
-// for (const [id, val] of wayMap) {
-//     let ts = JSON.stringify(val.tags);
-//     if (ts.includes("supermarket")) {
-//         // console.log(val.nodeRefs[0]);
-//         let reffed = nodeMap.get(val.nodeRefs[0]);
-//         // console.log(reffed);
-//         let lat = parseFloat(reffed.lat);
-//         let lon = parseFloat(reffed.lon);
-//         allPlaces.push([lat, lon, val.tags.name]);
-//         // console.log(val);
-//     }
-// }
-// const localWays = JSON.stringify(Object.fromEntries(wayMap));
-// fs.writeFileSync("sfSupermarkets.json", JSON.stringify(allPlaces));
+let keywords = ["hospital", "medical center"];
+let badWords = ["pet", "veterinary", "animal", "hospitality", "marijuana"];
+function hasWordFromList(bigString, wordList) {
+    for (const word of wordList) if (bigString.includes(word)) return true;
+    return false;
+}
+let allPlaces = [];
+nodeMap = loadJSON("./localNodes.json");
+for (const [id, val] of nodeMap) {
+    let tagStr = JSON.stringify(val.tags).toLowerCase();
+    if (hasWordFromList(tagStr, keywords)) {
+        if (hasWordFromList(tagStr, badWords)) continue;
+        let lat = parseFloat(val.lat);
+        let lon = parseFloat(val.lon);
+        if (val.tags.name) allPlaces.push([lat, lon, val.tags.name]);
+        // console.log(val);
+    }
+}
+console.log("----------------------------------------------------");
+// console.log(nodeMap.get("26819236"));
+wayMap = loadJSON("./localWays.json");
+for (const [id, val] of wayMap) {
+    let tagStr = JSON.stringify(val.tags).toLowerCase();
+    if (hasWordFromList(tagStr, keywords)) {
+        if (hasWordFromList(tagStr, badWords)) continue;
+        // console.log(val.nodeRefs[0]);
+        let reffed = nodeMap.get(val.nodeRefs[0]);
+        // console.log(reffed);
+        let lat = parseFloat(reffed.lat);
+        let lon = parseFloat(reffed.lon);
+        if (val.tags.name) allPlaces.push([lat, lon, val.tags.name]);
+        // console.log(val);
+    }
+}
+const localWays = JSON.stringify(Object.fromEntries(wayMap));
+fs.writeFileSync("sfHospitals.json", JSON.stringify(allPlaces));
 
 // ------------------- Just for reference -------------------
 let nodeExample = {

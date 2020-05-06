@@ -112,6 +112,7 @@ export class Person {
     homeIndex = -1;
     officeIndex = -1;
     marketIndex = -1;
+    hospitalIndex = -1;
 
     constructor(generator: MersenneTwister, protected id: number) {
         this.xpos = generator.random();
