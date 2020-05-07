@@ -13,7 +13,6 @@ import RandomFast from "./random-fast";
 import supermarketJSON from "../utils/sfSupermarkets.json";
 import hospitalJSON from "../utils/sfHospitals.json";
 
-
 class HouseHold {
     xpos: number = 0;
     ypos: number = 0;
@@ -409,7 +408,7 @@ export class Sim {
             }
 
             // Rendering is by far the bottleneck, so target this many rendered points and skip the rest.
-            const skip = (this.pop.length / 256) | 0;
+            let skip = (this.pop.length / 256) | 0;
             for (let i = 0; i < this.pop.length; i += skip) {
                 let person = this.pop.index(i);
                 let color = "#000000";
@@ -436,25 +435,27 @@ export class Sim {
                 // if (person.debug != 0) color = RandomFast.ToRGB(person.debug);
                 this.drawCircle(ctx, person.xpos, person.ypos, radius, color);
             }
-            for (let i = 0; i < 128; i++) {
-                let office = this.allOffices[i];
-                this.drawRect(ctx, office.xpos, office.ypos, 0.005, 0.007, "rgb(160, 160, 160)");
-            }
-            for (let i = 0; i < supermarketJSON.length; i++) {
-                let market = supermarketJSON[i];
-                let lat: any = market[0]!;
-                let lon: any = market[1]!;
+            if (this.paused) {
+                for (let i = 0; i < 128; i++) {
+                    let office = this.allOffices[i];
+                    this.drawRect(ctx, office.xpos, office.ypos, 0.005, 0.007, "rgb(160, 160, 160)");
+                }
+                for (let i = 0; i < supermarketJSON.length; i++) {
+                    let market = supermarketJSON[i];
+                    let lat: any = market[0]!;
+                    let lon: any = market[1]!;
 
-                let [x, y] = this.latLonToPos(parseFloat(lat), parseFloat(lon));
-                this.drawRect(ctx, x, y, 0.005, 0.007, "rgb(60, 255, 60)");
-            }
-            for (let i = 0; i < hospitalJSON.length; i++) {
-                let hospital = hospitalJSON[i];
-                let lat: any = hospital[0]!;
-                let lon: any = hospital[1]!;
+                    let [x, y] = this.latLonToPos(parseFloat(lat), parseFloat(lon));
+                    this.drawRect(ctx, x, y, 0.005, 0.007, "rgb(60, 255, 60)");
+                }
+                for (let i = 0; i < hospitalJSON.length; i++) {
+                    let hospital = hospitalJSON[i];
+                    let lat: any = hospital[0]!;
+                    let lon: any = hospital[1]!;
 
-                let [x, y] = this.latLonToPos(parseFloat(lat), parseFloat(lon));
-                this.drawRect(ctx, x, y, 0.005, 0.007, "rgb(255, 25, 20)");
+                    let [x, y] = this.latLonToPos(parseFloat(lat), parseFloat(lon));
+                    this.drawRect(ctx, x, y, 0.005, 0.007, "rgb(255, 25, 20)");
+                }
             }
 
             // Reference point to check lat/lon
@@ -534,11 +535,9 @@ export class Sim {
         this.draw();
     }
     playPause() {
-        if (this.paused) {
-            this.paused = false;
-            this.draw();
-        } else {
-            this.paused = true;
-        }
+        if (this.paused) this.paused = false;
+        else this.paused = true;
+
+        this.draw();
     }
 }
