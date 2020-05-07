@@ -6,13 +6,13 @@ import { Person, Spatial, Grid } from "./spatial";
 import MersenneTwister from "mersenne-twister";
 var generator: MersenneTwister; // = new MersenneTwister(1234567890);
 import RandomFast from "./random-fast";
-// import latlons from "../../contact_tracing/private_traces/devon/Location History/Semantic Location History/2020/2020_APRIL.json";
+// import latlons from "../../contact_tracing/devon_since_feb.json";
+// const allLocations = (<any>latlons).locations;
+// console.log(allLocations);
 
 import supermarketJSON from "../utils/sfSupermarkets.json";
 import hospitalJSON from "../utils/sfHospitals.json";
 
-// const allLocations = (<any>latlons).timelineObjects;
-// console.log(allLocations);
 
 class HouseHold {
     xpos: number = 0;
@@ -35,7 +35,7 @@ class HouseHold {
 var img: any;
 export function loadImage(url: string) {
     return new Promise(r => {
-        console.log(url);
+        console.log("Loading: " + url);
         let i = new Image();
         i.onload = () => r(i);
         i.src = url;
@@ -113,7 +113,7 @@ export async function parseCSV(sim: Sim) {
             // console.log("num buildings: " + sim.allHousePositions.length);
             console.log("total home capacity from file: " + totalHomeCapacity);
             console.log("total offices from file: " + totalOfficeCapacity);
-            console.log(sim.allHouseholds.length);
+            console.log("Total households: " + sim.allHouseholds.length);
             console.log("Average household size: " + totalHomeCapacity / sim.allHouseholds.length);
 
             sim.setup();
@@ -123,7 +123,6 @@ export async function parseCSV(sim: Sim) {
     // console.log("loaded CSV");
 
     img = await loadImage("sf_map_osm.jpg");
-    console.log("loaded image");
 }
 
 // Biased, but not much for small ranges.
@@ -283,12 +282,11 @@ export class Sim {
         //     this.pop.index(near[i]).occupation = 2;
         // }
         // this.pop.index(near).occupation = 2;
-        this.pop.index(0).time_since_start = Person.time_till_contagious + 1;
-        this.pop.index(1).time_since_start = Person.time_till_contagious + 1;
-        this.pop.index(2).time_since_start = Person.time_till_contagious + 1;
-        this.pop.index(3).time_since_start = Person.time_till_contagious + 1;
-        this.totalInfected = 4;
-        this.numActive = 4;
+        for (let i = 0; i < 31; i++) {
+            this.pop.index(i).time_since_start = Person.time_till_contagious + 1;
+            this.totalInfected++;
+            this.numActive++;
+        }
 
         window.requestAnimationFrame(() => this.draw());
     }
@@ -379,6 +377,7 @@ export class Sim {
         if (canvas.getContext) {
             const ctx = canvas.getContext("2d");
             if (!ctx) return;
+            // ctx.setTransform(4, 0, 0, 4, -1024, -1024);
             if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.globalAlpha = 0.3;
             ctx.drawImage(img, 0, 0);
@@ -426,9 +425,6 @@ export class Sim {
                     radius = 2;
                     color = "rgb(0, 64, 255)";
                 }
-                // if (person.symptoms) {
-                //     color = "rgb(0, 255, 0)";
-                // }
                 if (person.occupation == 1) {
                     radius = 3;
                     color = "rgb(255,0,255)";
@@ -460,6 +456,7 @@ export class Sim {
                 let [x, y] = this.latLonToPos(parseFloat(lat), parseFloat(lon));
                 this.drawRect(ctx, x, y, 0.005, 0.007, "rgb(255, 25, 20)");
             }
+
             // Reference point to check lat/lon
             // let [x, y] = this.latLonToPos(37.7615, -122.44);  // middle of range
             // this.drawCircle(ctx, x, y, 2, "rgb(60, 255, 240)");
@@ -486,16 +483,15 @@ export class Sim {
             }
             this.infectedVisuals = tempIV;
 
-            // for (let i = 0; i < allLocations.length; i++) {
-            //     if (allLocations[i].placeVisit) {
-            //         let loc = allLocations[i].placeVisit;
-            //         let lat = Number.parseFloat(loc.centerLatE7) * 0.0000001;
-            //         let lon = Number.parseFloat(loc.centerLngE7) * 0.0000001;
-            //         console.log(lat + ", " + lon);
+            // // Look at Google timeline data
+            // for (let i = 0; i < 100; i++) {
+            //     let slide = this.time_steps_since_start + i + 2200;
+            //     let lat = Number.parseFloat(allLocations[slide].latitudeE7) * 0.0000001;
+            //     let lon = Number.parseFloat(allLocations[slide].longitudeE7) * 0.0000001;
+            //     // console.log(lat + ", " + lon);
 
-            //         let [x,y] = this.latLonToPos(lat, lon);
-            //         this.drawCircle(ctx, x, y, 2, "rgb(255,255,255)");
-            //     }
+            //     let [x,y] = this.latLonToPos(lat, lon);
+            //     this.drawCircle(ctx, x, y, .2, "rgb(255,255,2)");
             // }
 
             // Every day, save off total infected so i can graph it.
@@ -506,6 +502,7 @@ export class Sim {
             //     this.run_simulation(1);
             //     window.requestAnimationFrame(() => this.draw());
             // }
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
         }
     }
     controllerClick(x: number, y: number) {

@@ -5,13 +5,25 @@ import MersenneTwister from "mersenne-twister";
 
 import { Sim } from "./sim";
 
+// Input is an array that should be normalized to add up to 1... a probability distribution.
+function sampleProbabilites(rand: MersenneTwister, probs: number[]) {
+    let r = rand.random();
+    for (let i = 0; i < probs.length; i++) {
+        let p = probs[i];
+        if (r < p) return i;
+        r -= p;
+    }
+    return probs.length - 1; // In theory, we shouldn't ever reach this return statement.
+}
+
 // hospital, school, supermarket, retirement community, prison
 enum ActivityType {
-    home = 1,
-    work,
-    car,
-    train,
-    shopping,
+    home = "h",
+    work = "w",
+    shopping = "s",
+    hospital = "o",
+    car = "c",
+    train = "t",
 }
 
 const home_density: number = 0.5;
@@ -20,15 +32,16 @@ const shopping_density: number = 1.5;
 
 let rtemp = new RandomFast(1234567);
 export class Person {
-    // prettier-ignore
-    static readonly activities = [ActivityType.home, ActivityType.home, ActivityType.home, ActivityType.home, 
-        ActivityType.home, ActivityType.home, ActivityType.home, ActivityType.home, 
-        ActivityType.home, ActivityType.car, ActivityType.work, ActivityType.work,
-        ActivityType.work, ActivityType.work, ActivityType.work, ActivityType.work,
-        ActivityType.work, ActivityType.work, ActivityType.car, ActivityType.shopping, 
-        ActivityType.home, ActivityType.home, ActivityType.home, ActivityType.home, ];
+    // lots of sets of 24-hour periods of different behaviors that represent different people's lifestyles
+    // TODO: are weekends different? Does it matter?
+    static readonly activities = [
+        "hhhhhhhhcwwwswwwwwchhhhh", // needs to be 24-long
+        "hhhhhhhhcshhshhhhhshhhhh",
+        "hhhhhhhccsscchhhhshhhhhh",
+    ];
 
-    static readonly prob_baseline_timestep = 0.002;
+    // This is like the "R" number, but as a probability of spreding in a timestep.
+    static readonly prob_baseline_timestep = 0.01; // .002
     // https://www.nature.com/articles/s41591-020-0869-5
     static readonly time_till_contagious = 3 * 24;
     static readonly time_till_symptoms = 5.25 * 24; // Rounded a little from 5.2.
@@ -210,7 +223,8 @@ export class Person {
         sim: Sim
     ) {
         if (this.isContagious) {
-            let activity = Person.activities[currentHour];
+            let activityStyle = Person.activities[RandomFast.HashIntApprox(this.id, 0, Person.activities.length)];
+            let activity = activityStyle[currentHour];
             let seed = Math.trunc(time_steps_since_start + index); // Unique for time step and each person
             if (activity == ActivityType.home) {
                 this.spreadInAPlace(sim.allHouseholds[this.homeIndex].residents, home_density, pop, generator, sim, seed);
@@ -218,13 +232,6 @@ export class Person {
                 this.spreadInAPlace(sim.allOffices[this.officeIndex].residents, office_density, pop, generator, sim, seed);
             } else if (activity == ActivityType.shopping) {
                 this.spreadInAPlace(sim.allSuperMarkets[this.marketIndex].residents, shopping_density, pop, generator, sim, seed);
-                // // // For now randomly infects _anyone_ in the city...
-                // let prob = Person.prob_baseline_timestep * this.probabilityMultiplierFromDensity(shopping_density);
-                // let numSpread = this.howManyCatchItInThisTimeStep(generator, prob, 100);
-                // for (let i = 0; i < numSpread; i++) {
-                //     let targetIndex = RandomFast.HashIntApprox(seed, 0, sim.pop.length);
-                //     if (pop.index(targetIndex).isVulnerable) pop.index(targetIndex).becomeSick(sim);
-                // }
             }
         }
 
