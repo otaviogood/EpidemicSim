@@ -1,9 +1,9 @@
 <template>
     <div>
-        <h1>
+        <h2>
             {{ name }}
-        </h1>
-        <span style="float:right;border:1px solid #aaaaaa;padding:6px;background-color:#cceeff;border-radius:8px">
+        </h2>
+        <span class="card" style="float:right;">
             <canvas
                 style="display:block;background-color:#123456;margin-bottom:4px"
                 width="365px"
@@ -23,32 +23,42 @@
             <span style="width:180px;display:inline-block">Hours: {{ hoursElapsed }}</span>
             Days: {{ Math.floor(hoursElapsed / 24) }}<br />
         </span>
-        <canvas
-            style="display:block;background-color:#123456"
-            width="768px"
-            height="768px"
-            id="map-canvas"
-            @click="clicked"
-        ></canvas>
-        <p>
-            <button
-                type="button"
-                class=""
-                style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;"
-                @click="playPause"
-            >
-                ⏯️
-            </button>
-            <button
-                type="button"
-                class=""
-                style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;"
-                @click="restart"
-            >
-                🔁
-            </button>
-            Sim Time (Milliseconds): {{ Math.round(milliseconds) }}<br />
-        </p>
+        <span class="card">
+            <canvas
+                style="display:block;background-color:#123456;"
+                width="768px"
+                height="768px"
+                id="map-canvas"
+                @click="clicked"
+            ></canvas>
+            <p style="margin:8px;">
+                <button
+                    type="button"
+                    class=""
+                    style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;"
+                    @click="playPause"
+                >
+                    ⏯️
+                </button>
+                <button
+                    type="button"
+                    class=""
+                    style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;"
+                    @click="stepForward"
+                >
+                    ⤵️
+                </button>
+                <button
+                    type="button"
+                    class=""
+                    style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;"
+                    @click="restart"
+                >
+                    🔁
+                </button>
+                Sim Time (Milliseconds): {{ Math.round(milliseconds) }}<br />
+            </p>
+        </span>
     </div>
 </template>
 
@@ -85,19 +95,23 @@ export default Vue.extend({
         // await sim.setup();
     },
     methods: {
+        singleStepSim: function() {
+            let self = this;
+            let timer = performance.now();
+
+            sim.run_simulation(1);
+            self.hoursElapsed = sim.time_steps_since_start;
+            self.currentlyInfected = sim.numActive;
+            self.totalInfected = sim.totalInfected;
+            self.totalDead = sim.totalDead;
+            let t2 = performance.now();
+            self.milliseconds = t2 - timer;
+            sim.draw();
+        },
         tickAnim: function() {
             let self = this;
             if (sim.numActive > 0 && !sim.paused) {
-                let timer = performance.now();
-
-                sim.run_simulation(1);
-                self.hoursElapsed = sim.time_steps_since_start;
-                self.currentlyInfected = sim.numActive;
-                self.totalInfected = sim.totalInfected;
-                self.totalDead = sim.totalDead;
-                let t2 = performance.now();
-                self.milliseconds = t2 - timer;
-                sim.draw();
+                self.singleStepSim();
             }
 
             this.animId = window.requestAnimationFrame(() => self.tickAnim());
@@ -121,6 +135,9 @@ export default Vue.extend({
         playPause: function(event: any) {
             sim.playPause();
         },
+        stepForward: function(event: any) {
+            this.singleStepSim();
+        },
         restart: function(event: any) {
             sim = new Sim();
             parseCSV(sim); // this await doesn't work. :/
@@ -130,12 +147,19 @@ export default Vue.extend({
 </script>
 
 <style>
-h1 {
+h2 {
     font-family: sans-serif, Arial;
     color: #ff8811;
 }
 body {
     font-family: sans-serif, Arial;
     font-size: 16px;
+}
+.card {
+    display: inline-block;
+    border: 1px solid #aaaaaa;
+    padding: 8px;
+    background-color: #cceeff;
+    border-radius: 8px;
 }
 </style>
