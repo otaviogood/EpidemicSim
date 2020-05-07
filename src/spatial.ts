@@ -17,7 +17,7 @@ function sampleProbabilites(rand: MersenneTwister, probs: number[]) {
 }
 
 // hospital, school, supermarket, retirement community, prison
-enum ActivityType {
+export enum ActivityType {
     home = "h",
     work = "w",
     shopping = "s",
@@ -127,7 +127,7 @@ export class Person {
     marketIndex = -1;
     hospitalIndex = -1;
 
-    constructor(generator: MersenneTwister, protected id: number) {
+    constructor(generator: MersenneTwister, public id: number) {
         this.xpos = generator.random();
         this.ypos = generator.random();
     }
@@ -156,9 +156,19 @@ export class Person {
     get isContagious() {
         return this.time_since_start > Person.time_till_contagious && this.time_since_start < Person.time_virus_is_communicable;
     }
+    get isShowingSymptoms() {
+        return this.time_since_start > Person.time_till_symptoms && this.time_since_start < Person.time_till_no_symptoms;
+    }
     // Susceptible
     get isVulnerable() {
         return this.time_since_start < 0;
+    }
+    get isRecovered() {
+        return (
+            this.time_since_start >= Person.time_till_symptoms &&
+            this.time_since_start >= Person.time_virus_is_communicable &&
+            !this.dead
+        );
     }
     // Returns true if this person is sick.
     stepTime(): boolean {
@@ -214,6 +224,11 @@ export class Person {
         }
     }
 
+    getCurrentActivity(currentHour: number): ActivityType {
+        let activityStyle = Person.activities[RandomFast.HashIntApprox(this.id, 0, Person.activities.length)];
+        return activityStyle[currentHour] as ActivityType;
+    }
+
     spread(
         time_steps_since_start: number,
         index: number,
@@ -223,8 +238,7 @@ export class Person {
         sim: Sim
     ) {
         if (this.isContagious) {
-            let activityStyle = Person.activities[RandomFast.HashIntApprox(this.id, 0, Person.activities.length)];
-            let activity = activityStyle[currentHour];
+            let activity = this.getCurrentActivity(currentHour);
             let seed = Math.trunc(time_steps_since_start + index); // Unique for time step and each person
             if (activity == ActivityType.home) {
                 this.spreadInAPlace(sim.allHouseholds[this.homeIndex].residents, home_density, pop, generator, sim, seed);

@@ -23,6 +23,15 @@
             <span style="width:180px;display:inline-block">Hours: {{ hoursElapsed }}</span>
             Days: {{ Math.floor(hoursElapsed / 24) }}<br />
         </span>
+        <span class="card clearfix" style="float:right;margin-top:16px">
+            <div style="width:365px;text-align: center"><h3 style="display:inline-block;">Person info</h3></div>
+
+            <div class="stats" style="font-size:17px">Location: {{ person.location }}</div>
+            <div class="stats" style="font-size:17px">Health: {{ person.status }}</div>
+            <div class="stats">Age: {{ person.age }}</div>
+            <div class="stats">Id: {{ person.id }}</div>
+            <div class="stats"></div>
+        </span>
         <span class="card">
             <canvas
                 style="display:block;background-color:#123456;"
@@ -35,7 +44,7 @@
                 <button
                     type="button"
                     class=""
-                    style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;"
+                    style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
                     @click="playPause"
                 >
                     ⏯️
@@ -43,7 +52,7 @@
                 <button
                     type="button"
                     class=""
-                    style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;"
+                    style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
                     @click="stepForward"
                 >
                     ⤵️
@@ -51,7 +60,7 @@
                 <button
                     type="button"
                     class=""
-                    style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;"
+                    style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
                     @click="restart"
                 >
                     🔁
@@ -66,6 +75,8 @@
 import Vue from "vue";
 import { Person, Spatial, Grid } from "./spatial";
 import { Sim, parseCSV } from "./sim";
+import { log } from "util";
+import { stat } from "fs";
 
 let sim: Sim;
 export default Vue.extend({
@@ -78,6 +89,12 @@ export default Vue.extend({
             totalInfected: 0,
             milliseconds: 0,
             totalDead: 0,
+            person: {
+                age: null,
+                id: null,
+                location: "",
+                status: "",
+            },
         };
     },
     created: function() {
@@ -92,7 +109,7 @@ export default Vue.extend({
         let self = this;
         sim = new Sim();
         await parseCSV(sim); // this await doesn't work. :/
-        // await sim.setup();
+        sim.paused = true;
     },
     methods: {
         singleStepSim: function() {
@@ -104,6 +121,30 @@ export default Vue.extend({
             self.currentlyInfected = sim.numActive;
             self.totalInfected = sim.totalInfected;
             self.totalDead = sim.totalDead;
+
+            if (sim.time_steps_since_start > 0) {
+                let currentHour = sim.time_steps_since_start % 24;
+                let p: Person = sim.pop.index(sim.selectedPersonIndex);
+                self.person.id = p.id;
+                self.person.age = p.age;
+                const icons = new Map([
+                    ["h", "🏡 Home"],
+                    ["w", "🏢 Office"],
+                    ["s", "🏪 Supermarket"],
+                    ["o", "🏥 Hospital"],
+                    ["c", "🚗 Car"],
+                    ["t", "🚂 Train"],
+                ]);
+                let act = p.getCurrentActivity(currentHour);
+                self.person.location = icons.get(act)!.toString();
+                self.person.status = "🙂 Happily not sick";
+                if (p.isSick) self.person.status = "🦠Sick";
+                if (p.isContagious) self.person.status += ", ❗Contagious";
+                if (p.isSymptomatic) self.person.status += ", 🥵Symptoms";
+                if (p.isRecovered) self.person.status = "🥳 Recovered!"
+                if (p.dead) self.person.status = "☠️ DEAD"
+            }
+
             let t2 = performance.now();
             self.milliseconds = t2 - timer;
             sim.draw();
@@ -161,5 +202,14 @@ body {
     padding: 8px;
     background-color: #cceeff;
     border-radius: 8px;
+}
+.clearfix {
+    content: "";
+    clear: both;
+    display: table;
+}
+.stats {
+    border-top: 1px solid #cccccc;
+    padding: 2px;
 }
 </style>

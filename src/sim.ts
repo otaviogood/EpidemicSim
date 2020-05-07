@@ -1,6 +1,6 @@
 var Papa = require("papaparse");
 import "@babel/polyfill"; // This is for using ES2017 features, like async/await.
-import { Person, Spatial, Grid } from "./spatial";
+import { Person, Spatial, Grid, ActivityType } from "./spatial";
 // https://github.com/boo1ean/mersenne-twister
 // var MersenneTwister = require("mersenne-twister");
 import MersenneTwister from "mersenne-twister";
@@ -169,7 +169,7 @@ export class Sim {
     totalDead = 0;
 
     selectedHouseholdIndex = -1;
-    selectedPerson = -1;
+    selectedPersonIndex = 0;
     lastMouseX = -1;
     lastMouseY = -1;
 
@@ -405,6 +405,29 @@ export class Sim {
                         RandomFast.HashRGB(i)
                     );
                 }
+            }
+            if (this.selectedPersonIndex >= 0) {
+                let p: Person = this.pop.index(this.selectedPersonIndex);
+                let px = p.xpos;  // Default to home as location.
+                let py = p.ypos;
+                let market = this.allSuperMarkets[p.marketIndex];
+                let house = this.allHouseholds[p.homeIndex];
+                let office = this.allOffices[p.officeIndex];
+                let hospital = this.allHospitals[p.hospitalIndex];
+
+                let currentHour = this.time_steps_since_start % 24;
+                let activity = p.getCurrentActivity(currentHour);
+                if (activity == ActivityType.work) px = office.xpos, py = office.ypos;
+                if (activity == ActivityType.shopping) px = market.xpos, py = market.ypos;
+                if (activity == ActivityType.work) px = office.xpos, py = office.ypos;
+                if (activity == ActivityType.hospital) px = hospital.xpos, py = hospital.ypos;
+
+                this.drawCircle(ctx, px, py, 12, "rgba(0,220,255,0.4)");
+                // this.drawText(ctx, hh.xpos + 0.02, hh.ypos, hh.residents.length.toString());
+                this.drawLine(ctx, px, py, market.xpos, market.ypos, "rgb(60, 255, 60)");
+                this.drawLine(ctx, px, py, house.xpos, house.ypos, "rgb(0, 0, 0)");
+                this.drawLine(ctx, px, py, office.xpos, office.ypos, "rgb(160, 160, 160)");
+                this.drawLine(ctx, px, py, hospital.xpos, hospital.ypos, "rgb(255, 25, 20)");
             }
 
             // Rendering is by far the bottleneck, so target this many rendered points and skip the rest.
