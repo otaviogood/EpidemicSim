@@ -1,6 +1,7 @@
 var Papa = require("papaparse");
 import "@babel/polyfill"; // This is for using ES2017 features, like async/await.
-import { Person, Spatial, Grid, ActivityType } from "./spatial";
+import { Person, ActivityType } from "./person";
+import { Spatial, Grid } from "./spatial";
 // https://github.com/boo1ean/mersenne-twister
 // var MersenneTwister = require("mersenne-twister");
 import MersenneTwister from "mersenne-twister";

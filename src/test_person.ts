@@ -9,7 +9,7 @@ import MersenneTwister from "mersenne-twister";
 // var MersenneTwister = require("mersenne-twister");
 
 import { Sim } from "./sim";
-import { Person, Spatial, Grid, ActivityType } from "./spatial";
+import { Person, ActivityType } from "./person";
 
 function logStats(data: number[], message: string, multiplier: number = 1) {
     console.log(
