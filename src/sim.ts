@@ -141,11 +141,18 @@ function shuffleArrayInPlace(array: any) {
     }
 }
 
+export function fromHours(hours:number):number {
+    return hours;
+}
+export function fromDays(days:number):number {
+    return days * 24;
+}
+
 export class Sim {
     rfast: RandomFast = new RandomFast(1234567890);
     pop: Spatial = new Spatial();
 
-    static readonly time_step_hours = 1; // hours
+    // static readonly time_step_hours = 1; // hours
     // for doubling time and r number, https://arxiv.org/ftp/arxiv/papers/2003/2003.09320.pdf page 9
     static readonly r = 2.5; // virus reproductive number
     static readonly r_time_interval = 4 * 24; // number of time steps (minutes) to do the r
@@ -282,7 +289,7 @@ export class Sim {
         // }
         // this.pop.index(near).occupation = 2;
         for (let i = 0; i < 31; i++) {
-            this.pop.index(i).time_since_start = Person.time_till_contagious + 1;
+            this.pop.index(i).time_since_infected = Person.mean_time_till_contagious + 1;
             this.totalInfected++;
             this.numActive++;
         }
@@ -295,7 +302,7 @@ export class Sim {
             let currentHour = this.time_steps_since_start % 24;
             for (let i = 0; i < this.pop.length; i++) {
                 let person = this.pop.index(i);
-                this.numActive += person.stepTime() ? 1 : 0;
+                this.numActive += person.stepTime(this) ? 1 : 0;
                 person.spread(this.time_steps_since_start, i, this.pop, generator, currentHour, this);
             }
             this.time_steps_since_start++;
@@ -436,14 +443,14 @@ export class Sim {
                 let person = this.pop.index(i);
                 let color = "#000000";
                 let radius = 2;
-                if (person.time_since_start >= 0) {
+                if (person.time_since_infected >= 0) {
                     color = "rgb(255, 192, 0)";
                     radius = 5;
                 }
-                if (person.time_since_start >= Person.time_till_contagious) {
+                if (person.time_since_infected >= Person.mean_time_till_contagious) {
                     color = "rgb(255, 0, 0)";
                 }
-                if (person.time_since_start >= Person.time_virus_is_communicable) {
+                if (person.time_since_infected >= Person.median_time_virus_is_communicable) {
                     radius = 2;
                     color = "rgb(0, 64, 255)";
                 }

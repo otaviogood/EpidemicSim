@@ -3,7 +3,8 @@ import MersenneTwister from "mersenne-twister";
 // https://github.com/boo1ean/mersenne-twister
 // var MersenneTwister = require("mersenne-twister");
 
-import { Sim } from "./sim";
+import { Sim, fromDays, fromHours } from "./sim";
+import { exists } from "fs";
 
 // Input is an array that should be normalized to add up to 1... a probability distribution.
 function sampleProbabilites(rand: MersenneTwister, probs: number[]) {
@@ -14,6 +15,16 @@ function sampleProbabilites(rand: MersenneTwister, probs: number[]) {
         r -= p;
     }
     return probs.length - 1; // In theory, we shouldn't ever reach this return statement.
+}
+
+// Linear interpolate 2 values by the 'a' value
+function mix(f0: number, f1: number, a: number): number {
+    return (1.0 - a) * f0 + a * f1;
+}
+// Polynomial smoothstep function to gently interpolate between 2 values based on a.
+function mixP(f0: number, f1: number, a: number): number {
+    a = Math.max(0.0, Math.min(1.0, a)); // Clamp [0..1] range
+    return mix(f0, f1, a * a * (3.0 - 2.0 * a));
 }
 
 // hospital, school, supermarket, retirement community, prison
@@ -43,17 +54,24 @@ export class Person {
     // This is like the "R" number, but as a probability of spreding in a timestep.
     static readonly prob_baseline_timestep = 0.01; // .002
     // https://www.nature.com/articles/s41591-020-0869-5
-    static readonly time_till_contagious = 3 * 24;
-    static readonly time_till_symptoms = 5.25 * 24; // Rounded a little from 5.2.
+    static readonly mean_time_till_contagious = fromDays(3);
+    // infectiousness was shown to peak at 0–2 days before symptom onset - https://www.nature.com/articles/s41591-020-0869-5
+    static readonly contagious_range = fromDays(2);
+    static readonly mean_time_till_symptoms = fromHours(5.25 * 24); // Rounded a little from 5.2.
+    static readonly symptom_range = fromDays(2); // TODO: totally made up range...
     // https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf
-    static readonly time_till_severe = Person.time_till_symptoms + 1 * 7 * 24;
+    static readonly time_till_severe = Person.mean_time_till_symptoms + fromDays(7);
     // median communicable period = 9.5 days https://link.springer.com/article/10.1007/s11427-020-1661-4
+    // However, the communicable period could be up to three weeks
     // TODO: make this a distribution instead of a single number.
-    static readonly time_virus_is_communicable = 9.5 * 24 + Person.time_till_contagious;
-    static readonly time_till_no_symptoms = Person.time_till_symptoms + 20 * 24; // ??? Need reference for this one.
+    static readonly median_time_virus_is_communicable = fromDays(9.5) + Person.mean_time_till_contagious;
+    // static readonly time_till_no_symptoms = Person.mean_time_till_symptoms + fromDays(20); // TODO:??? Need reference for this one.
     // Among patients who have died, the time from symptom onset to outcome ranges from 2-8 weeks
     // https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf
-    static readonly range_time_till_death = [Person.time_till_symptoms + 2 * 7 * 24, Person.time_till_symptoms + 8 * 7 * 24];
+    static readonly range_time_till_death = [
+        Person.mean_time_till_symptoms + fromDays(2 * 7),
+        Person.mean_time_till_symptoms + fromDays(8 * 7),
+    ];
     // https://www.statista.com/statistics/1105420/covid-icu-admission-rates-us-by-age-group/
     static readonly cases_that_go_to_ICU = 0.082; // Out of what population???
     // Probability of spreading virus multiplier if you get people to handwash
@@ -115,7 +133,7 @@ export class Person {
     // Temperature checks at schools / workplaces
     //
 
-    time_since_start: number = -1;
+    time_since_infected: number = -1;
     xpos: number = 0;
     ypos: number = 0;
     symptoms: boolean = true;
@@ -135,6 +153,10 @@ export class Person {
     get hashId() {
         return RandomFast.HashInt32(this.id);
     }
+    // returns a hashed number in the range [-scale..scale]
+    hashOffset(offset: number, scale: number) {
+        return (RandomFast.HashFloat(this.id + offset) * 2.0 - 1.0) * scale;
+    }
     // Person's properties based on hash of their id...
     get age() {
         // TODO: get good age distribution
@@ -150,41 +172,66 @@ export class Person {
 
     // Exposed
     get isSick() {
-        return this.time_since_start >= 0.0 && this.time_since_start < Person.time_till_no_symptoms;
+        return this.time_since_infected >= 0.0 && this.time_since_infected < this.timeTillRecoveredHashed;
     }
     // Infectious
     get isContagious() {
-        return this.time_since_start > Person.time_till_contagious && this.time_since_start < Person.time_virus_is_communicable;
+        return (
+            this.time_since_infected > Person.mean_time_till_contagious + this.hashOffset(5432176, Person.contagious_range * 0.45) &&
+            this.time_since_infected < this.timeTillRecoveredHashed
+        );
+    }
+    get timeTillSymptomsHashed() {
+        return Person.mean_time_till_symptoms + this.hashOffset(1112345, Person.contagious_range * 0.45);
     }
     get isShowingSymptoms() {
-        return this.time_since_start > Person.time_till_symptoms && this.time_since_start < Person.time_till_no_symptoms;
+        return this.time_since_infected > this.timeTillSymptomsHashed && this.time_since_infected < this.timeTillRecoveredHashed;
     }
     // Susceptible
     get isVulnerable() {
-        return this.time_since_start < 0;
+        return this.time_since_infected < 0;
+    }
+    get timeTillRecoveredHashed() {
+        // skewed distribution
+        // TODO: Super lame hack for skewed distribution... This one is really bad, but I don't even have good data for the details of the distribution.
+        let rand0 = RandomFast.HashFloat(this.id + 7654321);
+        if (rand0 > 0.5) rand0 = RandomFast.HashFloat(this.id + 19876543) * 15.0;
+        return Person.median_time_virus_is_communicable + rand0 * fromDays(1) - fromDays(4.0);
     }
     get isRecovered() {
         return (
-            this.time_since_start >= Person.time_till_symptoms &&
-            this.time_since_start >= Person.time_virus_is_communicable &&
+            this.time_since_infected >= this.timeTillSymptomsHashed &&
+            this.time_since_infected >= this.timeTillRecoveredHashed &&
             !this.dead
         );
     }
     // Returns true if this person is sick.
-    stepTime(): boolean {
+    stepTime(sim: Sim | null): boolean {
+        // other stuff...
+        if (this.time_since_infected == Person.range_time_till_death[0] && this.isSymptomatic) {
+            let h = RandomFast.HashFloat(this.id);
+            if (h < Person.infection_fatality_rate) {
+                // IDK if this includes asymptomatic or not, but it's approximate anyway, so maybe not big deal?
+                this.dead = true;
+                if (sim) sim.totalDead++;
+            }
+        }
+        
         if (this.isSick) {
-            this.time_since_start = this.time_since_start + Sim.time_step_hours;
+            this.time_since_infected = this.time_since_infected + 1; //Sim.time_step_hours;
             return true;
         }
         return false;
     }
 
     // Get exposed... won't be contagious for a while still though...
-    becomeSick(sim: Sim) {
-        this.time_since_start = 0.0;
-        let info: [number, number, number] = [this.xpos, this.ypos, sim.time_steps_since_start];
-        sim.infectedVisuals.push(info);
-        sim.totalInfected++;
+    becomeSick(sim: Sim | null) {
+        this.time_since_infected = 0.0;
+        if (sim) {
+            let info: [number, number, number] = [this.xpos, this.ypos, sim.time_steps_since_start];
+            sim.infectedVisuals.push(info);
+            sim.totalInfected++;
+        }
     }
 
     // For now, density can be thought of as your distance to the closest person.
@@ -246,16 +293,6 @@ export class Person {
                 this.spreadInAPlace(sim.allOffices[this.officeIndex].residents, office_density, pop, generator, sim, seed);
             } else if (activity == ActivityType.shopping) {
                 this.spreadInAPlace(sim.allSuperMarkets[this.marketIndex].residents, shopping_density, pop, generator, sim, seed);
-            }
-        }
-
-        // other stuff...
-        if (this.time_since_start == Person.range_time_till_death[0] && this.isSymptomatic) {
-            let h = RandomFast.HashFloat(this.id);
-            if (h < Person.infection_fatality_rate) {
-                // IDK if this includes asymptomatic or not, but it's approximate anyway, so maybe not big deal?
-                this.dead = true;
-                sim.totalDead++;
             }
         }
     }

@@ -77,6 +77,7 @@ import { Person, Spatial, Grid } from "./spatial";
 import { Sim, parseCSV } from "./sim";
 import { log } from "util";
 import { stat } from "fs";
+import { runTests } from "./test_person"
 
 let sim: Sim;
 export default Vue.extend({
@@ -90,8 +91,8 @@ export default Vue.extend({
             milliseconds: 0,
             totalDead: 0,
             person: {
-                age: null,
-                id: null,
+                age: -1,
+                id: -1,
                 location: "",
                 status: "",
             },
@@ -107,6 +108,7 @@ export default Vue.extend({
     },
     mounted: async function() {
         let self = this;
+        runTests();
         sim = new Sim();
         await parseCSV(sim); // this await doesn't work. :/
         sim.paused = true;
@@ -151,7 +153,7 @@ export default Vue.extend({
         },
         tickAnim: function() {
             let self = this;
-            if (sim.numActive > 0 && !sim.paused) {
+            if (sim && sim.numActive > 0 && !sim.paused) {
                 self.singleStepSim();
             }
 
