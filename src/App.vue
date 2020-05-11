@@ -1,8 +1,8 @@
 <template>
     <div>
-        <h2>
-            {{ name }}
-        </h2>
+        <div style="font-size:32px; padding:12px; color: #ff8811;">
+            <strong>YÆS:</strong> Yet Another Epidemic Simulator
+        </div>
         <span class="card" style="float:right;">
             <canvas
                 style="display:block;background-color:#123456;margin-bottom:4px"
@@ -28,9 +28,9 @@
 
             <div class="stats" style="font-size:17px">Location: {{ person.location }}</div>
             <div class="stats" style="font-size:17px">Health: {{ person.status }}</div>
-            <div class="stats">Age: {{ person.age }}</div>
+            <div class="stats">Age (TODO): {{ person.age }}</div>
             <div class="stats">Id: {{ person.id }}</div>
-            <div class="stats"></div>
+            <div class="stats">asymptomatic overall? {{ person.asymptomaticOverall }}</div>
         </span>
         <span class="card">
             <canvas
@@ -73,7 +73,8 @@
 
 <script lang="ts">
 import Vue from "vue";
-import { Person, Spatial, Grid } from "./spatial";
+import { Spatial, Grid } from "./spatial";
+import { Person, ActivityType } from "./person";
 import { Sim, parseCSV } from "./sim";
 import { log } from "util";
 import { stat } from "fs";
@@ -84,7 +85,6 @@ export default Vue.extend({
     data: function() {
         return {
             animId: -1,
-            name: "Epidemic Sim",
             hoursElapsed: 0,
             currentlyInfected: 0,
             totalInfected: 0,
@@ -95,6 +95,7 @@ export default Vue.extend({
                 id: -1,
                 location: "",
                 status: "",
+                asymptomaticOverall: false,
             },
         };
     },
@@ -128,7 +129,8 @@ export default Vue.extend({
                 let currentHour = sim.time_steps_since_start % 24;
                 let p: Person = sim.pop.index(sim.selectedPersonIndex);
                 self.person.id = p.id;
-                self.person.age = p.age;
+                self.person.asymptomaticOverall = !p.symptomaticOverall;
+                // self.person.age = p.age;
                 const icons = new Map([
                     ["h", "🏡 Home"],
                     ["w", "🏢 Office"],
@@ -142,7 +144,7 @@ export default Vue.extend({
                 self.person.status = "🙂 Happily not sick";
                 if (p.isSick) self.person.status = "🦠Sick";
                 if (p.isContagious) self.person.status += ", ❗Contagious";
-                if (p.isSymptomatic) self.person.status += ", 🥵Symptoms";
+                if (p.isShowingSymptoms) self.person.status += ", 🥵Symptoms";
                 if (p.isRecovered) self.person.status = "🥳 Recovered!"
                 if (p.dead) self.person.status = "☠️ DEAD"
             }

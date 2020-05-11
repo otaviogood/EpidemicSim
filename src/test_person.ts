@@ -15,31 +15,32 @@ function logStats(data: number[], message: string, multiplier: number = 1) {
     console.log(
         message +
             " mean: " +
-            (mathjs.mean!(data) * multiplier).toFixed(1) +
+            (mathjs.mean!(data) * multiplier).toFixed(3) +
             "  std: " +
-            (mathjs.std!(data) * multiplier).toFixed(1) +
+            (mathjs.std!(data) * multiplier).toFixed(2) +
             "  min:" +
-            (mathjs.min!(data) * multiplier).toFixed(1) +
+            (mathjs.min!(data) * multiplier).toFixed(3) +
             "  max:" +
             (mathjs.max!(data) * multiplier).toFixed(1)
     );
 }
 
-function check(condition:boolean, message:string) {
+function check(condition: boolean, message: string) {
     if (!condition) alert(message);
 }
 
 export function runTests() {
     // ------------------ test Person virus model --------------------------
-    console.log("-------- RUNNING TESTS... --------");
+    let numSamples = 10000;
+    console.log("-------- RUNNING " + numSamples + " TESTS... --------");
 
     let mtrand = new MersenneTwister(1234567890);
     let allTimesTillContagious: number[] = [];
     let allTimesTillSymptoms: number[] = [];
     let allTimesTillRecovered: number[] = [];
     let allTimesTillDead: number[] = [];
+    let allContagiousDurations: number[] = [];
 
-    let numSamples = 1000;
     for (let i = 0; i < numSamples; i++) {
         let p = new Person(mtrand, i);
         p.becomeSick(null);
@@ -52,18 +53,19 @@ export function runTests() {
             if (timeTillSymptoms < 0 && p.isShowingSymptoms) timeTillSymptoms = p.time_since_infected;
             if (timeTillRecovered < 0 && p.isRecovered) timeTillRecovered = p.time_since_infected;
             if (timeTillDead < 0 && p.dead) timeTillDead = p.time_since_infected;
-            p.stepTime(null);
+            p.stepTime(null, mtrand);
         }
         allTimesTillContagious.push(timeTillContagious);
-        allTimesTillSymptoms.push(timeTillSymptoms);
-        allTimesTillRecovered.push(timeTillRecovered);
+        if (timeTillSymptoms >= 0) allTimesTillSymptoms.push(timeTillSymptoms); // might never get symptoms.
+        if (timeTillRecovered >= 0) allTimesTillRecovered.push(timeTillRecovered);
         if (timeTillDead >= 0) allTimesTillDead.push(timeTillDead);
     }
-    logStats(allTimesTillContagious, "Time till contagious (days)", 1.0/24.0);
-    logStats(allTimesTillSymptoms, "Time till symptoms (days)", 1.0/24.0);
-    logStats(allTimesTillRecovered, "Time till recovered (days)", 1.0/24.0);
-    if (allTimesTillDead.length > 0) logStats(allTimesTillDead, "Time till dead (days)", 1.0/24.0);
-    console.log("Total dead: " + allTimesTillDead.length + "   %" + 100.0 * allTimesTillDead.length / numSamples);
+    logStats(allTimesTillContagious, "Time till contagious (days)", 1.0 / 24.0);
+
+    logStats(allTimesTillSymptoms, "Time till symptoms (days)", 1.0 / 24.0);
+    if (allTimesTillRecovered.length > 0) logStats(allTimesTillRecovered, "Time till recovered (days)", 1.0 / 24.0);
+    if (allTimesTillDead.length > 0) logStats(allTimesTillDead, "Time till dead (days)", 1.0 / 24.0);
+    console.log(allTimesTillDead.slice(0, 10));
+    console.log("Total dead: " + allTimesTillDead.length + "   %" + (100.0 * allTimesTillDead.length) / numSamples);
     console.log("-------- DONE TESTS --------");
-    
 }

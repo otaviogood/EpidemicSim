@@ -290,8 +290,9 @@ export class Sim {
         // }
         // this.pop.index(near).occupation = 2;
         for (let i = 0; i < 31; i++) {
-            this.pop.index(i).time_since_infected = Person.mean_time_till_contagious + 1;
-            this.totalInfected++;
+            this.pop.index(i).becomeSick(this);
+            // this.pop.index(i).time_since_infected = Person.mean_time_till_contagious + 1;
+            // this.totalInfected++;
             this.numActive++;
         }
 
@@ -303,7 +304,7 @@ export class Sim {
             let currentHour = this.time_steps_since_start % 24;
             for (let i = 0; i < this.pop.length; i++) {
                 let person = this.pop.index(i);
-                this.numActive += person.stepTime(this) ? 1 : 0;
+                this.numActive += person.stepTime(this, generator) ? 1 : 0;
                 person.spread(this.time_steps_since_start, i, this.pop, generator, currentHour, this);
             }
             this.time_steps_since_start++;
@@ -454,14 +455,6 @@ export class Sim {
                 if (person.time_since_infected >= Person.median_time_virus_is_communicable) {
                     radius = 2;
                     color = "rgb(0, 64, 255)";
-                }
-                if (person.occupation == 1) {
-                    radius = 3;
-                    color = "rgb(255,0,255)";
-                }
-                if (person.occupation == 2) {
-                    radius = 3;
-                    color = "rgb(255,128,255)";
                 }
                 // if (person.debug != 0) color = RandomFast.ToRGB(person.debug);
                 this.drawCircle(ctx, person.xpos, person.ypos, radius, color);

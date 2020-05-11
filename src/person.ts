@@ -5,6 +5,17 @@ import MersenneTwister from "mersenne-twister";
 
 import { Sim, fromDays, fromHours } from "./sim";
 import { Spatial, Grid } from "./spatial";
+import { start } from "repl";
+
+function assert(condition: boolean, messgage: string) {
+    if (!condition) console.log(messgage);
+}
+
+function Bernoulli(rand: MersenneTwister, prob: number): boolean {
+    let r = rand.random();
+    if (r < prob) return true;
+    else return false;
+}
 
 // Input is an array that should be normalized to add up to 1... a probability distribution.
 function sampleProbabilites(rand: MersenneTwister, probs: number[]) {
@@ -22,9 +33,34 @@ function mix(f0: number, f1: number, a: number): number {
     return (1.0 - a) * f0 + a * f1;
 }
 // Polynomial smoothstep function to gently interpolate between 2 values based on a.
-function mixP(f0: number, f1: number, a: number): number {
+function Smoothstep(f0: number, f1: number, a: number): number {
     a = Math.max(0.0, Math.min(1.0, a)); // Clamp [0..1] range
     return mix(f0, f1, a * a * (3.0 - 2.0 * a));
+}
+function Smootherstep(f0: number, f1: number, x: number): number {
+    x = Math.max(0.0, Math.min(1.0, x)); // Clamp [0..1] range
+    let x3 = x * x * x;
+    let x4 = x3 * x;
+    let x5 = x4 * x;
+    return mix(f0, f1, 6 * x5 - 15 * x4 + 10 * x3);
+}
+
+// Returns random number sampled from a circular gaussian distribution
+// https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
+function RandGaussian(generator: MersenneTwister, mean: number = 0.0, std: number = 1.0): [number, number] {
+    const twoPi: number = 2.0 * 3.14159265358979323846;
+    let ux = generator.random();
+    let uy = generator.random();
+    ux = Math.max(ux, 0.00000003); // We don't want log() to fail because it's 0.
+    let a: number = Math.sqrt(-2.0 * Math.log(ux));
+    let x = a * Math.cos(twoPi * uy);
+    let y = a * Math.sin(twoPi * uy);
+    return [x * std + mean, y * std + mean];
+}
+
+function clamp(x: number, minVal: number, maxVal: number) {
+    assert(minVal <= maxVal, "ERROR: clamp params seem wrong. max should be > min.");
+    return Math.max(minVal, Math.min(maxVal, x));
 }
 
 // hospital, school, supermarket, retirement community, prison
@@ -42,6 +78,7 @@ const office_density: number = 1.75;
 const shopping_density: number = 1.5;
 
 let rtemp = new RandomFast(1234567);
+
 export class Person {
     // lots of sets of 24-hour periods of different behaviors that represent different people's lifestyles
     // TODO: are weekends different? Does it matter?
@@ -58,20 +95,21 @@ export class Person {
     // infectiousness was shown to peak at 0–2 days before symptom onset - https://www.nature.com/articles/s41591-020-0869-5
     static readonly contagious_range = fromDays(2);
     static readonly mean_time_till_symptoms = fromHours(5.25 * 24); // Rounded a little from 5.2.
-    static readonly symptom_range = fromDays(2); // TODO: totally made up range...
+    // https://www.jhsph.edu/news/news-releases/2020/new-study-on-COVID-19-estimates-5-days-for-incubation-period.html
+    // The analysis suggests that about 97.5 percent of people who develop symptoms of SARS-CoV-2 infection will do so within 11.5 days of exposure.
+    // static readonly symptom_range = fromDays(6.25);
+    // https://www.thelancet.com/pdfs/journals/lancet/PIIS0140-6736(20)30566-3.pdf
+    // Median duration of viral shedding was 20·0 days (IQR 17·0–24·0)
+    static readonly median_contagious_duration = fromDays(20);
     // https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf
     static readonly time_till_severe = Person.mean_time_till_symptoms + fromDays(7);
     // median communicable period = 9.5 days https://link.springer.com/article/10.1007/s11427-020-1661-4
-    // However, the communicable period could be up to three weeks
+    // However, the communicable period could be up to ***three weeks***
     // TODO: make this a distribution instead of a single number.
     static readonly median_time_virus_is_communicable = fromDays(9.5) + Person.mean_time_till_contagious;
-    // static readonly time_till_no_symptoms = Person.mean_time_till_symptoms + fromDays(20); // TODO:??? Need reference for this one.
     // Among patients who have died, the time from symptom onset to outcome ranges from 2-8 weeks
     // https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf
-    static readonly range_time_till_death = [
-        Person.mean_time_till_symptoms + fromDays(2 * 7),
-        Person.mean_time_till_symptoms + fromDays(8 * 7),
-    ];
+    static readonly range_time_till_death_relative_to_syptoms = [fromDays(2 * 7), fromDays(8 * 7)];
     // https://www.statista.com/statistics/1105420/covid-icu-admission-rates-us-by-age-group/
     static readonly cases_that_go_to_ICU = 0.082; // Out of what population???
     // Probability of spreading virus multiplier if you get people to handwash
@@ -133,105 +171,184 @@ export class Person {
     // Temperature checks at schools / workplaces
     //
 
+    id: number = -1;
     time_since_infected: number = -1;
-    xpos: number = 0;
+    xpos: number = 0; // Are these needed since you can get x, y of the place you are in?
     ypos: number = 0;
-    symptoms: boolean = true;
-    occupation: number = 0;
-    debug: number = 0;
-    dead: boolean = false;
+    flags: number = 0;
     homeIndex = -1;
     officeIndex = -1;
     marketIndex = -1;
     hospitalIndex = -1;
 
-    constructor(generator: MersenneTwister, public id: number) {
+    // flags
+    infected = false;
+    contagious = false;
+    symptomsCurrent = false;
+    symptomaticOverall = true;
+    dead = false;
+    recovered = false;
+
+    // These are times of onset of various things
+    contagiousTrigger = Number.MAX_SAFE_INTEGER;
+    endContagiousTrigger = Number.MAX_SAFE_INTEGER;
+    symptomsTrigger = Number.MAX_SAFE_INTEGER;
+    endSymptomsTrigger = Number.MAX_SAFE_INTEGER;
+    deadTrigger = Number.MAX_SAFE_INTEGER;
+
+    constructor(generator: MersenneTwister, id: number) {
+        this.id = id;
         this.xpos = generator.random();
         this.ypos = generator.random();
+
+        // ---- Generate trigger times when sickness events will happen ----
+        [this.contagiousTrigger] = RandGaussian(generator, Person.mean_time_till_contagious, Person.contagious_range * 0.5);
+        // Clamp to range.
+        this.contagiousTrigger = clamp(
+            this.contagiousTrigger,
+            Person.mean_time_till_contagious - Person.contagious_range * 0.5,
+            Person.mean_time_till_contagious + Person.contagious_range * 0.5
+        );
+
+        // Skewed distribution
+        [this.symptomsTrigger] = RandGaussian(generator, 0.0, 0.5); // Include 2 standard deviations before clamping.
+        this.symptomsTrigger = clamp(this.symptomsTrigger, -1.0, 1.0) * 0.5 + 0.5; //  Now show be [0..1] range
+        this.symptomsTrigger = Math.pow(this.symptomsTrigger, 4.5); // skew the distribution, still [0..1] range.
+        // Apply new mean and std sorta...
+        this.symptomsTrigger = this.symptomsTrigger * fromDays(7.25) + Person.mean_time_till_symptoms - fromDays(1.0);
+
+        // See if this person is overall asymptomatic and if so, backtrack the symptom onset.
+        this.symptomaticOverall = Bernoulli(generator, 1.0 - Person.fully_asymptomatic);
+        if (!this.symptomaticOverall) this.symptomsTrigger = -1; // Never trigger symptoms for asymptomatic people
+
+        // TODO: Math here is a bit arbitrary. Need more data about the distribution if I wanna make it more meaningful...
+        // It seems to be a skewed distribution.
+        [this.endContagiousTrigger] = RandGaussian(generator, 0.0, 0.3);
+        this.endContagiousTrigger = clamp(this.endContagiousTrigger, -1.0, 1.0) * 0.5 + 0.5; //  Now show be [0..1] range
+        this.endContagiousTrigger = Math.pow(this.endContagiousTrigger, 1.5); // skew the distribution
+        // Apply new mean and std sorta...
+        this.endContagiousTrigger =
+            this.endContagiousTrigger * fromDays(7) + Person.median_contagious_duration - fromDays(3) + this.symptomsTrigger;
+
+        // TODO: When do symptoms end? I couldn't find numbers for this so I made something up.
+        if (this.symptomaticOverall) this.endSymptomsTrigger = (this.symptomsTrigger + this.endContagiousTrigger) * 0.5;
+
+        // Death
+        // Adjust fatality rate by asymptomatic people
+        let shouldDie: boolean = Bernoulli(generator, Person.infection_fatality_rate * (1.0 + Person.fully_asymptomatic));
+
+        shouldDie = shouldDie && this.symptomaticOverall; // TODO: check - Maybe people won't die if they don't have syptoms??? How to apply this along with IFR?
+        if (shouldDie) {
+            [this.deadTrigger] = RandGaussian(generator, 0.0, 0.93);
+            this.deadTrigger = clamp(this.deadTrigger, -1.0, 1.0) * 0.5 + 0.5; //  Now show be [0..1] range
+            let span: number =
+                Person.range_time_till_death_relative_to_syptoms[1] - Person.range_time_till_death_relative_to_syptoms[0];
+            // console.log(this.deadTrigger);
+
+            assert(this.symptomsTrigger >= 0, "just double checking");
+            // TODO: This span doesn't match the other data. Get things consistent. :/
+            this.deadTrigger = this.symptomsTrigger + this.deadTrigger * span; // This will often get clamped down by the next line.
+            this.deadTrigger = Math.min(this.deadTrigger, this.endContagiousTrigger - 1); // Make sure if you are meant to die, you do it before getting better.
+        }
     }
 
     get hashId() {
         return RandomFast.HashInt32(this.id);
     }
-    // returns a hashed number in the range [-scale..scale]
-    hashOffset(offset: number, scale: number) {
-        return (RandomFast.HashFloat(this.id + offset) * 2.0 - 1.0) * scale;
-    }
-    // Person's properties based on hash of their id...
-    get age() {
-        // TODO: get good age distribution
-        let h = this.hashId;
-        let a = Math.abs(h >> 16) % 45;
-        let b = Math.abs(h >> 8) % 45;
-        return a + b;
-    }
-    get isSymptomatic() {
-        let h = RandomFast.HashFloat(this.id);
-        return h < Person.fully_asymptomatic;
-    }
-
-    // Exposed
-    get isSick() {
-        return this.time_since_infected >= 0.0 && this.time_since_infected < this.timeTillRecoveredHashed;
-    }
-    // Infectious
-    get isContagious() {
-        return (
-            this.time_since_infected > Person.mean_time_till_contagious + this.hashOffset(5432176, Person.contagious_range * 0.45) &&
-            this.time_since_infected < this.timeTillRecoveredHashed
-        );
-    }
-    get timeTillSymptomsHashed() {
-        return Person.mean_time_till_symptoms + this.hashOffset(1112345, Person.contagious_range * 0.45);
-    }
-    get isShowingSymptoms() {
-        return this.time_since_infected > this.timeTillSymptomsHashed && this.time_since_infected < this.timeTillRecoveredHashed;
-    }
     // Susceptible
     get isVulnerable() {
-        return this.time_since_infected < 0;
+        return !this.infected && !this.recovered && !this.dead;
     }
-    get timeTillRecoveredHashed() {
-        // skewed distribution
-        // TODO: Super lame hack for skewed distribution... This one is really bad, but I don't even have good data for the details of the distribution.
-        let rand0 = RandomFast.HashFloat(this.id + 7654321);
-        if (rand0 > 0.5) rand0 = RandomFast.HashFloat(this.id + 19876543) * 15.0;
-        return Person.median_time_virus_is_communicable + rand0 * fromDays(1) - fromDays(4.0);
+    // Exposed
+    get isSick() {
+        return this.infected && !this.recovered && !this.dead;
+    }
+    get isContagious() {
+        return this.contagious && !this.recovered && !this.dead;
+    }
+    get isShowingSymptoms() {
+        return this.symptomsCurrent && this.symptomaticOverall && !this.recovered && !this.dead;
     }
     get isRecovered() {
-        return (
-            this.time_since_infected >= this.timeTillSymptomsHashed &&
-            this.time_since_infected >= this.timeTillRecoveredHashed &&
-            !this.dead
-        );
-    }
-    // Returns true if this person is sick.
-    stepTime(sim: Sim | null): boolean {
-        // other stuff...
-        if (this.time_since_infected == Person.range_time_till_death[0] && this.isSymptomatic) {
-            let h = RandomFast.HashFloat(this.id);
-            if (h < Person.infection_fatality_rate) {
-                // IDK if this includes asymptomatic or not, but it's approximate anyway, so maybe not big deal?
-                this.dead = true;
-                if (sim) sim.totalDead++;
-            }
-        }
-        
-        if (this.isSick) {
-            this.time_since_infected = this.time_since_infected + 1; //Sim.time_step_hours;
-            return true;
-        }
-        return false;
+        return this.recovered && !this.dead;
     }
 
     // Get exposed... won't be contagious for a while still though...
     becomeSick(sim: Sim | null) {
         this.time_since_infected = 0.0;
+        this.infected = true;
         if (sim) {
             let info: [number, number, number] = [this.xpos, this.ypos, sim.time_steps_since_start];
             sim.infectedVisuals.push(info);
             sim.totalInfected++;
         }
+    }
+
+    becomeContagious() {
+        assert(this.infected, "ERROR: contagious without being infected.");
+        assert(!this.symptomsCurrent, "ERROR: contagious after having symptoms - maybe not worst thing?");
+        assert(!this.dead, "ERROR: already dead!");
+        assert(!this.recovered, "ERROR: already recovered!");
+        this.contagious = true;
+    }
+
+    becomeSymptomy() {
+        assert(this.infected, "ERROR: symptoms without being infected.");
+        assert(this.contagious, "ERROR: symptoms before having contagious - maybe not worst thing?");
+        assert(!this.dead, "ERROR: already dead!");
+        assert(!this.recovered, "ERROR: already recovered!");
+        this.symptomsCurrent = true;
+    }
+
+    endSymptoms() {
+        assert(this.infected, "ERROR: end symptoms without being infected.");
+        assert(!this.dead, "ERROR: already dead!");
+        assert(!this.recovered, "ERROR: already recovered!");
+        this.symptomsCurrent = false;
+    }
+
+    endContagious() {
+        assert(this.infected, "ERROR: recovered without being infected.");
+        assert(!this.dead, "ERROR: already dead!");
+        assert(!this.recovered, "ERROR: already recovered!");
+        this.contagious = false;
+    }
+
+    becomeRecovered() {
+        assert(this.infected, "ERROR: recovered without being infected.");
+        assert(!this.dead, "ERROR: already dead!");
+        assert(!this.recovered, "ERROR: already recovered!");
+        this.recovered = true;
+    }
+
+    becomeDead() {
+        assert(this.infected, "ERROR: dead without being infected.");
+        assert(this.contagious, "ERROR: dying without being contagious");
+        assert(!this.dead, "ERROR: already dead!");
+        assert(!this.recovered, "ERROR: already recovered!");
+        this.dead = true;
+        this.infected = false;
+    }
+
+    // Returns true if this person is sick.
+    stepTime(sim: Sim | null, generator: MersenneTwister): boolean {
+        if (this.isSick) {
+            if (!this.contagious && this.time_since_infected > this.contagiousTrigger) this.becomeContagious();
+            if (!this.symptomsCurrent && this.symptomaticOverall && this.time_since_infected > this.symptomsTrigger)
+                this.becomeSymptomy();
+            if (this.symptomsCurrent && this.symptomaticOverall && this.time_since_infected > this.endSymptomsTrigger)
+                this.endSymptoms();
+            if (this.contagious && this.time_since_infected > this.endContagiousTrigger) {
+                this.endContagious();
+                // TODO: what's the difference between these two? anything?
+                this.becomeRecovered();
+            }
+            if (this.contagious && this.time_since_infected > this.deadTrigger) this.becomeDead();
+
+            this.time_since_infected = this.time_since_infected + 1;
+            return true;
+        }
+        return false;
     }
 
     // For now, density can be thought of as your distance to the closest person.
@@ -284,7 +401,7 @@ export class Person {
         currentHour: number,
         sim: Sim
     ) {
-        if (this.isContagious) {
+        if (this.contagious) {
             let activity = this.getCurrentActivity(currentHour);
             let seed = Math.trunc(time_steps_since_start + index); // Unique for time step and each person
             if (activity == ActivityType.home) {

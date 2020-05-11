@@ -81,7 +81,7 @@ export class Grid {
 
     add(person: Person) {
         let hash = Grid.posHash(person.xpos, person.ypos);
-        person.debug = hash;
+        // person.debug = hash;
         let dict = this.grid.get(hash);
         if (dict) {
             dict.push(this.population.length);
