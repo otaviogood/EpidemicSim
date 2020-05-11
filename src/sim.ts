@@ -142,10 +142,10 @@ function shuffleArrayInPlace(array: any) {
     }
 }
 
-export function fromHours(hours:number):number {
+export function fromHours(hours: number): number {
     return hours;
 }
-export function fromDays(days:number):number {
+export function fromDays(days: number): number {
     return days * 24;
 }
 
@@ -181,10 +181,11 @@ export class Sim {
     lastMouseX = -1;
     lastMouseY = -1;
 
-    scalex = 1;
-    scaley = 1;
+    // ---- visuals ----
     canvasWidth = 768;
     canvasHeight = 768;
+    scalex = 1;
+    scaley = 1;
     paused = false;
     infectedVisuals: number[][] = [];
 
@@ -385,7 +386,7 @@ export class Sim {
         if (canvas.getContext) {
             const ctx = canvas.getContext("2d");
             if (!ctx) return;
-            // ctx.setTransform(4, 0, 0, 4, -1024, -1024);
+            // ctx.setTransform(this.zoom, 0, 0, this.zoom, this.centerx-canvas.width*0.5, this.centery-canvas.height*0.5);
             if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.globalAlpha = 0.3;
             ctx.drawImage(img, 0, 0);
@@ -417,7 +418,7 @@ export class Sim {
             }
             if (this.selectedPersonIndex >= 0) {
                 let p: Person = this.pop.index(this.selectedPersonIndex);
-                let px = p.xpos;  // Default to home as location.
+                let px = p.xpos; // Default to home as location.
                 let py = p.ypos;
                 let market = this.allSuperMarkets[p.marketIndex];
                 let house = this.allHouseholds[p.homeIndex];
@@ -426,10 +427,10 @@ export class Sim {
 
                 let currentHour = this.time_steps_since_start % 24;
                 let activity = p.getCurrentActivity(currentHour);
-                if (activity == ActivityType.work) px = office.xpos, py = office.ypos;
-                if (activity == ActivityType.shopping) px = market.xpos, py = market.ypos;
-                if (activity == ActivityType.work) px = office.xpos, py = office.ypos;
-                if (activity == ActivityType.hospital) px = hospital.xpos, py = hospital.ypos;
+                if (activity == ActivityType.work) (px = office.xpos), (py = office.ypos);
+                if (activity == ActivityType.shopping) (px = market.xpos), (py = market.ypos);
+                if (activity == ActivityType.work) (px = office.xpos), (py = office.ypos);
+                if (activity == ActivityType.hospital) (px = hospital.xpos), (py = hospital.ypos);
 
                 this.drawCircle(ctx, px, py, 12, "rgba(0,220,255,0.4)");
                 // this.drawText(ctx, hh.xpos + 0.02, hh.ypos, hh.residents.length.toString());
@@ -527,7 +528,7 @@ export class Sim {
             //     this.run_simulation(1);
             //     window.requestAnimationFrame(() => this.draw());
             // }
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            // ctx.setTransform(1, 0, 0, 1, 0, 0);
         }
     }
     controllerClick(x: number, y: number) {
@@ -562,6 +563,41 @@ export class Sim {
         if (this.paused) this.paused = false;
         else this.paused = true;
 
+        this.draw();
+    }
+    translation(dx: number, dy: number) {
+        const canvas = <HTMLCanvasElement>document.getElementById("map-canvas");
+        if (canvas.getContext) {
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return;
+            let storedTransform = ctx.getTransform();
+            let cx = storedTransform.e;
+            let cy = storedTransform.f;
+            let cscale = storedTransform.a; // assume aspect ratio 1
+
+            ctx.translate(-dx / cscale, -dy / cscale);
+        }
+        this.draw();
+    }
+    changeZoom(scale: number) {
+        const canvas = <HTMLCanvasElement>document.getElementById("map-canvas");
+        if (canvas.getContext) {
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return;
+            let storedTransform = ctx.getTransform();
+            let cx = storedTransform.e;
+            let cy = storedTransform.f;
+            let cscale = storedTransform.a; // assume aspect ratio 1
+            if (scale > 0) {
+                ctx.translate(canvas.width * 0.5, canvas.height * 0.5);
+                ctx.scale(1 / 1.125, 1 / 1.125);
+                ctx.translate(-canvas.width * 0.5, -canvas.height * 0.5);
+            } else {
+                ctx.translate(canvas.width * 0.5, canvas.height * 0.5);
+                ctx.scale(1.125, 1.125);
+                ctx.translate(-canvas.width * 0.5, -canvas.height * 0.5);
+            }
+        }
         this.draw();
     }
 }

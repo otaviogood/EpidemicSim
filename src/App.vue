@@ -1,8 +1,6 @@
 <template>
     <div>
-        <div style="font-size:32px; padding:12px; color: #ff8811;">
-            <strong>YÆS:</strong> Yet Another Epidemic Simulator
-        </div>
+        <div style="font-size:32px; padding:12px; color: #ff8811;"><strong>YÆS:</strong> Yet Another Epidemic Simulator</div>
         <span class="card" style="float:right;">
             <canvas
                 style="display:block;background-color:#123456;margin-bottom:4px"
@@ -39,6 +37,13 @@
                 height="768px"
                 id="map-canvas"
                 @click="clicked"
+                @wheel="mouseWheel"
+                @mousedown="handleMouseDown"
+                @mousemove="handleMouseMove"
+                @mouseup="handleMouseUp"
+                @touchstart="handleTouchStart"
+                @touchmove="handleTouchMove"
+                @touchend="handleTouchEnd"
             ></canvas>
             <p style="margin:8px;">
                 <button
@@ -78,7 +83,7 @@ import { Person, ActivityType } from "./person";
 import { Sim, parseCSV } from "./sim";
 import { log } from "util";
 import { stat } from "fs";
-import { runTests } from "./test_person"
+import { runTests } from "./test_person";
 
 let sim: Sim;
 export default Vue.extend({
@@ -96,6 +101,18 @@ export default Vue.extend({
                 location: "",
                 status: "",
                 asymptomaticOverall: false,
+            },
+            mouse: {
+                current: {
+                    x: 0,
+                    y: 0,
+                },
+                previous: {
+                    x: 0,
+                    y: 0,
+                },
+                down: false,
+                mode: -1,
             },
         };
     },
@@ -145,8 +162,8 @@ export default Vue.extend({
                 if (p.isSick) self.person.status = "🦠Sick";
                 if (p.isContagious) self.person.status += ", ❗Contagious";
                 if (p.isShowingSymptoms) self.person.status += ", 🥵Symptoms";
-                if (p.isRecovered) self.person.status = "🥳 Recovered!"
-                if (p.dead) self.person.status = "☠️ DEAD"
+                if (p.isRecovered) self.person.status = "🥳 Recovered!";
+                if (p.dead) self.person.status = "☠️ DEAD";
             }
 
             let t2 = performance.now();
@@ -177,6 +194,10 @@ export default Vue.extend({
                 (event.clientY - rect.top) / (rect.bottom - rect.top)
             );
         },
+        mouseWheel: function(event: any) {
+            event.preventDefault();
+            sim.changeZoom(Math.sign(event.deltaY));
+        },
         playPause: function(event: any) {
             sim.playPause();
         },
@@ -186,6 +207,92 @@ export default Vue.extend({
         restart: function(event: any) {
             sim = new Sim();
             parseCSV(sim); // this await doesn't work. :/
+        },
+
+        controllerDown: function(event: any, x: number, y: number) {
+            this.mouse.down = true;
+            this.mouse.current = {
+                x: x,
+                y: y,
+            };
+            // this.mouse.mode = -1;
+            this.mouse.mode = 0;
+            // If we're not actively dragging something, let people drag the phone screen.
+            if (this.mouse.mode != -1) event.preventDefault();
+        },
+        controllerUp: function(event: any) {
+            if (this.mouse.mode != -1) event.preventDefault();
+            this.mouse.down = false;
+        },
+        controllerMove: function(event: any, x: number, y: number) {
+            if (this.mouse.mode != -1) event.preventDefault();
+            this.mouse.previous = this.mouse.current;
+            this.mouse.current = {
+                x: x,
+                y: y,
+            };
+            if (this.mouse.down) {
+                if (this.mouse.mode == 0) {
+                    sim.translation(this.mouse.previous.x - this.mouse.current.x, this.mouse.previous.y - this.mouse.current.y);
+                    // sim.centerx -= this.mouse.previous.x - this.mouse.current.x;
+                    // sim.centery -= this.mouse.previous.y - this.mouse.current.y;
+                    sim.draw();
+                }
+            }
+        },
+
+        handleMouseDown: function(event: any) {
+            let canvas = document.getElementById("map-canvas");
+            if (!canvas) return;
+            let [width, height] = [canvas.clientWidth, canvas.clientHeight];
+            let rect = canvas.getBoundingClientRect();
+            this.controllerDown(
+                event,
+                ((event.clientX - rect.left) / (rect.right - rect.left)) * width,
+                ((event.clientY - rect.top) / (rect.bottom - rect.top)) * height
+            );
+        },
+        handleMouseUp: function(event: any) {
+            this.controllerUp(event);
+        },
+        handleMouseMove: function(event: any) {
+            let canvas = document.getElementById("map-canvas");
+            if (!canvas) return;
+            let [width, height] = [canvas.clientWidth, canvas.clientHeight];
+            let rect = canvas.getBoundingClientRect();
+            this.controllerMove(
+                event,
+                ((event.clientX - rect.left) / (rect.right - rect.left)) * width,
+                ((event.clientY - rect.top) / (rect.bottom - rect.top)) * height
+            );
+        },
+
+        handleTouchStart: function(event: any) {
+            let canvas = document.getElementById("map-canvas");
+            if (!canvas) return;
+            let [width, height] = [canvas.clientWidth, canvas.clientHeight];
+            let rect = canvas.getBoundingClientRect();
+            let touch = event.changedTouches[0];
+            this.controllerDown(
+                event,
+                ((touch.clientX - rect.left) / (rect.right - rect.left)) * width,
+                ((touch.clientY - rect.top) / (rect.bottom - rect.top)) * height
+            );
+        },
+        handleTouchEnd: function(event: any) {
+            this.controllerUp(event);
+        },
+        handleTouchMove: function(event: any) {
+            let canvas = document.getElementById("map-canvas");
+            if (!canvas) return;
+            let [width, height] = [canvas.clientWidth, canvas.clientHeight];
+            let rect = canvas.getBoundingClientRect();
+            let touch = event.changedTouches[0];
+            this.controllerMove(
+                event,
+                ((touch.clientX - rect.left) / (rect.right - rect.left)) * width,
+                ((touch.clientY - rect.top) / (rect.bottom - rect.top)) * height
+            );
         },
     },
 });
