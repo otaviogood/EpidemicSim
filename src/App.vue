@@ -32,9 +32,22 @@
             <div class="stats">Location: {{ person.location }}</div>
             <div class="stats">Health: {{ person.status }}</div>
             <div class="stats">Age (TODO): {{ person.age }}</div>
-            <div class="stats">Id: {{ person.id }}</div>
             <div class="stats">asymptomatic overall? {{ person.asymptomaticOverall }}</div>
             <div class="stats">Symptom level: {{ person.symptoms }}</div>
+            <div class="stats">
+                <svg width="352" height="32" style="margin:0px;padding:0px;border:0px">
+                    <rect width="352" height="100" style="fill:rgb(240,245,255);stroke-width:0;stroke:rgb(0,0,0)" />
+                    <rect x="8" y="28" width="1" height="100" style="stroke-width:1;stroke:rgb(190,190,190)" />
+                    <rect x="16" y="28" width="1" height="100" style="stroke-width:1;stroke:rgb(190,190,190)" />
+                    <rect x="24" y="28" width="1" height="100" style="stroke-width:1;stroke:rgb(190,190,190)" />
+                    <rect x="32" y="28" width="1" height="100" style="stroke-width:1;stroke:rgb(190,190,190)" />
+                    <rect x="40" y="28" width="1" height="100" style="stroke-width:1;stroke:rgb(190,190,190)" />
+                    <rect x="48" y="28" width="1" height="100" style="stroke-width:1;stroke:rgb(190,190,190)" />
+                    <rect :x="person.timeSinceInfected * 8.0 / 24" y="18" width="2" height="100" style="fill:rgb(255,19,19);stroke-width:1;stroke:rgb(255,19,19)" />
+                    <text :x="person.timeSinceInfected *8.0 / 24" y="16" fill="red">{{ (person.timeSinceInfected / 24).toFixed(1) }}</text>
+                    <text x="252" y="16" fill="#aaaaaa">Infected days</text>
+                </svg>
+            </div>
         </span>
         <span class="card">
             <canvas
@@ -109,6 +122,7 @@ export default Vue.extend({
                 asymptomaticOverall: false,
                 symptoms: "",
                 routine: "",
+                timeSinceInfected:0,
             },
             mouse: {
                 current: {
@@ -144,7 +158,7 @@ export default Vue.extend({
             let self = this;
             let currentHour = sim.time_steps_since_start % 24;
             let p: Person = sim.pop.index(sim.selectedPersonIndex);
-            self.person.id = p.id;
+            self.person.timeSinceInfected = p.time_since_infected;
             self.person.asymptomaticOverall = !p.symptomaticOverall;
             // self.person.age = p.age;
             const icons = new Map([
