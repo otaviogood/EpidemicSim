@@ -22,7 +22,11 @@
             Days: {{ Math.floor(hoursElapsed / 24) }}<br />
         </span>
         <span class="card clearfix" style="float:right;margin-top:16px">
-            <div style="width:365px;text-align: center"><h3 style="display:inline-block;">Person info</h3></div>
+            <div style="width:365px;text-align:center;font-size:32px;">
+                <span style="display:inline-block;">Person info</span>
+                <label for="ticketNum">#</label>
+                <input id="personIndex" type="number" value="0" style="width:80px;" @change="changePersonIndex" />
+            </div>
 
             <div class="stats" style="font-size:17px">Location: {{ person.location }}</div>
             <div class="stats" style="font-size:17px">Health: {{ person.status }}</div>
@@ -134,6 +138,34 @@ export default Vue.extend({
         sim.paused = true;
     },
     methods: {
+        updatePerson: function() {
+            let self = this;
+            let currentHour = sim.time_steps_since_start % 24;
+            let p: Person = sim.pop.index(sim.selectedPersonIndex);
+            self.person.id = p.id;
+            self.person.asymptomaticOverall = !p.symptomaticOverall;
+            // self.person.age = p.age;
+            const icons = new Map([
+                ["h", "🏡 Home"],
+                ["w", "🏢 Office"],
+                ["s", "🏪 Supermarket"],
+                ["o", "🏥 Hospital"],
+                ["c", "🚗 Car"],
+                ["t", "🚂 Train"],
+            ]);
+            let act = p.getCurrentActivity(currentHour);
+            self.person.location = icons.get(act)!.toString();
+            self.person.status = "🙂 Happily not sick";
+            if (p.isSick) self.person.status = "🦠Sick";
+            if (p.isContagious) self.person.status += ", ❗Contagious";
+            if (p.isShowingSymptoms) self.person.status += ", 🥵Symptoms";
+            if (p.isRecovered) self.person.status = "🥳 Recovered!";
+            if (p.dead) self.person.status = "☠️ DEAD";
+            if (p.symptomsCurrent == 0) self.person.symptoms = "None";
+            else if (p.symptomsCurrent == 1) self.person.symptoms = "Mild";
+            else if (p.symptomsCurrent == 2) self.person.symptoms = "Severe";
+            else if (p.symptomsCurrent == 3) self.person.symptoms = "Critical";
+        },
         singleStepSim: function() {
             let self = this;
             let timer = performance.now();
@@ -145,31 +177,7 @@ export default Vue.extend({
             self.totalDead = sim.totalDead;
 
             if (sim.time_steps_since_start > 0) {
-                let currentHour = sim.time_steps_since_start % 24;
-                let p: Person = sim.pop.index(sim.selectedPersonIndex);
-                self.person.id = p.id;
-                self.person.asymptomaticOverall = !p.symptomaticOverall;
-                // self.person.age = p.age;
-                const icons = new Map([
-                    ["h", "🏡 Home"],
-                    ["w", "🏢 Office"],
-                    ["s", "🏪 Supermarket"],
-                    ["o", "🏥 Hospital"],
-                    ["c", "🚗 Car"],
-                    ["t", "🚂 Train"],
-                ]);
-                let act = p.getCurrentActivity(currentHour);
-                self.person.location = icons.get(act)!.toString();
-                self.person.status = "🙂 Happily not sick";
-                if (p.isSick) self.person.status = "🦠Sick";
-                if (p.isContagious) self.person.status += ", ❗Contagious";
-                if (p.isShowingSymptoms) self.person.status += ", 🥵Symptoms";
-                if (p.isRecovered) self.person.status = "🥳 Recovered!";
-                if (p.dead) self.person.status = "☠️ DEAD";
-                if (p.symptomsCurrent == 0) self.person.symptoms = "None";
-                else if (p.symptomsCurrent == 1) self.person.symptoms = "Mild";
-                else if (p.symptomsCurrent == 2) self.person.symptoms = "Severe";
-                else if (p.symptomsCurrent == 3) self.person.symptoms = "Critical";
+                self.updatePerson();
             }
 
             let t2 = performance.now();
@@ -199,6 +207,10 @@ export default Vue.extend({
                 (event.clientX - rect.left) / (rect.right - rect.left),
                 (event.clientY - rect.top) / (rect.bottom - rect.top)
             );
+        },
+        changePersonIndex: function(e: any) {
+            sim.selectedPersonIndex = e.target.valueAsNumber;
+            this.updatePerson();
         },
         mouseWheel: function(event: any) {
             event.preventDefault();
