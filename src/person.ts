@@ -446,7 +446,7 @@ export class Person {
         currentHour: number,
         sim: Sim
     ) {
-        if (this.contagious) {
+        if (this.isContagious) {
             let activity = this.getCurrentActivity(currentHour);
             let seed = Math.trunc(time_steps_since_start + index); // Unique for time step and each person
             if (activity == ActivityType.home) {
