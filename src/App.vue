@@ -25,11 +25,12 @@
             <div style="width:365px;text-align:center;font-size:32px;">
                 <span style="display:inline-block;">Person info</span>
                 <label for="ticketNum">#</label>
-                <input id="personIndex" type="number" value="0" style="width:80px;" @change="changePersonIndex" />
+                <input id="personIndex" type="number" value="0" min="0" style="width:80px;" @change="changePersonIndex" />
             </div>
 
-            <div class="stats" style="font-size:17px">Location: {{ person.location }}</div>
-            <div class="stats" style="font-size:17px">Health: {{ person.status }}</div>
+            <div class="stats" style="font-size:10px">Day: {{ person.routine }}</div>
+            <div class="stats">Location: {{ person.location }}</div>
+            <div class="stats">Health: {{ person.status }}</div>
             <div class="stats">Age (TODO): {{ person.age }}</div>
             <div class="stats">Id: {{ person.id }}</div>
             <div class="stats">asymptomatic overall? {{ person.asymptomaticOverall }}</div>
@@ -107,6 +108,7 @@ export default Vue.extend({
                 status: "",
                 asymptomaticOverall: false,
                 symptoms: "",
+                routine: "",
             },
             mouse: {
                 current: {
@@ -146,15 +148,27 @@ export default Vue.extend({
             self.person.asymptomaticOverall = !p.symptomaticOverall;
             // self.person.age = p.age;
             const icons = new Map([
-                ["h", "🏡 Home"],
-                ["w", "🏢 Office"],
-                ["s", "🏪 Supermarket"],
-                ["o", "🏥 Hospital"],
-                ["c", "🚗 Car"],
-                ["t", "🚂 Train"],
+                ["h", "🏡"],
+                ["w", "🏢"],
+                ["s", "🏪"],
+                ["o", "🏥"],
+                ["c", "🚗"],
+                ["t", "🚂"],
+            ]);
+            const labels = new Map([
+                ["h", "Home"],
+                ["w", "Office"],
+                ["s", "Supermarket"],
+                ["o", "Hospital"],
+                ["c", "Car"],
+                ["t", "Train"],
             ]);
             let act = p.getCurrentActivity(currentHour);
-            self.person.location = icons.get(act)!.toString();
+            self.person.location = icons.get(act)!.toString() + " " + labels.get(act)!.toString();
+            self.person.routine = "";
+            for (let i = 0; i < 24; i++) {
+                self.person.routine += icons.get(p.getCurrentActivity(i))!.toString();
+            }
             self.person.status = "🙂 Happily not sick";
             if (p.isSick) self.person.status = "🦠Sick";
             if (p.isContagious) self.person.status += ", ❗Contagious";
@@ -211,6 +225,7 @@ export default Vue.extend({
         changePersonIndex: function(e: any) {
             sim.selectedPersonIndex = e.target.valueAsNumber;
             this.updatePerson();
+            sim.draw();
         },
         mouseWheel: function(event: any) {
             event.preventDefault();
