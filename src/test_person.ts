@@ -31,7 +31,7 @@ function check(condition: boolean, message: string) {
 
 export function runTests() {
     // ------------------ test Person virus model --------------------------
-    let numSamples = 10000;
+    let numSamples = 1000;
     console.log("-------- RUNNING " + numSamples + " TESTS... --------");
 
     let mtrand = new MersenneTwister(1234567890);
@@ -40,6 +40,7 @@ export function runTests() {
     let allTimesTillRecovered: number[] = [];
     let allTimesTillDead: number[] = [];
     let allContagiousDurations: number[] = [];
+    let allTimesTillSevere: number[] = [];  // Also, critical. Also count # of severe and critical.
 
     for (let i = 0; i < numSamples; i++) {
         let p = new Person(mtrand, i);

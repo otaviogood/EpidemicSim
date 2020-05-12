@@ -73,6 +73,14 @@ export enum ActivityType {
     train = "t",
 }
 
+export enum SymptomsLevels {
+    // 0 none, 1 is mild to moderate (80%), 2 is severe (14%), 3 is critical (6%)
+    none = 0,
+    mild = 1,
+    severe = 2,
+    critical = 3,
+}
+
 const home_density: number = 0.5;
 const office_density: number = 1.75;
 const shopping_density: number = 1.5;
@@ -103,6 +111,13 @@ export class Person {
     static readonly median_contagious_duration = fromDays(20);
     // https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf
     static readonly time_till_severe = Person.mean_time_till_symptoms + fromDays(7);
+    //  Approximately 80% of laboratory confirmed patients have had mild to moderate disease, which includes
+    // non-pneumonia and pneumonia cases, 13.8% have severe disease (dyspnea, respiratory
+    // frequency ≥30/minute, blood oxygen saturation ≤93%, PaO2/FiO2 ratio <300, and/or lung
+    // infiltrates >50% of the lung field within 24-48 hours) and 6.1% are critical (respiratory
+    // failure, septic shock, and/or multiple organ dysfunction/failure).
+    static readonly severe_or_critical = 0.2;
+    static readonly critical_given_severe_or_critical = 0.3; // 6.1 / (6.1 + 13.8)
     // median communicable period = 9.5 days https://link.springer.com/article/10.1007/s11427-020-1661-4
     // However, the communicable period could be up to ***three weeks***
     // TODO: make this a distribution instead of a single number.
@@ -143,6 +158,7 @@ export class Person {
 
     // https://ourworldindata.org/coronavirus?country=USA+BRA+SWE+RUS
     static readonly case_fatality_rate_US = 0.06; // 6%
+    // IFR as a single number is a bit silly because it depends on hospitalization and treatment.
     static readonly infection_fatality_rate = Person.case_fatality_rate_US / 20; // Made-up BS. TODO: better numbers here.
     // IFR by age decade, from China... 0..9, 10..19, 20..29,..., >= 80
     // https://www.thelancet.com/pdfs/journals/laninf/PIIS1473-3099(20)30243-7.pdf
@@ -184,7 +200,7 @@ export class Person {
     // flags
     infected = false;
     contagious = false;
-    symptomsCurrent = false;
+    symptomsCurrent = SymptomsLevels.none; // 0 undefined, 1 is mild to moderate (80%), 2 is severe (14%), 3 is critical (6%)
     symptomaticOverall = true;
     dead = false;
     recovered = false;
@@ -195,6 +211,7 @@ export class Person {
     symptomsTrigger = Number.MAX_SAFE_INTEGER;
     endSymptomsTrigger = Number.MAX_SAFE_INTEGER;
     deadTrigger = Number.MAX_SAFE_INTEGER;
+    severeTrigger = Number.MAX_SAFE_INTEGER;
 
     constructor(generator: MersenneTwister, id: number) {
         this.id = id;
@@ -250,6 +267,12 @@ export class Person {
             this.deadTrigger = this.symptomsTrigger + this.deadTrigger * span; // This will often get clamped down by the next line.
             this.deadTrigger = Math.min(this.deadTrigger, this.endContagiousTrigger - 1); // Make sure if you are meant to die, you do it before getting better.
         }
+
+        // Severe disease
+        if (this.symptomsTrigger >= 0 && Bernoulli(generator, Person.severe_or_critical)) {
+            [this.severeTrigger] = RandGaussian(generator, Person.time_till_severe, 0.3);
+            this.severeTrigger = clamp(this.severeTrigger, this.symptomsTrigger + 1, this.endSymptomsTrigger - 1);
+        }
     }
 
     get hashId() {
@@ -267,7 +290,7 @@ export class Person {
         return this.contagious && !this.recovered && !this.dead;
     }
     get isShowingSymptoms() {
-        return this.symptomsCurrent && this.symptomaticOverall && !this.recovered && !this.dead;
+        return this.symptomsCurrent != SymptomsLevels.none && this.symptomaticOverall && !this.recovered && !this.dead;
     }
     get isRecovered() {
         return this.recovered && !this.dead;
@@ -290,6 +313,7 @@ export class Person {
         assert(!this.dead, "ERROR: already dead!");
         assert(!this.recovered, "ERROR: already recovered!");
         this.contagious = true;
+        this.contagiousTrigger = Number.MAX_SAFE_INTEGER;
     }
 
     becomeSymptomy() {
@@ -297,14 +321,16 @@ export class Person {
         assert(this.contagious, "ERROR: symptoms before having contagious - maybe not worst thing?");
         assert(!this.dead, "ERROR: already dead!");
         assert(!this.recovered, "ERROR: already recovered!");
-        this.symptomsCurrent = true;
+        this.symptomsCurrent = 1;
+        this.symptomsTrigger = Number.MAX_SAFE_INTEGER;
     }
 
     endSymptoms() {
         assert(this.infected, "ERROR: end symptoms without being infected.");
         assert(!this.dead, "ERROR: already dead!");
         assert(!this.recovered, "ERROR: already recovered!");
-        this.symptomsCurrent = false;
+        this.symptomsCurrent = 0;
+        this.endSymptomsTrigger = Number.MAX_SAFE_INTEGER;
     }
 
     endContagious() {
@@ -312,6 +338,7 @@ export class Person {
         assert(!this.dead, "ERROR: already dead!");
         assert(!this.recovered, "ERROR: already recovered!");
         this.contagious = false;
+        this.endContagiousTrigger = Number.MAX_SAFE_INTEGER;
     }
 
     becomeRecovered() {
@@ -321,6 +348,18 @@ export class Person {
         this.recovered = true;
     }
 
+    becomeSevereOrCritical(generator: MersenneTwister) {
+        assert(this.infected, "ERROR: severe without being infected.");
+        assert(this.symptomsCurrent > 0, "ERROR: must have symptoms to be severe.");
+        assert(!this.dead, "ERROR: already dead!");
+        assert(!this.recovered, "ERROR: already recovered!");
+
+        let isCritical = Bernoulli(generator, Person.critical_given_severe_or_critical);
+        if (isCritical) this.symptomsCurrent = SymptomsLevels.critical;
+        else this.symptomsCurrent = SymptomsLevels.severe;
+        this.severeTrigger = Number.MAX_SAFE_INTEGER;
+    }
+
     becomeDead() {
         assert(this.infected, "ERROR: dead without being infected.");
         assert(this.contagious, "ERROR: dying without being contagious");
@@ -328,6 +367,7 @@ export class Person {
         assert(!this.recovered, "ERROR: already recovered!");
         this.dead = true;
         this.infected = false;
+        this.deadTrigger = Number.MAX_SAFE_INTEGER;
     }
 
     // Returns true if this person is sick.
@@ -343,7 +383,12 @@ export class Person {
                 // TODO: what's the difference between these two? anything?
                 this.becomeRecovered();
             }
-            if (this.contagious && this.time_since_infected > this.deadTrigger) this.becomeDead();
+            if (this.symptomsCurrent < SymptomsLevels.severe && this.time_since_infected > this.severeTrigger)
+                this.becomeSevereOrCritical(generator);
+            if (this.contagious && this.time_since_infected > this.deadTrigger) {
+                this.becomeDead();
+                if (sim) sim.totalDead++;
+            }
 
             this.time_since_infected = this.time_since_infected + 1;
             return true;

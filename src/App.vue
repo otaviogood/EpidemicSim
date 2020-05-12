@@ -29,6 +29,7 @@
             <div class="stats">Age (TODO): {{ person.age }}</div>
             <div class="stats">Id: {{ person.id }}</div>
             <div class="stats">asymptomatic overall? {{ person.asymptomaticOverall }}</div>
+            <div class="stats">Symptom level: {{ person.symptoms }}</div>
         </span>
         <span class="card">
             <canvas
@@ -101,6 +102,7 @@ export default Vue.extend({
                 location: "",
                 status: "",
                 asymptomaticOverall: false,
+                symptoms: "",
             },
             mouse: {
                 current: {
@@ -164,6 +166,10 @@ export default Vue.extend({
                 if (p.isShowingSymptoms) self.person.status += ", 🥵Symptoms";
                 if (p.isRecovered) self.person.status = "🥳 Recovered!";
                 if (p.dead) self.person.status = "☠️ DEAD";
+                if (p.symptomsCurrent == 0) self.person.symptoms = "None";
+                else if (p.symptomsCurrent == 1) self.person.symptoms = "Mild";
+                else if (p.symptomsCurrent == 2) self.person.symptoms = "Severe";
+                else if (p.symptomsCurrent == 3) self.person.symptoms = "Critical";
             }
 
             let t2 = performance.now();
