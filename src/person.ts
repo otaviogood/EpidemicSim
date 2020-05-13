@@ -204,6 +204,7 @@ export class Person {
     symptomaticOverall = true;
     dead = false;
     recovered = false;
+    criticalIfSevere = false;
 
     // These are times of onset of various things
     contagiousTrigger = Number.MAX_SAFE_INTEGER;
@@ -272,6 +273,7 @@ export class Person {
         if (this.symptomsTrigger >= 0 && Bernoulli(generator, Person.severe_or_critical)) {
             [this.severeTrigger] = RandGaussian(generator, Person.time_till_severe, 0.3);
             this.severeTrigger = clamp(this.severeTrigger, this.symptomsTrigger + 1, this.endSymptomsTrigger - 1);
+            this.criticalIfSevere = Bernoulli(generator, Person.critical_given_severe_or_critical);
         }
     }
 
@@ -354,8 +356,7 @@ export class Person {
         assert(!this.dead, "ERROR: already dead!");
         assert(!this.recovered, "ERROR: already recovered!");
 
-        let isCritical = Bernoulli(generator, Person.critical_given_severe_or_critical);
-        if (isCritical) this.symptomsCurrent = SymptomsLevels.critical;
+        if (this.criticalIfSevere) this.symptomsCurrent = SymptomsLevels.critical;
         else this.symptomsCurrent = SymptomsLevels.severe;
         this.severeTrigger = Number.MAX_SAFE_INTEGER;
     }
@@ -456,6 +457,53 @@ export class Person {
             } else if (activity == ActivityType.shopping) {
                 this.spreadInAPlace(sim.allSuperMarkets[this.marketIndex].residents, shopping_density, pop, generator, sim, seed);
             }
+        }
+    }
+
+    drawRect(ctx: any, x: number, y: number, width: number, height: number, color: string = "#ffffff", fill: boolean = true) {
+        if (fill) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, width, height);
+        } else {
+            ctx.strokeStyle = color;
+            ctx.drawRect(x, y, width, height);
+        }
+    }
+    drawText(ctx: any, x: number, y: number, text: string, size: number = 16, color: string = "rgb(255, 255, 255)") {
+        ctx.fillStyle = color;
+        ctx.font = size.toString() + "px sans-serif";
+        ctx.fillText(text, x, y);
+    }
+    drawTimeline(canvas: any) {
+        if (!canvas) return;
+        if (!canvas.getContext) return;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let width = canvas.width, height = canvas.height;
+        let scale = 7.0 / 24.0;  // 1 day = 7 pixels
+
+        this.drawText(ctx, 252, 16, "Infection timeline", 14, "#aaaaaa");
+        if (this.symptomaticOverall) {
+            if (this.severeTrigger < Number.MAX_SAFE_INTEGER) {
+                if (this.criticalIfSevere) this.drawRect(ctx, this.severeTrigger * scale, height * 0.0, (this.endSymptomsTrigger - this.severeTrigger) * scale, height, "#ff3f00");
+                else this.drawRect(ctx, this.severeTrigger * scale, height * 0.25, (this.endSymptomsTrigger - this.severeTrigger) * scale, height, "#ff7f00");
+            }
+            this.drawRect(ctx, this.symptomsTrigger * scale, height * 0.5, (this.endSymptomsTrigger - this.symptomsTrigger) * scale, height, "#ffbf00");
+        }
+        this.drawRect(ctx, this.contagiousTrigger * scale, height * 0.75, (this.endContagiousTrigger - this.contagiousTrigger) * scale, height, "#ffef40");
+
+
+        for (let i = 0; i < 7*8; i++) {
+            this.drawRect(ctx, i*24 * scale, (i%7 == 0) ? 24 : 28, 2, 8, "#bbbbbb")
+        }
+        if (this.time_since_infected >= 0.0) {
+            this.drawRect(ctx, this.time_since_infected * scale, height * 0.5, 2, height, "#ff4040")
+            this.drawText(ctx, this.time_since_infected * scale, height * 0.4, (this.time_since_infected /24.0).toFixed(1), 14, "#ff4040");
+        }
+        if (this.deadTrigger < Number.MAX_SAFE_INTEGER) {
+            this.drawRect(ctx, this.deadTrigger * scale, 0, 2, height, "#ffffff");
+            this.drawText(ctx, this.deadTrigger * scale - 9, 16, "☠️", 16);
         }
     }
 }

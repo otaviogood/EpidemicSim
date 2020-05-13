@@ -297,6 +297,7 @@ export class Sim {
             this.numActive++;
         }
 
+        this.pop.index(this.selectedPersonIndex).drawTimeline(<HTMLCanvasElement>document.getElementById("timeline-canvas"));
         window.requestAnimationFrame(() => this.draw());
     }
     run_simulation(num_time_steps: number) {

@@ -35,18 +35,12 @@
             <div class="stats">asymptomatic overall? {{ person.asymptomaticOverall }}</div>
             <div class="stats">Symptom level: {{ person.symptoms }}</div>
             <div class="stats">
-                <svg width="352" height="32" style="margin:0px;padding:0px;border:0px">
-                    <rect width="352" height="100" style="fill:rgb(240,245,255);stroke-width:0;stroke:rgb(0,0,0)" />
-                    <rect x="8" y="28" width="1" height="100" style="stroke-width:1;stroke:rgb(190,190,190)" />
-                    <rect x="16" y="28" width="1" height="100" style="stroke-width:1;stroke:rgb(190,190,190)" />
-                    <rect x="24" y="28" width="1" height="100" style="stroke-width:1;stroke:rgb(190,190,190)" />
-                    <rect x="32" y="28" width="1" height="100" style="stroke-width:1;stroke:rgb(190,190,190)" />
-                    <rect x="40" y="28" width="1" height="100" style="stroke-width:1;stroke:rgb(190,190,190)" />
-                    <rect x="48" y="28" width="1" height="100" style="stroke-width:1;stroke:rgb(190,190,190)" />
-                    <rect :x="person.timeSinceInfected * 8.0 / 24" y="18" width="2" height="100" style="fill:rgb(255,19,19);stroke-width:1;stroke:rgb(255,19,19)" />
-                    <text :x="person.timeSinceInfected *8.0 / 24" y="16" fill="red">{{ (person.timeSinceInfected / 24).toFixed(1) }}</text>
-                    <text x="252" y="16" fill="#aaaaaa">Infected days</text>
-                </svg>
+                <canvas
+                    style="display:block;background-color:#123456;margin:0px;padding:0px;border:0px"
+                    width="365px"
+                    height="32px"
+                    id="timeline-canvas"
+                ></canvas>
             </div>
         </span>
         <span class="card">
@@ -122,7 +116,7 @@ export default Vue.extend({
                 asymptomaticOverall: false,
                 symptoms: "",
                 routine: "",
-                timeSinceInfected:0,
+                timeSinceInfected: 0,
             },
             mouse: {
                 current: {
@@ -193,6 +187,8 @@ export default Vue.extend({
             else if (p.symptomsCurrent == 1) self.person.symptoms = "Mild";
             else if (p.symptomsCurrent == 2) self.person.symptoms = "Severe";
             else if (p.symptomsCurrent == 3) self.person.symptoms = "Critical";
+            const canvas = <HTMLCanvasElement>document.getElementById("timeline-canvas");
+            p.drawTimeline(canvas);
         },
         singleStepSim: function() {
             let self = this;
@@ -368,6 +364,7 @@ body {
 }
 .stats {
     border-top: 1px solid #cccccc;
-    padding: 2px;
+    padding-top: 4px;
+    padding-bottom: 4px;
 }
 </style>
