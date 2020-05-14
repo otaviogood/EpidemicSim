@@ -7,8 +7,9 @@ import { Sim, fromDays, fromHours } from "./sim";
 import { Spatial, Grid } from "./spatial";
 import { start } from "repl";
 
-function assert(condition: boolean, messgage: string) {
-    if (!condition) console.log(messgage);
+function assert(condition: boolean, message: string) {
+    if (!condition) console.log(message);
+        // throw message || "Assertion failed";
 }
 
 function Bernoulli(rand: MersenneTwister, prob: number): boolean {
@@ -94,6 +95,7 @@ export class Person {
         "hhhhhhhhcwwwswwwwwchhhhh", // needs to be 24-long
         "hhhhhhhhcshhshhhhhshhhhh",
         "hhhhhhhccsscchhhhshhhhhh",
+        // "hhhhhhhh hhhhcshh hhshhhhh",  // This person is isolating.
     ];
 
     // This is like the "R" number, but as a probability of spreding in a timestep.
@@ -237,7 +239,7 @@ export class Person {
 
         // See if this person is overall asymptomatic and if so, backtrack the symptom onset.
         this.symptomaticOverall = Bernoulli(generator, 1.0 - Person.fully_asymptomatic);
-        if (!this.symptomaticOverall) this.symptomsTrigger = -1; // Never trigger symptoms for asymptomatic people
+        if (!this.symptomaticOverall) this.symptomsTrigger = Number.MAX_SAFE_INTEGER; // Never trigger symptoms for asymptomatic people
 
         // TODO: Math here is a bit arbitrary. Need more data about the distribution if I wanna make it more meaningful...
         // It seems to be a skewed distribution.
@@ -246,7 +248,7 @@ export class Person {
         this.endContagiousTrigger = Math.pow(this.endContagiousTrigger, 1.5); // skew the distribution
         // Apply new mean and std sorta...
         this.endContagiousTrigger =
-            this.endContagiousTrigger * fromDays(7) + Person.median_contagious_duration - fromDays(3) + this.symptomsTrigger;
+            this.endContagiousTrigger * fromDays(7) + Person.median_contagious_duration - fromDays(1) + this.contagiousTrigger;
 
         // TODO: When do symptoms end? I couldn't find numbers for this so I made something up.
         if (this.symptomaticOverall) this.endSymptomsTrigger = (this.symptomsTrigger + this.endContagiousTrigger) * 0.5;
@@ -264,13 +266,14 @@ export class Person {
             // console.log(this.deadTrigger);
 
             assert(this.symptomsTrigger >= 0, "just double checking");
+            assert(this.symptomsTrigger < Number.MAX_SAFE_INTEGER, "just double checking");
             // TODO: This span doesn't match the other data. Get things consistent. :/
             this.deadTrigger = this.symptomsTrigger + this.deadTrigger * span; // This will often get clamped down by the next line.
             this.deadTrigger = Math.min(this.deadTrigger, this.endContagiousTrigger - 1); // Make sure if you are meant to die, you do it before getting better.
         }
 
         // Severe disease
-        if (this.symptomsTrigger >= 0 && Bernoulli(generator, Person.severe_or_critical)) {
+        if (this.symptomaticOverall && Bernoulli(generator, Person.severe_or_critical)) {
             [this.severeTrigger] = RandGaussian(generator, Person.time_till_severe, 0.3);
             this.severeTrigger = clamp(this.severeTrigger, this.symptomsTrigger + 1, this.endSymptomsTrigger - 1);
             this.criticalIfSevere = Bernoulli(generator, Person.critical_given_severe_or_critical);
@@ -310,83 +313,82 @@ export class Person {
     }
 
     becomeContagious() {
-        assert(this.infected, "ERROR: contagious without being infected.");
-        assert(!this.symptomsCurrent, "ERROR: contagious after having symptoms - maybe not worst thing?");
-        assert(!this.dead, "ERROR: already dead!");
-        assert(!this.recovered, "ERROR: already recovered!");
+        assert(this.infected, "ERROR: contagious without being infected." + this.id);
+        assert(!this.symptomsCurrent, "ERROR: contagious after having symptoms - maybe not worst thing?" + this.id);
+        assert(!this.dead, "ERROR: already dead!" + this.id);
+        assert(!this.recovered, "ERROR: already recovered!" + this.id);
         this.contagious = true;
-        this.contagiousTrigger = Number.MAX_SAFE_INTEGER;
     }
 
     becomeSymptomy() {
-        assert(this.infected, "ERROR: symptoms without being infected.");
-        assert(this.contagious, "ERROR: symptoms before having contagious - maybe not worst thing?");
-        assert(!this.dead, "ERROR: already dead!");
-        assert(!this.recovered, "ERROR: already recovered!");
+        assert(this.infected, "ERROR: symptoms without being infected." + this.id);
+        assert(this.contagious, "ERROR: symptoms before having contagious - maybe not worst thing?" + this.id);
+        assert(!this.dead, "ERROR: already dead!" + this.id);
+        assert(!this.recovered, "ERROR: already recovered!" + this.id);
         this.symptomsCurrent = 1;
-        this.symptomsTrigger = Number.MAX_SAFE_INTEGER;
     }
 
     endSymptoms() {
-        assert(this.infected, "ERROR: end symptoms without being infected.");
-        assert(!this.dead, "ERROR: already dead!");
-        assert(!this.recovered, "ERROR: already recovered!");
+        assert(this.infected, "ERROR: end symptoms without being infected." + this.id);
+        assert(!this.dead, "ERROR: already dead!" + this.id);
+        assert(!this.recovered, "ERROR: already recovered!" + this.id);
         this.symptomsCurrent = 0;
-        this.endSymptomsTrigger = Number.MAX_SAFE_INTEGER;
     }
 
     endContagious() {
-        assert(this.infected, "ERROR: recovered without being infected.");
-        assert(!this.dead, "ERROR: already dead!");
-        assert(!this.recovered, "ERROR: already recovered!");
+        assert(this.infected, "ERROR: recovered without being infected." + this.id);
+        assert(!this.dead, "ERROR: already dead!" + this.id);
+        assert(!this.recovered, "ERROR: already recovered!" + this.id);
         this.contagious = false;
-        this.endContagiousTrigger = Number.MAX_SAFE_INTEGER;
     }
 
     becomeRecovered() {
-        assert(this.infected, "ERROR: recovered without being infected.");
-        assert(!this.dead, "ERROR: already dead!");
-        assert(!this.recovered, "ERROR: already recovered!");
+        assert(this.infected, "ERROR: recovered without being infected." + this.id);
+        assert(!this.dead, "ERROR: already dead!" + this.id);
+        assert(!this.recovered, "ERROR: already recovered!" + this.id);
         this.recovered = true;
     }
 
     becomeSevereOrCritical(generator: MersenneTwister) {
-        assert(this.infected, "ERROR: severe without being infected.");
-        assert(this.symptomsCurrent > 0, "ERROR: must have symptoms to be severe.");
-        assert(!this.dead, "ERROR: already dead!");
-        assert(!this.recovered, "ERROR: already recovered!");
+        assert(this.infected, "ERROR: severe without being infected." + this.id);
+        assert(this.symptomsCurrent > 0, "ERROR: must have symptoms to be severe." + this.id);
+        assert(!this.dead, "ERROR: already dead!" + this.id);
+        assert(!this.recovered, "ERROR: already recovered!" + this.id);
 
         if (this.criticalIfSevere) this.symptomsCurrent = SymptomsLevels.critical;
         else this.symptomsCurrent = SymptomsLevels.severe;
-        this.severeTrigger = Number.MAX_SAFE_INTEGER;
     }
 
     becomeDead() {
-        assert(this.infected, "ERROR: dead without being infected.");
-        assert(this.contagious, "ERROR: dying without being contagious");
-        assert(!this.dead, "ERROR: already dead!");
-        assert(!this.recovered, "ERROR: already recovered!");
+        assert(this.infected, "ERROR: dead without being infected." + this.id);
+        assert(this.contagious, "ERROR: dying without being contagious" + this.id);
+        assert(!this.dead, "ERROR: already dead!" + this.id);
+        assert(!this.recovered, "ERROR: already recovered!" + this.id);
         this.dead = true;
         this.infected = false;
-        this.deadTrigger = Number.MAX_SAFE_INTEGER;
+        this.contagious = false;
+    }
+
+    inRange(condition:boolean, start:number, end:number) {
+        return (condition && (this.time_since_infected >= start) && (this.time_since_infected < end));
     }
 
     // Returns true if this person is sick.
     stepTime(sim: Sim | null, generator: MersenneTwister): boolean {
         if (this.isSick) {
-            if (!this.contagious && this.time_since_infected > this.contagiousTrigger) this.becomeContagious();
-            if (!this.symptomsCurrent && this.symptomaticOverall && this.time_since_infected > this.symptomsTrigger)
-                this.becomeSymptomy();
-            if (this.symptomsCurrent && this.symptomaticOverall && this.time_since_infected > this.endSymptomsTrigger)
+            if (this.inRange(!this.contagious, this.contagiousTrigger, this.endContagiousTrigger)) this.becomeContagious();
+            if (this.inRange(!this.symptomsCurrent, this.symptomsTrigger, this.endSymptomsTrigger)) this.becomeSymptomy();
+            if (this.symptomsCurrent && this.symptomaticOverall && this.time_since_infected >= this.endSymptomsTrigger)
                 this.endSymptoms();
-            if (this.contagious && this.time_since_infected > this.endContagiousTrigger) {
+            if (this.contagious && this.time_since_infected >= this.endContagiousTrigger) {
+                // Maybe a little redundant...
                 this.endContagious();
-                // TODO: what's the difference between these two? anything?
                 this.becomeRecovered();
             }
-            if (this.symptomsCurrent < SymptomsLevels.severe && this.time_since_infected > this.severeTrigger)
+            if (this.inRange(this.symptomsCurrent < SymptomsLevels.severe, this.severeTrigger, this.endSymptomsTrigger))
+            // if (this.symptomsCurrent < SymptomsLevels.severe && this.time_since_infected >= this.severeTrigger)
                 this.becomeSevereOrCritical(generator);
-            if (this.contagious && this.time_since_infected > this.deadTrigger) {
+            if (this.contagious && this.time_since_infected >= this.deadTrigger) {
                 this.becomeDead();
                 if (sim) sim.totalDead++;
             }
