@@ -125,12 +125,6 @@ export async function parseCSV(sim: Sim) {
     img = await loadImage("sf_map_osm.jpg");
 }
 
-// Biased, but not much for small ranges.
-function randint(a: number, b: number) {
-    let temp = generator.random_int31();
-    return (temp % (b - a)) + a;
-}
-
 function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -396,6 +390,7 @@ export class Sim {
             this.scalex = canvas.width;
             this.scaley = canvas.height * 0.787;
 
+            // ---- Draw selected *household* info ----
             if (this.selectedHouseholdIndex >= 0) {
                 let hh: HouseHold = this.allHouseholds[this.selectedHouseholdIndex];
 
@@ -417,6 +412,7 @@ export class Sim {
                     );
                 }
             }
+            // ---- Draw selected *person*'s places ----
             if (this.selectedPersonIndex >= 0) {
                 let p: Person = this.pop.index(this.selectedPersonIndex);
                 let px = p.xpos; // Default to home as location.
@@ -439,6 +435,10 @@ export class Sim {
                 this.drawLine(ctx, px, py, house.xpos, house.ypos, "rgb(0, 0, 0)");
                 this.drawLine(ctx, px, py, office.xpos, office.ypos, "rgb(160, 160, 160)");
                 this.drawLine(ctx, px, py, hospital.xpos, hospital.ypos, "rgb(255, 25, 20)");
+                this.drawText(ctx, market.xpos-0.0125, market.ypos, "🏪");
+                this.drawText(ctx, house.xpos-0.0125, house.ypos, "🏡");
+                this.drawText(ctx, office.xpos-0.0125, office.ypos, "🏢");
+                this.drawText(ctx, hospital.xpos-0.0125, hospital.ypos, "🏥");
             }
 
             // Rendering is by far the bottleneck, so target this many rendered points and skip the rest.

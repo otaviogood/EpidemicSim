@@ -9,7 +9,13 @@ import { start } from "repl";
 
 function assert(condition: boolean, message: string) {
     if (!condition) console.log(message);
-        // throw message || "Assertion failed";
+    // throw message || "Assertion failed";
+}
+
+// Biased, but not much for small ranges.
+function randint(generator: MersenneTwister, a: number, b: number) {
+    let temp = generator.random_int31();
+    return (temp % (b - a)) + a;
 }
 
 function Bernoulli(rand: MersenneTwister, prob: number): boolean {
@@ -91,11 +97,14 @@ let rtemp = new RandomFast(1234567);
 export class Person {
     // lots of sets of 24-hour periods of different behaviors that represent different people's lifestyles
     // TODO: are weekends different? Does it matter?
-    static readonly activities = [
+    static readonly activitiesNormal = [
         "hhhhhhhhcwwwswwwwwchhhhh", // needs to be 24-long
         "hhhhhhhhcshhshhhhhshhhhh",
         "hhhhhhhccsscchhhhshhhhhh",
-        // "hhhhhhhh hhhhcshh hhshhhhh",  // This person is isolating.
+    ];
+    static readonly activitiesWhileSick = [
+        "hhhhhhhhhhhhcshhhhhhhhhh",
+        // "oooooooooooooooooooooooo",  // Hospitalized
     ];
 
     // This is like the "R" number, but as a probability of spreding in a timestep.
@@ -193,11 +202,11 @@ export class Person {
     time_since_infected: number = -1;
     xpos: number = 0; // Are these needed since you can get x, y of the place you are in?
     ypos: number = 0;
-    flags: number = 0;
     homeIndex = -1;
     officeIndex = -1;
     marketIndex = -1;
     hospitalIndex = -1;
+    currentActivity: string = Person.activitiesNormal[0];
 
     // flags
     infected = false;
@@ -215,11 +224,13 @@ export class Person {
     endSymptomsTrigger = Number.MAX_SAFE_INTEGER;
     deadTrigger = Number.MAX_SAFE_INTEGER;
     severeTrigger = Number.MAX_SAFE_INTEGER;
+    isolationTrigger = Number.MAX_SAFE_INTEGER; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
 
     constructor(generator: MersenneTwister, id: number) {
         this.id = id;
-        this.xpos = generator.random();
-        this.ypos = generator.random();
+
+        // Find person's main activity (what they do during the day)
+        this.currentActivity = this.getPersonDefaultActivity();
 
         // ---- Generate trigger times when sickness events will happen ----
         [this.contagiousTrigger] = RandGaussian(generator, Person.mean_time_till_contagious, Person.contagious_range * 0.5);
@@ -278,6 +289,15 @@ export class Person {
             this.severeTrigger = clamp(this.severeTrigger, this.symptomsTrigger + 1, this.endSymptomsTrigger - 1);
             this.criticalIfSevere = Bernoulli(generator, Person.critical_given_severe_or_critical);
         }
+
+        if (this.symptomaticOverall) {
+            let [temp] = RandGaussian(generator, this.symptomsTrigger + fromDays(2), fromDays(1));
+            this.isolationTrigger = clamp(temp, this.symptomsTrigger, this.symptomsTrigger + fromDays(4));
+        }
+    }
+
+    getPersonDefaultActivity(): string {
+        return Person.activitiesNormal[RandomFast.HashIntApprox(this.id, 0, Person.activitiesNormal.length)];
     }
 
     get hashId() {
@@ -347,6 +367,10 @@ export class Person {
         assert(!this.dead, "ERROR: already dead!" + this.id);
         assert(!this.recovered, "ERROR: already recovered!" + this.id);
         this.recovered = true;
+        this.infected = false;
+        this.symptomsCurrent = 0;
+        this.contagious = false;
+        this.currentActivity = this.getPersonDefaultActivity();
     }
 
     becomeSevereOrCritical(generator: MersenneTwister) {
@@ -369,8 +393,13 @@ export class Person {
         this.contagious = false;
     }
 
-    inRange(condition:boolean, start:number, end:number) {
-        return (condition && (this.time_since_infected >= start) && (this.time_since_infected < end));
+    becomeIsolated() {
+        this.currentActivity =
+            Person.activitiesWhileSick[RandomFast.HashIntApprox(this.id, 0, Person.activitiesWhileSick.length)];
+    }
+
+    inRange(condition: boolean, start: number, end: number) {
+        return condition && this.time_since_infected >= start && this.time_since_infected < end;
     }
 
     // Returns true if this person is sick.
@@ -386,12 +415,13 @@ export class Person {
                 this.becomeRecovered();
             }
             if (this.inRange(this.symptomsCurrent < SymptomsLevels.severe, this.severeTrigger, this.endSymptomsTrigger))
-            // if (this.symptomsCurrent < SymptomsLevels.severe && this.time_since_infected >= this.severeTrigger)
+                // if (this.symptomsCurrent < SymptomsLevels.severe && this.time_since_infected >= this.severeTrigger)
                 this.becomeSevereOrCritical(generator);
             if (this.contagious && this.time_since_infected >= this.deadTrigger) {
                 this.becomeDead();
                 if (sim) sim.totalDead++;
             }
+            if (this.symptomsCurrent && this.time_since_infected >= this.isolationTrigger) this.becomeIsolated();
 
             this.time_since_infected = this.time_since_infected + 1;
             return true;
@@ -437,8 +467,7 @@ export class Person {
     }
 
     getCurrentActivity(currentHour: number): ActivityType {
-        let activityStyle = Person.activities[RandomFast.HashIntApprox(this.id, 0, Person.activities.length)];
-        return activityStyle[currentHour] as ActivityType;
+        return this.currentActivity[currentHour] as ActivityType;
     }
 
     spread(
@@ -482,30 +511,71 @@ export class Person {
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        let width = canvas.width, height = canvas.height;
-        let scale = 7.0 / 24.0;  // 1 day = 7 pixels
+        let width = canvas.width,
+            height = canvas.height;
+        let scale = 7.0 / 24.0; // 1 day = 7 pixels
 
         this.drawText(ctx, 252, 16, "Infection timeline", 14, "#aaaaaa");
         if (this.symptomaticOverall) {
             if (this.severeTrigger < Number.MAX_SAFE_INTEGER) {
-                if (this.criticalIfSevere) this.drawRect(ctx, this.severeTrigger * scale, height * 0.0, (this.endSymptomsTrigger - this.severeTrigger) * scale, height, "#ff3f00");
-                else this.drawRect(ctx, this.severeTrigger * scale, height * 0.25, (this.endSymptomsTrigger - this.severeTrigger) * scale, height, "#ff7f00");
+                if (this.criticalIfSevere)
+                    this.drawRect(
+                        ctx,
+                        this.severeTrigger * scale,
+                        height * 0.0,
+                        (this.endSymptomsTrigger - this.severeTrigger) * scale,
+                        height,
+                        "#ff3f00"
+                    );
+                else
+                    this.drawRect(
+                        ctx,
+                        this.severeTrigger * scale,
+                        height * 0.25,
+                        (this.endSymptomsTrigger - this.severeTrigger) * scale,
+                        height,
+                        "#ff7f00"
+                    );
             }
-            this.drawRect(ctx, this.symptomsTrigger * scale, height * 0.5, (this.endSymptomsTrigger - this.symptomsTrigger) * scale, height, "#ffbf00");
+            this.drawRect(
+                ctx,
+                this.symptomsTrigger * scale,
+                height * 0.5,
+                (this.endSymptomsTrigger - this.symptomsTrigger) * scale,
+                height,
+                "#ffbf00"
+            );
         }
-        this.drawRect(ctx, this.contagiousTrigger * scale, height * 0.75, (this.endContagiousTrigger - this.contagiousTrigger) * scale, height, "#ffef40");
+        this.drawRect(
+            ctx,
+            this.contagiousTrigger * scale,
+            height * 0.75,
+            (this.endContagiousTrigger - this.contagiousTrigger) * scale,
+            height,
+            "#ffef40"
+        );
 
-
-        for (let i = 0; i < 7*8; i++) {
-            this.drawRect(ctx, i*24 * scale, (i%7 == 0) ? 24 : 28, 2, 8, "#bbbbbb")
+        for (let i = 0; i < 7 * 8; i++) {
+            this.drawRect(ctx, i * 24 * scale, i % 7 == 0 ? 24 : 28, 2, 8, "#bbbbbb");
         }
         if (this.time_since_infected >= 0.0) {
-            this.drawRect(ctx, this.time_since_infected * scale, height * 0.5, 2, height, "#ff4040")
-            this.drawText(ctx, this.time_since_infected * scale, height * 0.4, (this.time_since_infected /24.0).toFixed(1), 14, "#ff4040");
+            this.drawRect(ctx, this.time_since_infected * scale, height * 0.5, 2, height, "#ff4040");
+            this.drawText(
+                ctx,
+                this.time_since_infected * scale,
+                height * 0.4,
+                (this.time_since_infected / 24.0).toFixed(1),
+                14,
+                "#ff4040"
+            );
         }
         if (this.deadTrigger < Number.MAX_SAFE_INTEGER) {
             this.drawRect(ctx, this.deadTrigger * scale, 0, 2, height, "#ffffff");
             this.drawText(ctx, this.deadTrigger * scale - 9, 16, "☠️", 16);
+        }
+        if (this.isolationTrigger < Number.MAX_SAFE_INTEGER) {
+            this.drawRect(ctx, this.isolationTrigger * scale, 0, 2, height, "#ff5f1f");
+            this.drawText(ctx, this.isolationTrigger * scale - 9, 14, "😷", 14);
         }
     }
 }
