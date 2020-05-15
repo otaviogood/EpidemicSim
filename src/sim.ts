@@ -382,7 +382,15 @@ export class Sim {
             const ctx = canvas.getContext("2d");
             if (!ctx) return;
             // ctx.setTransform(this.zoom, 0, 0, this.zoom, this.centerx-canvas.width*0.5, this.centery-canvas.height*0.5);
-            if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Store the current transformation matrix
+            ctx.save();
+            // Use the identity matrix while clearing the canvas
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Restore the transform
+            ctx.restore();
+
             ctx.globalAlpha = 0.3;
             ctx.drawImage(img, 0, 0);
             ctx.globalAlpha = 1.0;
@@ -435,10 +443,10 @@ export class Sim {
                 this.drawLine(ctx, px, py, house.xpos, house.ypos, "rgb(0, 0, 0)");
                 this.drawLine(ctx, px, py, office.xpos, office.ypos, "rgb(160, 160, 160)");
                 this.drawLine(ctx, px, py, hospital.xpos, hospital.ypos, "rgb(255, 25, 20)");
-                this.drawText(ctx, market.xpos-0.0125, market.ypos, "🏪");
-                this.drawText(ctx, house.xpos-0.0125, house.ypos, "🏡");
-                this.drawText(ctx, office.xpos-0.0125, office.ypos, "🏢");
-                this.drawText(ctx, hospital.xpos-0.0125, hospital.ypos, "🏥");
+                this.drawText(ctx, market.xpos - 0.0125, market.ypos, "🏪");
+                this.drawText(ctx, house.xpos - 0.0125, house.ypos, "🏡");
+                this.drawText(ctx, office.xpos - 0.0125, office.ypos, "🏢");
+                this.drawText(ctx, hospital.xpos - 0.0125, hospital.ypos, "🏥");
             }
 
             // Rendering is by far the bottleneck, so target this many rendered points and skip the rest.

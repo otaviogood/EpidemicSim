@@ -15,6 +15,7 @@ let wayMap = new Map();
 // Find all open street map *nodes* that are within our bounds
 function localFilterNodes() {
     osmread.parse({
+        // Got northern california OpenStreetMaps data here: http://download.geofabrik.de/north-america/us/california/norcal.html
         filePath: "norcal-latest.osm.pbf",
         endDocument: function() {
             console.log("document end");
