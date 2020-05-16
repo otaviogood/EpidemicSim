@@ -3,7 +3,7 @@
 const fs = require("fs");
 var osmread = require("./node_modules/osm-read/osm-read-pbf");
 
-// San Francisco limits
+// San Francisco limits -122.526, -122.354, 37.708, 37.815
 let latMin = 37.708;
 let latMax = 37.815;
 let lonMin = -122.526;

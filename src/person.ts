@@ -216,6 +216,7 @@ export class Person {
     dead = false;
     recovered = false;
     criticalIfSevere = false;
+    isolating = false;
 
     // These are times of onset of various things
     contagiousTrigger = Number.MAX_SAFE_INTEGER;
@@ -370,6 +371,7 @@ export class Person {
         this.infected = false;
         this.symptomsCurrent = 0;
         this.contagious = false;
+        this.isolating = false;
         this.currentActivity = this.getPersonDefaultActivity();
     }
 
@@ -394,6 +396,7 @@ export class Person {
     }
 
     becomeIsolated() {
+        this.isolating = true;
         this.currentActivity =
             Person.activitiesWhileSick[RandomFast.HashIntApprox(this.id, 0, Person.activitiesWhileSick.length)];
     }

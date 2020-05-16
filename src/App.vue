@@ -34,6 +34,7 @@
             <div class="stats">Age (TODO): {{ person.age }}</div>
             <div class="stats">asymptomatic overall? {{ person.asymptomaticOverall }}</div>
             <div class="stats">Symptom level: {{ person.symptoms }}</div>
+            <div class="stats">Isolating? <span v-html="person.isolating"></span></div>
             <div class="stats">
                 <canvas
                     style="display:block;background-color:#123456;margin:0px;padding:0px;border:0px"
@@ -117,6 +118,7 @@ export default Vue.extend({
                 symptoms: "",
                 routine: "",
                 timeSinceInfected: 0,
+                isolating: "No",
             },
             mouse: {
                 current: {
@@ -154,6 +156,7 @@ export default Vue.extend({
             let p: Person = sim.pop.index(sim.selectedPersonIndex);
             self.person.timeSinceInfected = p.time_since_infected;
             self.person.asymptomaticOverall = !p.symptomaticOverall;
+            self.person.isolating = p.isolating ? "<strong>YES</strong>" : "No";
             // self.person.age = p.age;
             const icons = new Map([
                 ["h", "🏡"],
