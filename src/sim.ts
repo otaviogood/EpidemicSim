@@ -438,8 +438,8 @@ export class Sim {
 
                 let currentHour = this.time_steps_since_start % 24;
                 let activity = p.getCurrentActivity(currentHour);
-                let localx:number = house.xpos;
-                let localy:number = house.ypos;
+                let localx: number = house.xpos;
+                let localy: number = house.ypos;
                 if (activity == ActivityType.work) (localx = office.xpos), (localy = office.ypos);
                 if (activity == ActivityType.shopping) (localx = market.xpos), (localy = market.ypos);
                 if (activity == ActivityType.hospital) (localx = hospital.xpos), (localy = hospital.ypos);
@@ -460,27 +460,27 @@ export class Sim {
                 this.drawText(ctx, hospital.xpos - 0.0125, hospital.ypos, "🏥");
             }
 
-            // Rendering is by far the bottleneck, so target this many rendered points and skip the rest.
-            let skip = (this.pop.length / 256) | 0;
-            for (let i = 0; i < this.pop.length; i += skip) {
-                let person = this.pop.index(i);
-                let color = "#000000";
-                let radius = 2;
-                if (person.time_since_infected >= 0) {
-                    color = "rgb(255, 192, 0)";
-                    radius = 5;
-                }
-                if (person.time_since_infected >= Person.mean_time_till_contagious) {
-                    color = "rgb(255, 0, 0)";
-                }
-                if (person.time_since_infected >= Person.median_time_virus_is_communicable) {
-                    radius = 2;
-                    color = "rgb(0, 64, 255)";
-                }
-                // if (person.debug != 0) color = RandomFast.ToRGB(person.debug);
-                this.drawCircle(ctx, person.xpos, person.ypos, radius, color);
-            }
             if (this.paused) {
+                // Rendering is by far the bottleneck, so target this many rendered points and skip the rest.
+                let skip = (this.pop.length / 256) | 0;
+                for (let i = 0; i < this.pop.length; i += skip) {
+                    let person = this.pop.index(i);
+                    let color = "#000000";
+                    let radius = 2;
+                    if (person.time_since_infected >= 0) {
+                        color = "rgb(255, 192, 0)";
+                        radius = 5;
+                    }
+                    if (person.time_since_infected >= Person.mean_time_till_contagious) {
+                        color = "rgb(255, 0, 0)";
+                    }
+                    if (person.time_since_infected >= Person.median_time_virus_is_communicable) {
+                        radius = 2;
+                        color = "rgb(0, 64, 255)";
+                    }
+                    // if (person.debug != 0) color = RandomFast.ToRGB(person.debug);
+                    this.drawCircle(ctx, person.xpos, person.ypos, radius, color);
+                }
                 for (let i = 0; i < 128; i++) {
                     let office = this.allOffices[i];
                     this.drawRect(ctx, office.xpos, office.ypos, 0.005, 0.007, "rgb(160, 160, 160)");

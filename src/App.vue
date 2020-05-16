@@ -60,6 +60,9 @@
                 @touchend="handleTouchEnd"
             ></canvas>
             <p style="margin:8px;">
+                <span style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;">{{
+                    ["🕛", "🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚"][hoursElapsed % 12 | 0]
+                }}</span>
                 <button
                     type="button"
                     class=""
