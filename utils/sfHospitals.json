@@ -1,56 +1,272 @@
 [
-    [37.7883346, -122.4397096, "Laurel Heights Convalescent Hospital"],
-    [37.7206835, -122.3961402, "Arthur H. Coleman medical center"],
-    [37.774417, -122.452962, "Shrader & Grove (St. Mary's Medical Center)"],
-    [37.7566333, -122.4061889, "22nd & Potrero (General Hospital)"],
-    [37.7532806, -122.4047, "24th & Utah (General Hospital)"],
-    [37.7898079, -122.4169478, "St Francis Memorial Hospital Library"],
-    [37.7687392, -122.3954096, "Oda"],
-    [37.7636313, -122.388828, "UCSF Medical Center"],
-    [37.7650268, -122.3889135, "UCSF Medical Center"],
-    [37.7643313, -122.3888694, "UCSF Medical Center"],
-    [37.7647716, -122.3896641, "UCSF Benioff Children's Hospital San Francisco"],
-    [37.786983, -122.4550186, "Medical Center Parking"],
-    [37.7546573, -122.4063712, "San Francisco General Hospital"],
-    [37.7818166, -122.5042825, "Fort Miley Hospital"],
-    [37.7818556, -122.5042111, "Fort Miley Hospital"],
-    [37.7546522, -122.4064495, "San Francisco General Hospital"],
-    [37.771059, -122.4248365, "EzCare Clinic"],
-    [37.7454783, -122.4037585, "Bayshore Nav Center"],
-    [37.7587397, -122.4549488, "Medical Center Way"],
-    [37.7640042, -122.4560727, "Medical Center Way"],
-    [37.7591681, -122.4065789, "San Francisco General Hospital"],
-    [37.7690835, -122.4337126, "CPMC Davies Campus"],
-    [37.7743385, -122.4544563, "Saint Mary's Medical Center"],
-    [37.7953304, -122.4087, "Chinese Hospital"],
-    [37.7903162, -122.4308603, "California Pacific Medical Center"],
-    [37.7467067, -122.4202877, "CPMC Saint Luke's Campus"],
-    [37.7893485, -122.4160142, "Saint Francis Memorial Hospital"],
-    [37.786283, -122.457926, "CPMC California Campus"],
-    [37.7825157, -122.4442779, "Kaiser Permanente Medical Center"],
-    [37.7838894, -122.4379834, "UCSF Mount Zion Campus"],
-    [37.7510309, -122.4609643, "Laguna Honda Hospital And Rehabilitation Center"],
-    [37.775632, -122.4372718, "Hayes Convalescent Hospital"],
-    [37.7846633, -122.438184, "Hellman Building"],
-    [37.7845954, -122.4385837, "UCSF Medical Center at Mount Zion"],
-    [37.7851802, -122.4397317, "Helen Diller Family Comprehensive Cancer Center"],
-    [37.795264, -122.4093032, "Chinese Hospital Parking Garage"],
-    [37.7886673, -122.4394041, "California Convalescent Hospital"],
-    [37.7854675, -122.4397746, "UCSF Medical Center"],
-    [37.7478019, -122.421001, "Main building"],
-    [37.7474954, -122.4209741, "1957 Building"],
-    [37.746898, -122.420765, "1912 Building"],
-    [37.7863368, -122.4230909, "California Pacific Medical Center, Van Ness and Geary Hospital (construction site)"],
-    [37.800409, -122.4553296, "Former Post Hospital"],
-    [37.7646179, -122.3908389, "Hospital Street"],
-    [37.795331, -122.4086995, "Chinese Hospital"],
-    [37.7479197, -122.4218612, "Mission Bernal Hospital"],
-    [37.7895281, -122.4169879, "Saint Francis Memorial Hospital"],
-    [37.7595669, -122.4570127, "Medical Center Way"],
-    [37.7834878, -122.5068203, "San Francisco VA Medical Center Heliport"],
-    [37.7665492, -122.390444, "UCSF Medical Center at Mission Bay Heliport"],
-    [37.7643772, -122.3907074, "UCSF Medical Center at Mission Bay"],
-    [37.764779, -122.3907946, "Hospital Street"],
-    [37.7650154, -122.3906605, "Hospital Street"],
-    [37.7864677, -122.4569319, "Medical Center Parking"]
+	[
+		37.7883346,
+		-122.4397096,
+		"Laurel Heights Convalescent Hospital"
+	],
+	[
+		37.7206835,
+		-122.3961402,
+		"Arthur H. Coleman medical center"
+	],
+	[
+		37.774417,
+		-122.452962,
+		"Shrader & Grove (St. Mary's Medical Center)"
+	],
+	[
+		37.7566333,
+		-122.4061889,
+		"22nd & Potrero (General Hospital)"
+	],
+	[
+		37.7532806,
+		-122.4047,
+		"24th & Utah (General Hospital)"
+	],
+	[
+		37.7898079,
+		-122.4169478,
+		"St Francis Memorial Hospital Library"
+	],
+	[
+		37.7687392,
+		-122.3954096,
+		"Oda"
+	],
+	[
+		37.7636313,
+		-122.388828,
+		"UCSF Medical Center"
+	],
+	[
+		37.7650268,
+		-122.3889135,
+		"UCSF Medical Center"
+	],
+	[
+		37.7643313,
+		-122.3888694,
+		"UCSF Medical Center"
+	],
+	[
+		37.7647716,
+		-122.3896641,
+		"UCSF Benioff Children's Hospital San Francisco"
+	],
+	[
+		37.786983,
+		-122.4550186,
+		"Medical Center Parking"
+	],
+	[
+		37.7546573,
+		-122.4063712,
+		"San Francisco General Hospital"
+	],
+	[
+		37.7818166,
+		-122.5042825,
+		"Fort Miley Hospital"
+	],
+	[
+		37.7818556,
+		-122.5042111,
+		"Fort Miley Hospital"
+	],
+	[
+		37.7546522,
+		-122.4064495,
+		"San Francisco General Hospital"
+	],
+	[
+		37.771059,
+		-122.4248365,
+		"EzCare Clinic"
+	],
+	[
+		37.7454783,
+		-122.4037585,
+		"Bayshore Nav Center"
+	],
+	[
+		37.7587397,
+		-122.4549488,
+		"Medical Center Way"
+	],
+	[
+		37.7640042,
+		-122.4560727,
+		"Medical Center Way"
+	],
+	[
+		37.7591681,
+		-122.4065789,
+		"San Francisco General Hospital"
+	],
+	[
+		37.7690835,
+		-122.4337126,
+		"CPMC Davies Campus"
+	],
+	[
+		37.7743385,
+		-122.4544563,
+		"Saint Mary's Medical Center"
+	],
+	[
+		37.7953304,
+		-122.4087,
+		"Chinese Hospital"
+	],
+	[
+		37.7903162,
+		-122.4308603,
+		"California Pacific Medical Center"
+	],
+	[
+		37.7467067,
+		-122.4202877,
+		"CPMC Saint Luke's Campus"
+	],
+	[
+		37.7893485,
+		-122.4160142,
+		"Saint Francis Memorial Hospital"
+	],
+	[
+		37.786283,
+		-122.457926,
+		"CPMC California Campus"
+	],
+	[
+		37.7825157,
+		-122.4442779,
+		"Kaiser Permanente Medical Center"
+	],
+	[
+		37.7838894,
+		-122.4379834,
+		"UCSF Mount Zion Campus"
+	],
+	[
+		37.7510309,
+		-122.4609643,
+		"Laguna Honda Hospital And Rehabilitation Center"
+	],
+	[
+		37.775632,
+		-122.4372718,
+		"Hayes Convalescent Hospital"
+	],
+	[
+		37.7846633,
+		-122.438184,
+		"Hellman Building"
+	],
+	[
+		37.7845954,
+		-122.4385837,
+		"UCSF Medical Center at Mount Zion"
+	],
+	[
+		37.7851802,
+		-122.4397317,
+		"Helen Diller Family Comprehensive Cancer Center"
+	],
+	[
+		37.795264,
+		-122.4093032,
+		"Chinese Hospital Parking Garage"
+	],
+	[
+		37.7886673,
+		-122.4394041,
+		"California Convalescent Hospital"
+	],
+	[
+		37.7854675,
+		-122.4397746,
+		"UCSF Medical Center"
+	],
+	[
+		37.7478019,
+		-122.421001,
+		"Main building"
+	],
+	[
+		37.7474954,
+		-122.4209741,
+		"1957 Building"
+	],
+	[
+		37.746898,
+		-122.420765,
+		"1912 Building"
+	],
+	[
+		37.7863368,
+		-122.4230909,
+		"California Pacific Medical Center, Van Ness and Geary Hospital (construction site)"
+	],
+	[
+		37.800409,
+		-122.4553296,
+		"Former Post Hospital"
+	],
+	[
+		37.7646179,
+		-122.3908389,
+		"Hospital Street"
+	],
+	[
+		37.795331,
+		-122.4086995,
+		"Chinese Hospital"
+	],
+	[
+		37.7479197,
+		-122.4218612,
+		"Mission Bernal Hospital"
+	],
+	[
+		37.7895281,
+		-122.4169879,
+		"Saint Francis Memorial Hospital"
+	],
+	[
+		37.7595669,
+		-122.4570127,
+		"Medical Center Way"
+	],
+	[
+		37.7834878,
+		-122.5068203,
+		"San Francisco VA Medical Center Heliport"
+	],
+	[
+		37.7665492,
+		-122.390444,
+		"UCSF Medical Center at Mission Bay Heliport"
+	],
+	[
+		37.7643772,
+		-122.3907074,
+		"UCSF Medical Center at Mission Bay"
+	],
+	[
+		37.764779,
+		-122.3907946,
+		"Hospital Street"
+	],
+	[
+		37.7650154,
+		-122.3906605,
+		"Hospital Street"
+	],
+	[
+		37.7864677,
+		-122.4569319,
+		"Medical Center Parking"
+	]
 ]

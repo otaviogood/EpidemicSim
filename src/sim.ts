@@ -13,6 +13,7 @@ import RandomFast from "./random-fast";
 
 import supermarketJSON from "../utils/sfSupermarkets.json";
 import hospitalJSON from "../utils/sfHospitals.json";
+// import businessJSON from "../utils/sfBusinesses.json";
 
 class HouseHold {
     xpos: number = 0;
@@ -501,6 +502,14 @@ export class Sim {
                     let [x, y] = this.latLonToPos(parseFloat(lat), parseFloat(lon));
                     this.drawRect(ctx, x, y, 0.005, 0.007, "rgb(255, 25, 20)");
                 }
+                // for (let i = 0; i < businessJSON.length; i++) {
+                //     let business = businessJSON[i];
+                //     let lat: any = business[0]!;
+                //     let lon: any = business[1]!;
+
+                //     let [x, y] = this.latLonToPos(parseFloat(lat), parseFloat(lon));
+                //     this.drawRect(ctx, x, y, 0.0015, 0.002, "rgb(255, 0, 255)");
+                // }
             }
 
             // Reference point to check lat/lon

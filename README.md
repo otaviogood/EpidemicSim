@@ -1,6 +1,4 @@
-# group_testing
-
-Empty project.
+# YÆS: Yet Another Epidemic Simulator
 
 ## Building and running on localhost
 
@@ -22,11 +20,20 @@ To create a production build:
 npm run build-prod
 ```
 
-## Running
+## Utils and data files
+Got northern california OpenStreetMaps data (norcal-latest.osm.pbf) here: http://download.geofabrik.de/north-america/us/california/norcal.html  
+Use index.js to filter out the relevant region (lat/lon bounds set in code) and find buildings of interest, like businesses, hospitals, supermarkets.  
 
+inside utils, run:
 ```sh
-node dist/bundle.js
+node index.js
 ```
+
+Got Facebook population density maps here: https://data.humdata.org/dataset/united-states-high-resolution-population-density-maps-demographic-estimates  
+Use QGIS software to export a layer inside of the lat/lon bounds.  
+Use geotiff.js to export a people positions file from the population density data.  
+
+San Francisco buildings data from here: https://data.sfgov.org/Housing-and-Buildings/Land-Use/us3s-fp9q
 
 ## Credits
 

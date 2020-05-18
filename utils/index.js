@@ -1,7 +1,9 @@
 "use strict";
 
+var assert = require("assert");
 const fs = require("fs");
 var osmread = require("./node_modules/osm-read/osm-read-pbf");
+let sleep = require("util").promisify(setTimeout);
 
 // San Francisco limits -122.526, -122.354, 37.708, 37.815
 let latMin = 37.708;
@@ -13,8 +15,9 @@ let nodeMap = new Map();
 let wayMap = new Map();
 
 // Find all open street map *nodes* that are within our bounds
-function localFilterNodes() {
-    osmread.parse({
+async function localFilterNodes() {
+    console.log("Generating file of local openstreetmaps 'nodes'...");
+    await osmread.parse({
         // Got northern california OpenStreetMaps data here: http://download.geofabrik.de/north-america/us/california/norcal.html
         filePath: "norcal-latest.osm.pbf",
         endDocument: function() {
@@ -63,8 +66,9 @@ function loadJSON(fname) {
 }
 
 // Find all open street map *ways* that are within our bounds - needs nodes to be loaded first.
-function localFilterWays() {
-    osmread.parse({
+async function localFilterWays() {
+    console.log("Generating file of local openstreetmaps 'ways'...");
+    await osmread.parse({
         filePath: "norcal-latest.osm.pbf",
         endDocument: function() {
             console.log("document end");
@@ -89,48 +93,75 @@ function localFilterWays() {
     });
 }
 
-// // Filter out all nodes and ways from a certain area (lat/lon)
-// localFilterNodes();
-// // nodeMap = loadJSON("./localNodes.json");
-// localFilterWays();
-
-// Find all supermarkets in our region
-let keywords = ["hospital", "medical center"];
-let badWords = ["pet", "veterinary", "animal", "hospitality", "marijuana"];
 function hasWordFromList(bigString, wordList) {
     for (const word of wordList) if (bigString.includes(word)) return true;
     return false;
 }
-let allPlaces = [];
-nodeMap = loadJSON("./localNodes.json");
-for (const [id, val] of nodeMap) {
-    let tagStr = JSON.stringify(val.tags).toLowerCase();
-    if (hasWordFromList(tagStr, keywords)) {
-        if (hasWordFromList(tagStr, badWords)) continue;
-        let lat = parseFloat(val.lat);
-        let lon = parseFloat(val.lon);
-        if (val.tags.name) allPlaces.push([lat, lon, val.tags.name]);
-        // console.log(val);
+
+// Find all OSM "nodes" and "ways" that have certain strings in them, excluding other strings.
+// Write out the filtered list to a json file.
+// nodeMap and wayMap have to already be loaded.
+function extractPlaces(keywords, badWords, targetFile) {
+    console.log("searching nodes for: " + keywords);
+    console.log("excluding: " + badWords);
+    let allPlaces = [];
+    assert(nodeMap);
+    assert(nodeMap.size > 0);
+    for (const [id, val] of nodeMap) {
+        let tagStr = JSON.stringify(val.tags).toLowerCase();
+        if (hasWordFromList(tagStr, keywords)) {
+            if (hasWordFromList(tagStr, badWords)) continue;
+            let lat = parseFloat(val.lat);
+            let lon = parseFloat(val.lon);
+            if (val.tags.name) allPlaces.push([lat, lon, val.tags.name]);
+        }
     }
-}
-console.log("----------------------------------------------------");
-// console.log(nodeMap.get("26819236"));
-wayMap = loadJSON("./localWays.json");
-for (const [id, val] of wayMap) {
-    let tagStr = JSON.stringify(val.tags).toLowerCase();
-    if (hasWordFromList(tagStr, keywords)) {
-        if (hasWordFromList(tagStr, badWords)) continue;
-        // console.log(val.nodeRefs[0]);
-        let reffed = nodeMap.get(val.nodeRefs[0]);
-        // console.log(reffed);
-        let lat = parseFloat(reffed.lat);
-        let lon = parseFloat(reffed.lon);
-        if (val.tags.name) allPlaces.push([lat, lon, val.tags.name]);
-        // console.log(val);
+    console.log("Searching ways...");
+    assert(wayMap);
+    assert(wayMap.size > 0);
+    for (const [id, val] of wayMap) {
+        let tagStr = JSON.stringify(val.tags).toLowerCase();
+        if (hasWordFromList(tagStr, keywords)) {
+            if (hasWordFromList(tagStr, badWords)) continue;
+            // console.log(val.nodeRefs[0]);
+            let reffed = nodeMap.get(val.nodeRefs[0]);
+            // console.log(reffed);
+            let lat = parseFloat(reffed.lat);
+            let lon = parseFloat(reffed.lon);
+            if (val.tags.name) allPlaces.push([lat, lon, val.tags.name]);
+            // console.log(val);
+        }
     }
+    fs.writeFileSync(targetFile, JSON.stringify(allPlaces, null, "\t"));
+    console.log("Wrote file: " + targetFile);
 }
-const localWays = JSON.stringify(Object.fromEntries(wayMap));
-fs.writeFileSync("sfHospitals.json", JSON.stringify(allPlaces));
+
+async function doStuff() {
+    // Filter out all nodes and ways from a certain area (lat/lon) and generate local ways and nodes files
+    if (!fs.existsSync("./localNodes.json")) await localFilterNodes();
+    if (!fs.existsSync("./localWays.json")) await localFilterWays();
+
+    while (!fs.existsSync("./localWays.json") || !fs.existsSync("./localNodes.json")) {
+        await sleep(1000);
+        process.stdout.write(".");
+    }
+    console.log("");
+
+    console.log("Loading local nodes and ways...");
+    if (nodeMap.size <= 0) nodeMap = loadJSON("./localNodes.json");
+    if (wayMap.size <= 0) wayMap = loadJSON("./localWays.json");
+    // prettier-ignore
+    // Extract business locations
+    extractPlaces(["department","office","business","parking","pharmacy","coffee","sandwich","deli","cafe","bank","shop","site","center","plaza","hotel","industr","store","auto","garage","museum","square"],
+              ["garden"], "sfBusinesses.json")
+    extractPlaces(
+        ["hospital", "medical center"],
+        ["pet", "veterinary", "animal", "hospitality", "marijuana"],
+        "sfHospitals.json"
+    );
+    extractPlaces(["supermarket"], [], "sfSupermarkets.json");
+}
+doStuff();
 
 // ------------------- Just for reference -------------------
 let nodeExample = {
