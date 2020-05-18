@@ -127,7 +127,7 @@ export async function parseCSV(sim: Sim) {
     // });
     // console.log("loaded CSV");
 
-    img = await loadImage("sf_map_osm.jpg");
+    img = await loadImage("sf_map_osm_hi.jpg");
 }
 
 function toRadians(angle: number): number {
@@ -172,6 +172,7 @@ export class Sim {
     minLat: number = 37.708; //Number.MAX_VALUE;
     maxLon: number = -122.354; //-Number.MAX_VALUE;
     minLon: number = -122.526; //Number.MAX_VALUE;
+    latAdjust: number;
 
     time_steps_since_start = 0;
     infected_array: number[] = [];
@@ -194,12 +195,14 @@ export class Sim {
 
     constructor() {
         generator = new MersenneTwister(1234567890);
+        this.latAdjust = Math.cos(toRadians((this.minLat + this.maxLat) * 0.5)); // Adjust for curved earth (approximately with a point)
     }
     // Normalizes positions so they are in the [0..1] range on x and y.
     // Returns [x, y] tuple.
     latLonToPos(lat: number, lon: number): number[] {
         let xpos = (lon - this.minLon) / (this.maxLon - this.minLon);
         let ypos = 1.0 - (lat - this.minLat) / (this.maxLat - this.minLat);
+        ypos *= this.latAdjust; // Adjust for curved earth
         return [xpos, ypos];
     }
 
@@ -400,12 +403,17 @@ export class Sim {
             // Restore the transform
             ctx.restore();
 
-            ctx.globalAlpha = 0.3;
-            ctx.drawImage(img, 0, 0);
-            ctx.globalAlpha = 1.0;
+            let imgWidth:number = img.width;
+            let imgHeight:number = img.height;
+            let imgMax = Math.max(imgWidth, imgHeight);
+            let ratio = this.canvasWidth / imgMax;
             [this.canvasWidth, this.canvasHeight] = [canvas.width, canvas.height];
             this.scalex = canvas.width;
-            this.scaley = canvas.height * Math.cos(toRadians((this.minLat + this.maxLat) * 0.5)); // Adjust for curved earth
+            this.scaley = canvas.height;
+
+            ctx.globalAlpha = 0.3;
+            ctx.drawImage(img, 0, 0, imgWidth * ratio, imgHeight * ratio);
+            ctx.globalAlpha = 1.0;
 
             // ---- Draw selected *household* info ----
             if (this.selectedHouseholdIndex >= 0) {
@@ -524,6 +532,7 @@ export class Sim {
 
             // Animate infection circles and delete things from the list that are old.
             let tempIV: number[][] = [];
+            ctx.lineWidth = 3;
             for (let i = 0; i < this.infectedVisuals.length; i++) {
                 let t = (this.time_steps_since_start - this.infectedVisuals[i][2]) / 2;
                 let alpha = Math.max(0, 100 - t) / 100.0;
@@ -537,6 +546,7 @@ export class Sim {
                 }
             }
             this.infectedVisuals = tempIV;
+            ctx.lineWidth = 1.0;
 
             // // Look at Google timeline data
             // for (let i = 0; i < 100; i++) {
