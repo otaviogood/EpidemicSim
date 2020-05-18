@@ -11,9 +11,9 @@ import RandomFast from "./random-fast";
 // const allLocations = (<any>latlons).locations;
 // console.log(allLocations);
 
-import supermarketJSON from "../utils/sfSupermarkets.json";
-import hospitalJSON from "../utils/sfHospitals.json";
-// import businessJSON from "../utils/sfBusinesses.json";
+import supermarketJSON from "../utils/processedData/sfSupermarkets.json";
+import hospitalJSON from "../utils/processedData/sfHospitals.json";
+// import businessJSON from "../utils/processedData/sfBusinesses.json";
 
 class HouseHold {
     xpos: number = 0;

@@ -14,7 +14,7 @@ var generator = new MersenneTwister(1234567890);
 // The projection/datum is EPSG:4326/WGS84, which is encoded in the metadata.
 // ---------------------------
 // I used QGIS software to export a layer inside of the lat/lon bounds.
-let fileName = "sf_raster.tif";
+let fileName = "processedData/sf_raster.tif";
 
 // San Francisco limits -122.526, -122.354, 37.708, 37.815
 // let latMin = 37.708;
@@ -72,6 +72,7 @@ async function doStuff() {
     const data = await image.readRasters();
     const { width2, height2 } = data;
     let allPeople = [];
+    let allBuildings = [];
     let buffer = data[0];
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
@@ -82,13 +83,18 @@ async function doStuff() {
             let lon = xpos * (lonMax - lonMin) + lonMin;
             let lat = ypos * (latMax - latMin) + latMin;
             let numPeopleInCell = roundRandom(pixel); // Randomly sample the fractional component
-            for (let i = 0; i < numPeopleInCell; i++) {
-                allPeople.push([lat, lon]);
+            if (numPeopleInCell > 0) {
+                allBuildings.push([lat, lon, numPeopleInCell]);
+                for (let i = 0; i < numPeopleInCell; i++) {
+                    allPeople.push([lat, lon]);
+                }
             }
         }
     }
-    fs.writeFileSync("sfPeoplePositions.json", JSON.stringify(allPeople));
+    fs.writeFileSync("processedData/sfPeoplePositions.json", JSON.stringify(allPeople));
     console.log(allPeople.length.toString() + " people locations written to file.");
+    fs.writeFileSync("processedData/sfBuildingPositions.json", JSON.stringify(allBuildings));
+    console.log(allBuildings.length.toString() + " building locations written to file.");
 }
 
 doStuff();
