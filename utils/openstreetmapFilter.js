@@ -2,7 +2,7 @@
 
 var assert = require("assert");
 const fs = require("fs");
-var osmread = require("./node_modules/osm-read/osm-read-pbf");
+var osmread = require("osm-read/osm-read-pbf");
 let sleep = require("util").promisify(setTimeout);
 
 // San Francisco limits -122.526, -122.354, 37.708, 37.815
