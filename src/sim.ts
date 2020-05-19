@@ -11,6 +11,8 @@ import RandomFast from "./random-fast";
 // const allLocations = (<any>latlons).locations;
 // console.log(allLocations);
 
+const mapBounds = require("../utils/mapBounds");
+
 import supermarketJSON from "../utils/processedData/sfSupermarkets.json";
 import hospitalJSON from "../utils/processedData/sfHospitals.json";
 // import businessJSON from "../utils/processedData/sfBusinesses.json";
@@ -82,12 +84,11 @@ export class Sim {
     allOffices: HouseHold[] = [];
     allSuperMarkets: HouseHold[] = [];
     allHospitals: HouseHold[] = [];
-    maxLat: number = 37.815; //-Number.MAX_VALUE;
-    minLat: number = 37.708; //Number.MAX_VALUE;
-    maxLon: number = -122.354; //-Number.MAX_VALUE;
-    minLon: number = -122.526; //Number.MAX_VALUE;
+    lonMin: number = mapBounds.lonMin;
+    latMin: number = mapBounds.latMin;
+    lonMax: number = mapBounds.lonMax;
+    latMax: number = mapBounds.latMax;
     latAdjust: number;
-    latLonRatio: number;
 
     time_steps_since_start = 0;
     infected_array: number[] = [];
@@ -110,22 +111,22 @@ export class Sim {
 
     constructor() {
         generator = new MersenneTwister(1234567890);
-        this.latAdjust = Math.cos(toRadians((this.minLat + this.maxLat) * 0.5)); // Adjust for curved earth (approximately with a point)
-        this.latLonRatio = (this.maxLat - this.minLat) / (this.maxLon - this.minLon);
-        console.log("sim.minlat: " + this.minLat);
-        console.log("sim.maxlat: " + this.maxLat);
-        console.log("sim.minlon: " + this.minLon);
-        console.log("sim.maxlon: " + this.maxLon);
-        console.log("aspect ratio: " + (this.maxLat - this.minLat) / (this.maxLon - this.minLon));
+        this.latAdjust = Math.cos(toRadians((this.latMin + this.latMax) * 0.5)); // Adjust for curved earth (approximately with a point)
+        console.log(this.latAdjust);
+        
+        console.log("sim.minlat: " + this.latMin);
+        console.log("sim.maxlat: " + this.latMax);
+        console.log("sim.minlon: " + this.lonMin);
+        console.log("sim.maxlon: " + this.lonMax);
+        console.log("aspect ratio: " + (this.latMax - this.latMin) / (this.lonMax - this.lonMin));
     }
     // Normalizes positions so they are in the [0..1] range on x and y.
     // Returns [x, y] tuple.
     latLonToPos(lat: number, lon: number): number[] {
-        // let maxDelta = Math.max(this.maxLon - this.minLon, this.maxLat - this.minLat);
-        let xpos = (lon - this.minLon) / (this.maxLon - this.minLon);
-        let ypos = 1.0 - (lat - this.minLat) / (this.maxLat - this.minLat);
-        ypos *= this.latAdjust; // Adjust for curved earth
-        // ypos *= this.latLonRatio;
+        let maxDelta = Math.max(this.lonMax - this.lonMin, this.latMax - this.latMin);
+        let xpos = (lon - this.lonMin) / maxDelta;
+        let ypos = (this.latMax - lat) / maxDelta;  // Flip and make it relative to the top since graphics coords are from upper-left
+        ypos /= this.latAdjust; // Adjust for curved earth
         return [xpos, ypos];
     }
 

@@ -6,10 +6,7 @@ var osmread = require("osm-read/osm-read-pbf");
 let sleep = require("util").promisify(setTimeout);
 
 // San Francisco limits -122.526, -122.354, 37.708, 37.815
-let latMin = 37.708;
-let latMax = 37.815;
-let lonMin = -122.526;
-let lonMax = -122.354;
+const mapBounds = require("./mapBounds");
 
 let nodeMap = new Map();
 let wayMap = new Map();
@@ -32,10 +29,10 @@ async function localFilterNodes() {
         node: function(node) {
             let lat = parseFloat(node.lat);
             let lon = parseFloat(node.lon);
-            if (lat < latMin) return;
-            if (lat > latMax) return;
-            if (lon < lonMin) return;
-            if (lon > lonMax) return;
+            if (lat < mapBounds.latMin) return;
+            if (lat > mapBounds.latMax) return;
+            if (lon < mapBounds.lonMin) return;
+            if (lon > mapBounds.lonMax) return;
             let s = JSON.stringify(node);
             // if (s.toLowerCase().includes("supermarket")) console.log('node: ' + s);
             nodeMap.set(node.id, node);

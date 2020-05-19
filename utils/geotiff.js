@@ -1,9 +1,12 @@
 "use strict";
 
+var assert = require("assert");
 const fs = require("fs");
 const GeoTIFF = require("geotiff");
 var MersenneTwister = require("mersenne-twister");
 var generator = new MersenneTwister(1234567890);
+
+const mapBounds = require("./mapBounds");
 
 // From https://dataforgood.fb.com/docs/high-resolution-population-density-maps-demographic-estimates-documentation/
 // Data here: https://data.humdata.org/dataset/united-states-high-resolution-population-density-maps-demographic-estimates
@@ -14,7 +17,8 @@ var generator = new MersenneTwister(1234567890);
 // The projection/datum is EPSG:4326/WGS84, which is encoded in the metadata.
 // ---------------------------
 // I used QGIS software to export a layer inside of the lat/lon bounds.
-let fileName = "processedData/sf_raster.tif";
+// let fileName = "../sourceData/sf_raster.tif";  // This is faster so I can iterate on ideas. Should be same output as original file.
+let fileName = "../sourceData/population_usa28_-130_2019-07-01.tif";
 
 // San Francisco limits -122.526, -122.354, 37.708, 37.815
 // let latMin = 37.708;
@@ -62,13 +66,18 @@ async function doStuff() {
     const resolution = image.getResolution();
     const bbox = image.getBoundingBox();
 
-    let latMin = bbox[1];
-    let latMax = bbox[3];
     let lonMin = bbox[0];
+    let latMin = bbox[1];
     let lonMax = bbox[2];
+    let latMax = bbox[3];
+    assert(lonMin <= mapBounds.lonMin, "ERROR: source map file doesn't contain desired map bounds.");
+    assert(latMin <= mapBounds.latMin, "ERROR: source map file doesn't contain desired map bounds.");
+    assert(lonMax >= mapBounds.lonMax, "ERROR: source map file doesn't contain desired map bounds.");
+    assert(latMax >= mapBounds.latMax, "ERROR: source map file doesn't contain desired map bounds.");
     var cellArea = calcCellArea(origin[1]); // Use corner... Works for smallish areas like cities - not for whole countries.
 
-    console.log("lat/lon bounds: " + bbox);
+    console.log("lat/lon bounds in geotiff file:   " + bbox);
+    console.log("lat/lon bounds in for our region: " + [mapBounds.lonMin, mapBounds.latMin, mapBounds.lonMax, mapBounds.latMax]);
     const data = await image.readRasters();
     const { width2, height2 } = data;
     let allPeople = [];
@@ -82,6 +91,11 @@ async function doStuff() {
             let ypos = 1.0 - (y * 1.0) / (height - 1); // I guess bitmap is upside down?
             let lon = xpos * (lonMax - lonMin) + lonMin;
             let lat = ypos * (latMax - latMin) + latMin;
+            // I guess this could be done more efficiently if anyone cares...
+            if (lat < mapBounds.latMin) continue;
+            if (lon < mapBounds.lonMin) continue;
+            if (lat > mapBounds.latMax) continue;
+            if (lon > mapBounds.lonMax) continue;
             let numPeopleInCell = roundRandom(pixel); // Randomly sample the fractional component
             if (numPeopleInCell > 0) {
                 allBuildings.push([lat, lon, numPeopleInCell]);

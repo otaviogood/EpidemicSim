@@ -20,20 +20,24 @@ To create a production build:
 npm run build-prod
 ```
 
-## Utils and data files
+## Utils and data processing pipeline
 Get northern california OpenStreetMaps data (norcal-latest.osm.pbf) here: http://download.geofabrik.de/north-america/us/california/norcal.html  
 Use openstreetmapFilter.js to filter out the relevant region (lat/lon bounds set in code) and find buildings of interest, like businesses, hospitals, supermarkets.  
-
-inside utils, run:
-```sh
-node openstreetmapFilter.js
-```
 
 Got Facebook population density maps here: https://data.humdata.org/dataset/united-states-high-resolution-population-density-maps-demographic-estimates  
 Use QGIS software to export a layer inside of the lat/lon bounds.  
 Use geotiff.js to export a people positions file from the population density data.  
 
-San Francisco buildings data from here: https://data.sfgov.org/Housing-and-Buildings/Land-Use/us3s-fp9q
+San Francisco buildings data from here (no longer using): https://data.sfgov.org/Housing-and-Buildings/Land-Use/us3s-fp9q
+
+Define map boundaries in utils/mapBounds.js
+
+inside utils, run:
+```sh
+node openstreetmapFilter.js
+node geotiff.js
+node processBuildings.js
+```
 
 ## Credits
 
