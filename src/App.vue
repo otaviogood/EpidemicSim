@@ -97,7 +97,7 @@
 import Vue from "vue";
 import { Spatial, Grid } from "./spatial";
 import { Person, ActivityType } from "./person";
-import { Sim, parseCSV } from "./sim";
+import { Sim } from "./sim";
 import { log } from "util";
 import { stat } from "fs";
 import { runTests } from "./test_person";
@@ -149,7 +149,7 @@ export default Vue.extend({
         let self = this;
         runTests();
         sim = new Sim();
-        await parseCSV(sim); // this await doesn't work. :/
+        await sim.setup();
         sim.paused = true;
     },
     methods: {
@@ -255,7 +255,7 @@ export default Vue.extend({
         },
         restart: function(event: any) {
             sim = new Sim();
-            parseCSV(sim); // this await doesn't work. :/
+            sim.setup();
         },
 
         controllerDown: function(event: any, x: number, y: number) {

@@ -10,7 +10,7 @@
     "clean": "rm dist/bundle.js",
     "start": "npm run copystuff && parcel src/index.html --no-hmr",
     "build-prod": "parcel build src/index.html",
-    "copystuff": "shx cp src/sf_map_osm_hi.jpg dist/ && shx cp src/San_Francisco_Buildings_Trimmed.csv dist/"
+    "copystuff": "shx cp src/sf_map_osm_hi.jpg dist/ && shx cp utils/processedData/sfHouseholds.json dist/ && shx cp utils/processedData/sfOffices.json dist/"
   },
   "dependencies": {
     "@types/mathjs": "^6.0.5",

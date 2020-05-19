@@ -44,92 +44,6 @@ export function loadImage(url: string) {
     });
 }
 
-let peopleJSON: any;
-export async function parseCSV(sim: Sim) {
-    // return new Promise(function(complete:any, error:any) {
-    await Papa.parse("San_Francisco_Buildings_Trimmed.csv", {
-        download: true,
-        header: true,
-        delimiter: ",",
-        error: function() {
-            console.log("ERRORORORR");
-        },
-        complete: async function(results: any) {
-            let rows;
-            rows = results.data;
-            console.log("Finished:", rows[0]);
-            if (rows.length < 100) alert("ERROR: Probably couldn't find building csv file to load.");
-            let totalHomeCapacity = 0;
-            let totalOfficeCapacity = 0;
-            // header = rows[0];
-            for (let i = 0; i < rows.length; i++) {
-                let row = rows[i];
-                const lonS = row["building_latitude"].trim(); // THIS FILE HAS LAT/LON SWITCHED!!!! :(
-                const latS = row["building_longitude"].trim();
-                let lat = Number.parseFloat(latS);
-                let lon = Number.parseFloat(lonS);
-
-                // HACK!!!! Only 2 digits of precision in lat/lon from file, so let's randomize the rest.
-                lat += generator.random() * 0.01; // + 0.005;
-                lon += generator.random() * 0.01 - 0.005;
-
-                const facility = row["residential_facility_type"];
-                const units = row["dwelling_units"];
-                if (facility) {
-                    const res: boolean = facility.includes("RESIDENTIAL");
-                    // 3 people per "dwelling unit" - arbitrary, but got SF to population 843,821 residents.
-                    // https://housing.datasf.org/data-browser/population-and-households/average-household-size/
-                    let capacity: number = (parseInt(units) | 0) * 3;
-                    capacity = Math.max(1, capacity);
-                    if (res) {
-                        // home
-                        totalHomeCapacity += capacity;
-                        while (capacity > 0) {
-                            // TODO: make house-size distribution better. This has no large houses. This has avg household size of 2.18. SF is 2.32.
-                            let subUnit = Math.min(2 + (generator.random_int31() & 1), capacity);
-                            sim.allHouseholds.push(new HouseHold(lat, lon, subUnit));
-                            capacity -= subUnit;
-                        }
-                    } else {
-                        // office
-                        totalOfficeCapacity += capacity;
-                        sim.allOffices.push(new HouseHold(lat, lon, capacity));
-                    }
-                    // sim.maxLat = Math.max(sim.maxLat, lat);
-                    // sim.minLat = Math.min(sim.minLat, lat);
-                    // sim.maxLon = Math.max(sim.maxLon, lon);
-                    // sim.minLon = Math.min(sim.minLon, lon);
-                }
-            }
-            console.log("sim.minlat: " + sim.minLat);
-            console.log("sim.maxlat: " + sim.maxLat);
-            console.log("sim.minlon: " + sim.minLon);
-            console.log("sim.maxlon: " + sim.maxLon);
-            console.log("aspect ratio: " + (sim.maxLat - sim.minLat) / (sim.maxLon - sim.minLon));
-
-            const canvas = <HTMLCanvasElement>document.getElementById("graph-canvas");
-            if (canvas.getContext) {
-                const ctx = canvas.getContext("2d");
-                if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-            }
-            // console.log("num buildings: " + sim.allHousePositions.length);
-            console.log("total home capacity from file: " + totalHomeCapacity);
-            console.log("total offices from file: " + totalOfficeCapacity);
-            console.log("Total households: " + sim.allHouseholds.length);
-            console.log("Average household size: " + totalHomeCapacity / sim.allHouseholds.length);
-
-            // let jsonTemp = await fetch("sfPeoplePositions.json");
-            // peopleJSON = await jsonTemp.json();
-
-            sim.setup();
-        },
-    });
-    // });
-    // console.log("loaded CSV");
-
-    img = await loadImage("sf_map_osm_hi.jpg");
-}
-
 function toRadians(angle: number): number {
     return angle * 0.0174532925199;
 }
@@ -173,6 +87,7 @@ export class Sim {
     maxLon: number = -122.354; //-Number.MAX_VALUE;
     minLon: number = -122.526; //Number.MAX_VALUE;
     latAdjust: number;
+    latLonRatio: number;
 
     time_steps_since_start = 0;
     infected_array: number[] = [];
@@ -196,25 +111,60 @@ export class Sim {
     constructor() {
         generator = new MersenneTwister(1234567890);
         this.latAdjust = Math.cos(toRadians((this.minLat + this.maxLat) * 0.5)); // Adjust for curved earth (approximately with a point)
+        this.latLonRatio = (this.maxLat - this.minLat) / (this.maxLon - this.minLon);
+        console.log("sim.minlat: " + this.minLat);
+        console.log("sim.maxlat: " + this.maxLat);
+        console.log("sim.minlon: " + this.minLon);
+        console.log("sim.maxlon: " + this.maxLon);
+        console.log("aspect ratio: " + (this.maxLat - this.minLat) / (this.maxLon - this.minLon));
     }
     // Normalizes positions so they are in the [0..1] range on x and y.
     // Returns [x, y] tuple.
     latLonToPos(lat: number, lon: number): number[] {
+        // let maxDelta = Math.max(this.maxLon - this.minLon, this.maxLat - this.minLat);
         let xpos = (lon - this.minLon) / (this.maxLon - this.minLon);
         let ypos = 1.0 - (lat - this.minLat) / (this.maxLat - this.minLat);
         ypos *= this.latAdjust; // Adjust for curved earth
+        // ypos *= this.latLonRatio;
         return [xpos, ypos];
     }
 
     async setup() {
+        console.log("-------- SETUP --------");
+        img = await loadImage("sf_map_osm_hi.jpg");
+
+        // -------- Load HOUSE position and size data --------
+        let jsonTemp = await fetch("sfHouseholds.json");
+        let homeDataJSON = await jsonTemp.json();
+        this.allHouseholds = [];
+        let totalHomeCapacity = 0;
+        for (const p of homeDataJSON) {
+            this.allHouseholds.push(new HouseHold(p[0], p[1], p[2]));
+            totalHomeCapacity += p[2];
+        }
+        console.log("Total home capacity from file: " + totalHomeCapacity);
+        console.log("Total households: " + this.allHouseholds.length);
+        console.log("Average household size: " + totalHomeCapacity / this.allHouseholds.length);
+
+        // -------- Load OFFICE position and size data --------
+        jsonTemp = await fetch("sfOffices.json");
+        let officeDataJSON = await jsonTemp.json();
+        this.allOffices = [];
+        let totalOfficeCapacity = 0;
+        for (const p of officeDataJSON) {
+            this.allOffices.push(new HouseHold(p[0], p[1], p[2]));
+            totalOfficeCapacity += p[2];
+        }
+        console.log("Total office capacity from file: " + totalOfficeCapacity);
+        console.log("Total offices: " + this.allOffices.length);
+        console.log("Average office size: " + totalOfficeCapacity / this.allOffices.length);
+
         for (const sm of supermarketJSON) this.allSuperMarkets.push(HouseHold.genHousehold(this, sm[0], sm[1], 200)); // TODO: supermarket capacity???
         for (const h of hospitalJSON) this.allHospitals.push(HouseHold.genHousehold(this, h[0], h[1], 200)); // TODO: hospital capacity???
 
         shuffleArrayInPlace(this.allHouseholds);
-        this.allHouseholds = this.allHouseholds.slice(0, Math.min(this.allHouseholds.length, 500000)); // HACK!!!! Limit # of houses for debugging
         for (let i = 0; i < this.allHouseholds.length; i++) this.allHouseholds[i].latLonToPos(this);
         shuffleArrayInPlace(this.allOffices);
-        this.allOffices = this.allOffices.slice(0, this.allHouseholds.length / 2); // HACK!!!! Force offices to have half as many as there are houses
         for (let i = 0; i < this.allOffices.length; i++) this.allOffices[i].latLonToPos(this);
 
         // Allocate people to their houses and offices.
@@ -317,6 +267,9 @@ export class Sim {
             }
             this.time_steps_since_start++;
         }
+
+        // Every day, save off total infected so i can graph it.
+        if (this.time_steps_since_start % 24 == 0) this.infected_array.push(this.totalInfected);
     }
     drawGraph() {
         const canvas = <HTMLCanvasElement>document.getElementById("graph-canvas");
@@ -403,8 +356,8 @@ export class Sim {
             // Restore the transform
             ctx.restore();
 
-            let imgWidth:number = img.width;
-            let imgHeight:number = img.height;
+            let imgWidth: number = img.width;
+            let imgHeight: number = img.height;
             let imgMax = Math.max(imgWidth, imgHeight);
             let ratio = this.canvasWidth / imgMax;
             [this.canvasWidth, this.canvasHeight] = [canvas.width, canvas.height];
@@ -475,7 +428,7 @@ export class Sim {
                 for (let i = 0; i < this.pop.length; i += skip) {
                     let person = this.pop.index(i);
                     let color = "#000000";
-                    let radius = 2;
+                    let radius = 1;
                     if (person.time_since_infected >= 0) {
                         color = "rgb(255, 192, 0)";
                         radius = 5;
@@ -490,9 +443,9 @@ export class Sim {
                     // if (person.debug != 0) color = RandomFast.ToRGB(person.debug);
                     this.drawCircle(ctx, person.xpos, person.ypos, radius, color);
                 }
-                for (let i = 0; i < 128; i++) {
+                for (let i = 0; i < Math.min(128, this.allOffices.length); i++) {
                     let office = this.allOffices[i];
-                    this.drawRect(ctx, office.xpos, office.ypos, 0.005, 0.007, "rgb(160, 160, 160)");
+                    this.drawRect(ctx, office.xpos, office.ypos, 0.0025, 0.0025, "rgb(160, 160, 160)");
                 }
                 for (let i = 0; i < supermarketJSON.length; i++) {
                     let market = supermarketJSON[i];
@@ -500,7 +453,7 @@ export class Sim {
                     let lon: any = market[1]!;
 
                     let [x, y] = this.latLonToPos(parseFloat(lat), parseFloat(lon));
-                    this.drawRect(ctx, x, y, 0.005, 0.007, "rgb(60, 255, 60)");
+                    this.drawRect(ctx, x, y, 0.0025, 0.0025, "rgb(60, 255, 60)");
                 }
                 for (let i = 0; i < hospitalJSON.length; i++) {
                     let hospital = hospitalJSON[i];
@@ -508,7 +461,7 @@ export class Sim {
                     let lon: any = hospital[1]!;
 
                     let [x, y] = this.latLonToPos(parseFloat(lat), parseFloat(lon));
-                    this.drawRect(ctx, x, y, 0.005, 0.007, "rgb(255, 25, 20)");
+                    this.drawRect(ctx, x, y, 0.0025, 0.0025, "rgb(255, 25, 20)");
                 }
                 // for (let i = 0; i < businessJSON.length; i++) {
                 //     let business = businessJSON[i];
@@ -532,7 +485,7 @@ export class Sim {
 
             // Animate infection circles and delete things from the list that are old.
             let tempIV: number[][] = [];
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 2;
             for (let i = 0; i < this.infectedVisuals.length; i++) {
                 let t = (this.time_steps_since_start - this.infectedVisuals[i][2]) / 2;
                 let alpha = Math.max(0, 100 - t) / 100.0;
@@ -570,9 +523,6 @@ export class Sim {
             //     this.drawCircle(ctx, x, y, 0.5, "#ffff02");
             //     // ctx.fillRect((x * this.scalex) | 0, (y * this.scaley) | 0, 2, 2);
             // }
-
-            // Every day, save off total infected so i can graph it.
-            if (this.time_steps_since_start % 24 == 0) this.infected_array.push(this.totalInfected);
 
             this.drawGraph();
             // if ((this.numActive > 0) && (!this.paused)) {

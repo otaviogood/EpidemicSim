@@ -155,8 +155,8 @@ async function doStuff() {
     if (wayMap.size <= 0) wayMap = loadJSON(localWaysFileName);
     // prettier-ignore
     // Extract business locations
-    extractPlaces(["department","office","business","parking","pharmacy","coffee","sandwich","deli","cafe","bank","shop","site","center","plaza","hotel","industr","store","auto","garage","museum","square"],
-              ["garden"], "processedData/sfBusinesses.json")
+    extractPlaces(["department","office","business","parking","pharmacy","coffee","sandwich","deli","cafe","bank","shop","site","center","plaza","hotel","industr","store","auto","garage","museum","square","tower"],
+                  ["garden"], "processedData/sfBusinesses.json")
     extractPlaces(
         ["hospital", "medical center"],
         ["pet", "veterinary", "animal", "hospitality", "marijuana"],
