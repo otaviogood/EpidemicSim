@@ -91,7 +91,7 @@ import { Spatial, Grid } from "./spatial";
 import { Person, ActivityType } from "./person";
 import { Sim } from "./sim";
 import { runTests } from "./test_person";
-import { Params } from "./params";
+import * as Params from "./params";
 
 let sim: Sim;
 export default Vue.extend({
@@ -138,7 +138,7 @@ export default Vue.extend({
     },
     mounted: async function() {
         let self = this;
-        let params = new Params();
+        let params = new Params.Base();
         runTests(params);
         sim = new Sim(params);
         await sim.setup();

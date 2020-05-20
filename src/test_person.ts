@@ -10,7 +10,7 @@ import MersenneTwister from "mersenne-twister";
 
 import { Sim } from "./sim";
 import { Person, ActivityType } from "./person";
-import { Params } from "./params";
+import * as Params from "./params";
 
 function logStats(data: number[], message: string, multiplier: number = 1) {
     console.log(
@@ -30,7 +30,7 @@ function check(condition: boolean, message: string) {
     if (!condition) alert(message);
 }
 
-export function runTests(params:Params) {
+export function runTests(params:Params.Base) {
     // ------------------ test Person virus model --------------------------
     let numSamples = 1000;
     console.log("-------- RUNNING " + numSamples + " TESTS... --------");

@@ -1,6 +1,7 @@
 import * as util from "./util";
 
-export class Params {
+// Default parameters all wrapped up into this class that you can inherit from to make custom experiments
+export class Base {
     randomSeed = 1234567890;
     // // for doubling time and r number, https://arxiv.org/ftp/arxiv/papers/2003/2003.09320.pdf page 9
     // r = 2.5; // virus reproductive number
@@ -9,11 +10,6 @@ export class Params {
 
     // This is like the "R" number, but as a probability of spreading in a timestep.
     prob_baseline_timestep = 0.01; // .002
-
-    // https://ourworldindata.org/coronavirus?country=USA+BRA+SWE+RUS
-    case_fatality_rate_US = 0.06; // 6%
-    // IFR as a single number is a bit silly because it depends on hospitalization and treatment.
-    infection_fatality_rate = this.case_fatality_rate_US / 20; // Made-up BS. TODO: better numbers here.
 
     // https://www.nature.com/articles/s41591-020-0869-5
     mean_time_till_contagious = util.fromDays(3);
@@ -73,6 +69,11 @@ export class Params {
     // frequency ≥30/minute, blood oxygen saturation ≤93%, PaO2/FiO2 ratio <300, and/or lung infiltrates >50% of the lung field within 24-48 hours) and 6.1% are critical (respiratory
     // failure, septic shock, and/or multiple organ dysfunction/failure).
 
+    // https://ourworldindata.org/coronavirus?country=USA+BRA+SWE+RUS
+    case_fatality_rate_US = 0.06; // 6%
+    // IFR as a single number is a bit silly because it depends on hospitalization and treatment.
+    infection_fatality_rate = this.case_fatality_rate_US / 20; // Made-up BS. TODO: better numbers here.
+
     // IFR by age decade, from China... 0..9, 10..19, 20..29,..., >= 80
     // https://www.thelancet.com/pdfs/journals/laninf/PIIS1473-3099(20)30243-7.pdf
     // prettier-ignore
@@ -103,4 +104,12 @@ export class Params {
     home_density: number = 0.5;
     office_density: number = 1.75;
     shopping_density: number = 1.5;
+}
+
+// Example subclass for running an experiment with different parameters
+export class DeadlyModel extends Base {
+    infection_fatality_rate = 0.5;
+    constructor() {
+        super();
+    }
 }

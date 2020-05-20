@@ -5,7 +5,7 @@ import MersenneTwister from "mersenne-twister";
 
 import { Sim } from "./sim";
 import { Spatial, Grid } from "./spatial";
-import { Params } from "./params";
+import * as Params from "./params";
 import * as util from "./util";
 
 // hospital, school, supermarket, retirement community, prison
@@ -68,7 +68,7 @@ export class Person {
     severeTrigger = Number.MAX_SAFE_INTEGER;
     isolationTrigger = Number.MAX_SAFE_INTEGER; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
 
-    constructor(params: Params, rand: MersenneTwister, id: number) {
+    constructor(params: Params.Base, rand: MersenneTwister, id: number) {
         this.id = id;
 
         // Find person's main activity (what they do during the day)

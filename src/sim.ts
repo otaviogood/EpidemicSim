@@ -1,7 +1,7 @@
 import "@babel/polyfill"; // This is for using ES2017 features, like async/await.
 import { Person, ActivityType } from "./person";
 import { Spatial, Grid } from "./spatial";
-import { Params } from "./params";
+import * as Params from "./params";
 import * as util from "./util";
 // https://github.com/boo1ean/mersenne-twister
 import MersenneTwister from "mersenne-twister";
@@ -46,7 +46,7 @@ export function loadImage(url: string) {
 }
 
 export class Sim {
-    params: Params;
+    params: Params.Base;
     rfast: RandomFast;
     rand: MersenneTwister;
     pop: Spatial = new Spatial();
@@ -80,7 +80,7 @@ export class Sim {
     paused = false;
     infectedVisuals: number[][] = [];
 
-    constructor(params: Params) {
+    constructor(params: Params.Base) {
         this.params = params;
         this.rand = new MersenneTwister(params.randomSeed);
         this.rfast = new RandomFast(params.randomSeed);
