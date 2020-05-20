@@ -68,14 +68,14 @@ export class Person {
     severeTrigger = Number.MAX_SAFE_INTEGER;
     isolationTrigger = Number.MAX_SAFE_INTEGER; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
 
-    constructor(params: Params, generator: MersenneTwister, id: number) {
+    constructor(params: Params, rand: MersenneTwister, id: number) {
         this.id = id;
 
         // Find person's main activity (what they do during the day)
         this.currentActivity = this.getPersonDefaultActivity();
 
         // ---- Generate trigger times when sickness events will happen ----
-        [this.contagiousTrigger] = util.RandGaussian(generator, params.mean_time_till_contagious, params.contagious_range * 0.5);
+        [this.contagiousTrigger] = util.RandGaussian(rand, params.mean_time_till_contagious, params.contagious_range * 0.5);
         // Clamp to range.
         this.contagiousTrigger = util.clamp(
             this.contagiousTrigger,
@@ -84,19 +84,19 @@ export class Person {
         );
 
         // Skewed distribution
-        [this.symptomsTrigger] = util.RandGaussian(generator, 0.0, 0.5); // Include 2 standard deviations before clamping.
+        [this.symptomsTrigger] = util.RandGaussian(rand, 0.0, 0.5); // Include 2 standard deviations before clamping.
         this.symptomsTrigger = util.clamp(this.symptomsTrigger, -1.0, 1.0) * 0.5 + 0.5; //  Now show be [0..1] range
         this.symptomsTrigger = Math.pow(this.symptomsTrigger, 4.5); // skew the distribution, still [0..1] range.
         // Apply new mean and std sorta...
         this.symptomsTrigger = this.symptomsTrigger * util.fromDays(7.25) + params.mean_time_till_symptoms - util.fromDays(1.0);
 
         // See if this person is overall asymptomatic and if so, backtrack the symptom onset.
-        this.symptomaticOverall = util.Bernoulli(generator, 1.0 - params.fully_asymptomatic);
+        this.symptomaticOverall = util.Bernoulli(rand, 1.0 - params.fully_asymptomatic);
         if (!this.symptomaticOverall) this.symptomsTrigger = Number.MAX_SAFE_INTEGER; // Never trigger symptoms for asymptomatic people
 
         // TODO: Math here is a bit arbitrary. Need more data about the distribution if I wanna make it more meaningful...
         // It seems to be a skewed distribution.
-        [this.endContagiousTrigger] = util.RandGaussian(generator, 0.0, 0.3);
+        [this.endContagiousTrigger] = util.RandGaussian(rand, 0.0, 0.3);
         this.endContagiousTrigger = util.clamp(this.endContagiousTrigger, -1.0, 1.0) * 0.5 + 0.5; //  Now show be [0..1] range
         this.endContagiousTrigger = Math.pow(this.endContagiousTrigger, 1.5); // skew the distribution
         // Apply new mean and std sorta...
@@ -111,11 +111,11 @@ export class Person {
 
         // Death
         // Adjust fatality rate by asymptomatic people
-        let shouldDie: boolean = util.Bernoulli(generator, params.infection_fatality_rate * (1.0 + params.fully_asymptomatic));
+        let shouldDie: boolean = util.Bernoulli(rand, params.infection_fatality_rate * (1.0 + params.fully_asymptomatic));
 
         shouldDie = shouldDie && this.symptomaticOverall; // TODO: check - Maybe people won't die if they don't have syptoms??? How to apply this along with IFR?
         if (shouldDie) {
-            [this.deadTrigger] = util.RandGaussian(generator, 0.0, 0.93);
+            [this.deadTrigger] = util.RandGaussian(rand, 0.0, 0.93);
             this.deadTrigger = util.clamp(this.deadTrigger, -1.0, 1.0) * 0.5 + 0.5; //  Now show be [0..1] range
             let span: number =
                 params.range_time_till_death_relative_to_syptoms[1] - params.range_time_till_death_relative_to_syptoms[0];
@@ -129,14 +129,14 @@ export class Person {
         }
 
         // Severe disease
-        if (this.symptomaticOverall && util.Bernoulli(generator, params.severe_or_critical)) {
-            [this.severeTrigger] = util.RandGaussian(generator, params.time_till_severe, 0.3);
+        if (this.symptomaticOverall && util.Bernoulli(rand, params.severe_or_critical)) {
+            [this.severeTrigger] = util.RandGaussian(rand, params.time_till_severe, 0.3);
             this.severeTrigger = util.clamp(this.severeTrigger, this.symptomsTrigger + 1, this.endSymptomsTrigger - 1);
-            this.criticalIfSevere = util.Bernoulli(generator, params.critical_given_severe_or_critical);
+            this.criticalIfSevere = util.Bernoulli(rand, params.critical_given_severe_or_critical);
         }
 
         if (this.symptomaticOverall) {
-            let [temp] = util.RandGaussian(generator, this.symptomsTrigger + util.fromDays(2), util.fromDays(1));
+            let [temp] = util.RandGaussian(rand, this.symptomsTrigger + util.fromDays(2), util.fromDays(1));
             this.isolationTrigger = util.clamp(temp, this.symptomsTrigger, this.symptomsTrigger + util.fromDays(4));
         }
     }
@@ -219,7 +219,7 @@ export class Person {
         this.currentActivity = this.getPersonDefaultActivity();
     }
 
-    becomeSevereOrCritical(generator: MersenneTwister) {
+    becomeSevereOrCritical() {
         util.assert(this.infected, "ERROR: severe without being infected." + this.id);
         util.assert(this.symptomsCurrent > 0, "ERROR: must have symptoms to be severe." + this.id);
         util.assert(!this.dead, "ERROR: already dead!" + this.id);
@@ -250,7 +250,7 @@ export class Person {
     }
 
     // Returns true if this person is sick.
-    stepTime(sim: Sim | null, generator: MersenneTwister): boolean {
+    stepTime(sim: Sim | null, rand: MersenneTwister): boolean {
         if (this.isSick) {
             if (this.inRange(!this.contagious, this.contagiousTrigger, this.endContagiousTrigger)) this.becomeContagious();
             if (this.inRange(!this.symptomsCurrent, this.symptomsTrigger, this.endSymptomsTrigger)) this.becomeSymptomy();
@@ -263,7 +263,7 @@ export class Person {
             }
             if (this.inRange(this.symptomsCurrent < SymptomsLevels.severe, this.severeTrigger, this.endSymptomsTrigger))
                 // if (this.symptomsCurrent < SymptomsLevels.severe && this.time_since_infected >= this.severeTrigger)
-                this.becomeSevereOrCritical(generator);
+                this.becomeSevereOrCritical();
             if (this.contagious && this.time_since_infected >= this.deadTrigger) {
                 this.becomeDead();
                 if (sim) sim.totalDead++;
@@ -290,7 +290,7 @@ export class Person {
     // TODO: optimize me using "real math". :)
     // TODO: maxPeopleYouCanSpreadItToInYourRadius is totally arbitrary
     howManyCatchItInThisTimeStep(
-        generator: MersenneTwister,
+        rand: MersenneTwister,
         prob: number,
         popSize: number,
         maxPeopleYouCanSpreadItToInYourRadius: number = 30
@@ -298,15 +298,15 @@ export class Person {
         popSize = Math.min(popSize, maxPeopleYouCanSpreadItToInYourRadius);
         let total = 0;
         for (let i = 0; i < popSize; i++) {
-            if (generator.random() < prob /*- 1.0*/) total++;
+            if (rand.random() < prob /*- 1.0*/) total++;
             // if (rtemp.RandFloat() < prob /*- 1.0*/) total++;
         }
         return total;
     }
 
-    spreadInAPlace(residents: number[], density: number, pop: Spatial, generator: MersenneTwister, sim: Sim, seed: number) {
+    spreadInAPlace(residents: number[], density: number, pop: Spatial, rand: MersenneTwister, sim: Sim, seed: number) {
         let prob = sim.params.prob_baseline_timestep * this.probabilityMultiplierFromDensity(density);
-        let numSpread = this.howManyCatchItInThisTimeStep(generator, prob, residents.length);
+        let numSpread = this.howManyCatchItInThisTimeStep(rand, prob, residents.length);
         for (let i = 0; i < numSpread; i++) {
             let targetIndex = residents[RandomFast.HashIntApprox(seed, 0, residents.length)];
             if (pop.index(targetIndex).isVulnerable) pop.index(targetIndex).becomeSick(sim);
@@ -317,41 +317,20 @@ export class Person {
         return this.currentActivity[currentHour] as ActivityType;
     }
 
-    spread(
-        time_steps_since_start: number,
-        index: number,
-        pop: Spatial,
-        generator: MersenneTwister,
-        currentHour: number,
-        sim: Sim
-    ) {
+    spread(time_steps_since_start: number, index: number, pop: Spatial, rand: MersenneTwister, currentHour: number, sim: Sim) {
         if (this.isContagious) {
             let activity = this.getCurrentActivity(currentHour);
             let seed = Math.trunc(time_steps_since_start + index); // Unique for time step and each person
             if (activity == ActivityType.home) {
-                this.spreadInAPlace(
-                    sim.allHouseholds[this.homeIndex].residents,
-                    sim.params.home_density,
-                    pop,
-                    generator,
-                    sim,
-                    seed
-                );
+                this.spreadInAPlace(sim.allHouseholds[this.homeIndex].residents, sim.params.home_density, pop, rand, sim, seed);
             } else if (activity == ActivityType.work) {
-                this.spreadInAPlace(
-                    sim.allOffices[this.officeIndex].residents,
-                    sim.params.office_density,
-                    pop,
-                    generator,
-                    sim,
-                    seed
-                );
+                this.spreadInAPlace(sim.allOffices[this.officeIndex].residents, sim.params.office_density, pop, rand, sim, seed);
             } else if (activity == ActivityType.shopping) {
                 this.spreadInAPlace(
                     sim.allSuperMarkets[this.marketIndex].residents,
                     sim.params.shopping_density,
                     pop,
-                    generator,
+                    rand,
                     sim,
                     seed
                 );

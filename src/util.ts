@@ -6,8 +6,8 @@ export function assert(condition: boolean, message: string) {
 }
 
 // Biased, but not much for small ranges.
-export function randint(generator: MersenneTwister, a: number, b: number) {
-    let temp = generator.random_int31();
+export function randint(rand: MersenneTwister, a: number, b: number) {
+    let temp = rand.random_int31();
     return (temp % (b - a)) + a;
 }
 
@@ -47,10 +47,10 @@ export function Smootherstep(f0: number, f1: number, x: number): number {
 
 // Returns random number sampled from a circular gaussian distribution
 // https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
-export function RandGaussian(generator: MersenneTwister, mean: number = 0.0, std: number = 1.0): [number, number] {
+export function RandGaussian(rand: MersenneTwister, mean: number = 0.0, std: number = 1.0): [number, number] {
     const twoPi: number = 2.0 * Math.PI;
-    let ux = generator.random();
-    let uy = generator.random();
+    let ux = rand.random();
+    let uy = rand.random();
     ux = Math.max(ux, 0.00000003); // We don't want log() to fail because it's 0.
     let a: number = Math.sqrt(-2.0 * Math.log(ux));
     let x = a * Math.cos(twoPi * uy);
@@ -71,9 +71,9 @@ export function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export function shuffleArrayInPlace(array: any, generator: MersenneTwister) {
+export function shuffleArrayInPlace(array: any, rand: MersenneTwister) {
     for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(generator.random() * (i + 1));
+        const j = Math.floor(rand.random() * (i + 1));
         [array[i], array[j]] = [array[j], array[i]];
     }
 }

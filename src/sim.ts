@@ -16,7 +16,7 @@ import supermarketJSON from "../utils/processedData/sfSupermarkets.json";
 import hospitalJSON from "../utils/processedData/sfHospitals.json";
 // import businessJSON from "../utils/processedData/sfBusinesses.json";
 
-class HouseHold {
+class Place {
     xpos: number = 0;
     ypos: number = 0;
     residents: number[] = [];
@@ -25,10 +25,10 @@ class HouseHold {
     latLonToPos(sim: Sim) {
         [this.xpos, this.ypos] = sim.latLonToPos(this.lat, this.lon);
     }
-    static genHousehold(sim: Sim, lat: any, lon: any, capacity: number): HouseHold {
+    static genHousehold(sim: Sim, lat: any, lon: any, capacity: number): Place {
         let lat2: any = lat!;
         let lon2: any = lon!;
-        let hh = new HouseHold(parseFloat(lat2), parseFloat(lon2), capacity);
+        let hh = new Place(parseFloat(lat2), parseFloat(lon2), capacity);
         hh.latLonToPos(sim);
         return hh;
     }
@@ -48,13 +48,13 @@ export function loadImage(url: string) {
 export class Sim {
     params: Params;
     rfast: RandomFast;
-    generator: MersenneTwister;
+    rand: MersenneTwister;
     pop: Spatial = new Spatial();
 
-    allHouseholds: HouseHold[] = [];
-    allOffices: HouseHold[] = [];
-    allSuperMarkets: HouseHold[] = [];
-    allHospitals: HouseHold[] = [];
+    allHouseholds: Place[] = [];
+    allOffices: Place[] = [];
+    allSuperMarkets: Place[] = [];
+    allHospitals: Place[] = [];
     lonMin: number = mapBounds.lonMin;
     latMin: number = mapBounds.latMin;
     lonMax: number = mapBounds.lonMax;
@@ -82,7 +82,7 @@ export class Sim {
 
     constructor(params: Params) {
         this.params = params;
-        this.generator = new MersenneTwister(params.randomSeed);
+        this.rand = new MersenneTwister(params.randomSeed);
         this.rfast = new RandomFast(params.randomSeed);
         this.latAdjust = Math.cos(util.toRadians((this.latMin + this.latMax) * 0.5)); // Adjust for curved earth (approximately with a point)
         console.log("sim.minlat: " + this.latMin);
@@ -111,7 +111,7 @@ export class Sim {
         this.allHouseholds = [];
         let totalHomeCapacity = 0;
         for (const p of homeDataJSON) {
-            this.allHouseholds.push(new HouseHold(p[0], p[1], p[2]));
+            this.allHouseholds.push(new Place(p[0], p[1], p[2]));
             totalHomeCapacity += p[2];
         }
         console.log("Total home capacity from file: " + totalHomeCapacity);
@@ -124,19 +124,19 @@ export class Sim {
         this.allOffices = [];
         let totalOfficeCapacity = 0;
         for (const p of officeDataJSON) {
-            this.allOffices.push(new HouseHold(p[0], p[1], p[2]));
+            this.allOffices.push(new Place(p[0], p[1], p[2]));
             totalOfficeCapacity += p[2];
         }
         console.log("Total office capacity from file: " + totalOfficeCapacity);
         console.log("Total offices: " + this.allOffices.length);
         console.log("Average office size: " + totalOfficeCapacity / this.allOffices.length);
 
-        for (const sm of supermarketJSON) this.allSuperMarkets.push(HouseHold.genHousehold(this, sm[0], sm[1], 200)); // TODO: supermarket capacity???
-        for (const h of hospitalJSON) this.allHospitals.push(HouseHold.genHousehold(this, h[0], h[1], 200)); // TODO: hospital capacity???
+        for (const sm of supermarketJSON) this.allSuperMarkets.push(Place.genHousehold(this, sm[0], sm[1], 200)); // TODO: supermarket capacity???
+        for (const h of hospitalJSON) this.allHospitals.push(Place.genHousehold(this, h[0], h[1], 200)); // TODO: hospital capacity???
 
-        util.shuffleArrayInPlace(this.allHouseholds, this.generator);
+        util.shuffleArrayInPlace(this.allHouseholds, this.rand);
         for (let i = 0; i < this.allHouseholds.length; i++) this.allHouseholds[i].latLonToPos(this);
-        util.shuffleArrayInPlace(this.allOffices, this.generator);
+        util.shuffleArrayInPlace(this.allOffices, this.rand);
         for (let i = 0; i < this.allOffices.length; i++) this.allOffices[i].latLonToPos(this);
 
         // Allocate people to their houses and offices.
@@ -148,7 +148,7 @@ export class Sim {
         let i = 0;
 
         while (!done) {
-            let person = new Person(this.params, this.generator, this.pop.length);
+            let person = new Person(this.params, this.rand, this.pop.length);
 
             // Assign a random household, without overflowing the capacity
             let hh = this.allHouseholds[householdIndex];
@@ -235,8 +235,8 @@ export class Sim {
             let currentHour = this.time_steps_since_start % 24;
             for (let i = 0; i < this.pop.length; i++) {
                 let person = this.pop.index(i);
-                this.numActive += person.stepTime(this, this.generator) ? 1 : 0;
-                person.spread(this.time_steps_since_start, i, this.pop, this.generator, currentHour, this);
+                this.numActive += person.stepTime(this, this.rand) ? 1 : 0;
+                person.spread(this.time_steps_since_start, i, this.pop, this.rand, currentHour, this);
             }
             this.time_steps_since_start++;
         }
@@ -343,7 +343,7 @@ export class Sim {
 
             // ---- Draw selected *household* info ----
             if (this.selectedHouseholdIndex >= 0) {
-                let hh: HouseHold = this.allHouseholds[this.selectedHouseholdIndex];
+                let hh: Place = this.allHouseholds[this.selectedHouseholdIndex];
 
                 this.drawCircle(ctx, hh.xpos, hh.ypos, 8, "rgb(255,128,0)", false);
 

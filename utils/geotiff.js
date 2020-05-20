@@ -4,7 +4,7 @@ var assert = require("assert");
 const fs = require("fs");
 const GeoTIFF = require("geotiff");
 var MersenneTwister = require("mersenne-twister");
-var generator = new MersenneTwister(1234567890);
+var rand = new MersenneTwister(1234567890);
 
 const mapBounds = require("./mapBounds");
 
@@ -40,7 +40,7 @@ function calcCellArea(lat) {
 // Round a number up or down randomly, weighted by the fractional component
 function roundRandom(x) {
     let frac = x % 1;
-    let r = generator.random();
+    let r = rand.random();
     if (r < frac) return Math.floor(x) + 1;
     else return Math.floor(x);
 }
