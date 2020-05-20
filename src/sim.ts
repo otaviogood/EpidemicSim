@@ -1,11 +1,10 @@
-var Papa = require("papaparse");
 import "@babel/polyfill"; // This is for using ES2017 features, like async/await.
 import { Person, ActivityType } from "./person";
 import { Spatial, Grid } from "./spatial";
+import { Params } from "./params";
+import * as util from "./util";
 // https://github.com/boo1ean/mersenne-twister
-// var MersenneTwister = require("mersenne-twister");
 import MersenneTwister from "mersenne-twister";
-var generator: MersenneTwister; // = new MersenneTwister(1234567890);
 import RandomFast from "./random-fast";
 // import latlons from "../../contact_tracing/devon_since_feb.json";
 // const allLocations = (<any>latlons).locations;
@@ -46,39 +45,11 @@ export function loadImage(url: string) {
     });
 }
 
-function toRadians(angle: number): number {
-    return angle * 0.0174532925199;
-}
-
-function delay(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function shuffleArrayInPlace(array: any) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(generator.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-}
-
-export function fromHours(hours: number): number {
-    return hours;
-}
-export function fromDays(days: number): number {
-    return days * 24;
-}
-
 export class Sim {
-    rfast: RandomFast = new RandomFast(1234567890);
+    params: Params;
+    rfast: RandomFast;
+    generator: MersenneTwister;
     pop: Spatial = new Spatial();
-
-    // static readonly time_step_hours = 1; // hours
-    // for doubling time and r number, https://arxiv.org/ftp/arxiv/papers/2003/2003.09320.pdf page 9
-    static readonly r = 2.5; // virus reproductive number
-    static readonly r_time_interval = 4 * 24; // number of time steps (minutes) to do the r
-    static readonly r_baseline_interval = Math.exp(Math.log(Sim.r) / Sim.r_time_interval);
-    static readonly miss_rate = 0.03; // false negatives - a friend told me this number.
-    static readonly time_steps_till_change_target = 4; // This changes the r number effectively. Bad I guess.???
 
     allHouseholds: HouseHold[] = [];
     allOffices: HouseHold[] = [];
@@ -109,11 +80,11 @@ export class Sim {
     paused = false;
     infectedVisuals: number[][] = [];
 
-    constructor() {
-        generator = new MersenneTwister(1234567890);
-        this.latAdjust = Math.cos(toRadians((this.latMin + this.latMax) * 0.5)); // Adjust for curved earth (approximately with a point)
-        console.log(this.latAdjust);
-        
+    constructor(params: Params) {
+        this.params = params;
+        this.generator = new MersenneTwister(params.randomSeed);
+        this.rfast = new RandomFast(params.randomSeed);
+        this.latAdjust = Math.cos(util.toRadians((this.latMin + this.latMax) * 0.5)); // Adjust for curved earth (approximately with a point)
         console.log("sim.minlat: " + this.latMin);
         console.log("sim.maxlat: " + this.latMax);
         console.log("sim.minlon: " + this.lonMin);
@@ -125,7 +96,7 @@ export class Sim {
     latLonToPos(lat: number, lon: number): number[] {
         let maxDelta = Math.max(this.lonMax - this.lonMin, (this.latMax - this.latMin) / this.latAdjust);
         let xpos = (lon - this.lonMin) / maxDelta;
-        let ypos = (this.latMax - lat) / maxDelta;  // Flip and make it relative to the top since graphics coords are from upper-left
+        let ypos = (this.latMax - lat) / maxDelta; // Flip and make it relative to the top since graphics coords are from upper-left
         ypos /= this.latAdjust; // Adjust for curved earth
         return [xpos, ypos];
     }
@@ -163,9 +134,9 @@ export class Sim {
         for (const sm of supermarketJSON) this.allSuperMarkets.push(HouseHold.genHousehold(this, sm[0], sm[1], 200)); // TODO: supermarket capacity???
         for (const h of hospitalJSON) this.allHospitals.push(HouseHold.genHousehold(this, h[0], h[1], 200)); // TODO: hospital capacity???
 
-        shuffleArrayInPlace(this.allHouseholds);
+        util.shuffleArrayInPlace(this.allHouseholds, this.generator);
         for (let i = 0; i < this.allHouseholds.length; i++) this.allHouseholds[i].latLonToPos(this);
-        shuffleArrayInPlace(this.allOffices);
+        util.shuffleArrayInPlace(this.allOffices, this.generator);
         for (let i = 0; i < this.allOffices.length; i++) this.allOffices[i].latLonToPos(this);
 
         // Allocate people to their houses and offices.
@@ -175,8 +146,9 @@ export class Sim {
         const numHouses = this.allHouseholds.length;
         let done = false;
         let i = 0;
+
         while (!done) {
-            let person = new Person(generator, this.pop.length);
+            let person = new Person(this.params, this.generator, this.pop.length);
 
             // Assign a random household, without overflowing the capacity
             let hh = this.allHouseholds[householdIndex];
@@ -263,8 +235,8 @@ export class Sim {
             let currentHour = this.time_steps_since_start % 24;
             for (let i = 0; i < this.pop.length; i++) {
                 let person = this.pop.index(i);
-                this.numActive += person.stepTime(this, generator) ? 1 : 0;
-                person.spread(this.time_steps_since_start, i, this.pop, generator, currentHour, this);
+                this.numActive += person.stepTime(this, this.generator) ? 1 : 0;
+                person.spread(this.time_steps_since_start, i, this.pop, this.generator, currentHour, this);
             }
             this.time_steps_since_start++;
         }
@@ -434,10 +406,10 @@ export class Sim {
                         color = "rgb(255, 192, 0)";
                         radius = 5;
                     }
-                    if (person.time_since_infected >= Person.mean_time_till_contagious) {
+                    if (person.time_since_infected >= this.params.mean_time_till_contagious) {
                         color = "rgb(255, 0, 0)";
                     }
-                    if (person.time_since_infected >= Person.median_time_virus_is_communicable) {
+                    if (person.time_since_infected >= this.params.median_time_virus_is_communicable) {
                         radius = 2;
                         color = "rgb(0, 64, 255)";
                     }

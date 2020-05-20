@@ -79,15 +79,7 @@
                 >
                     ⤵️
                 </button>
-                <button
-                    type="button"
-                    class=""
-                    style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
-                    @click="restart"
-                >
-                    🔁
-                </button>
-                Sim Time (Milliseconds): {{ Math.round(milliseconds) }}<br />
+                <span style="float:right">Sim Time (Milliseconds): {{ Math.round(milliseconds) }}</span>
             </p>
         </span>
     </div>
@@ -98,9 +90,8 @@ import Vue from "vue";
 import { Spatial, Grid } from "./spatial";
 import { Person, ActivityType } from "./person";
 import { Sim } from "./sim";
-import { log } from "util";
-import { stat } from "fs";
 import { runTests } from "./test_person";
+import { Params } from "./params";
 
 let sim: Sim;
 export default Vue.extend({
@@ -147,8 +138,9 @@ export default Vue.extend({
     },
     mounted: async function() {
         let self = this;
-        runTests();
-        sim = new Sim();
+        let params = new Params();
+        runTests(params);
+        sim = new Sim(params);
         await sim.setup();
         sim.paused = true;
     },
@@ -252,10 +244,6 @@ export default Vue.extend({
         },
         stepForward: function(event: any) {
             this.singleStepSim();
-        },
-        restart: function(event: any) {
-            sim = new Sim();
-            sim.setup();
         },
 
         controllerDown: function(event: any, x: number, y: number) {

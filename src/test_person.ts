@@ -10,6 +10,7 @@ import MersenneTwister from "mersenne-twister";
 
 import { Sim } from "./sim";
 import { Person, ActivityType } from "./person";
+import { Params } from "./params";
 
 function logStats(data: number[], message: string, multiplier: number = 1) {
     console.log(
@@ -29,7 +30,7 @@ function check(condition: boolean, message: string) {
     if (!condition) alert(message);
 }
 
-export function runTests() {
+export function runTests(params:Params) {
     // ------------------ test Person virus model --------------------------
     let numSamples = 1000;
     console.log("-------- RUNNING " + numSamples + " TESTS... --------");
@@ -43,7 +44,7 @@ export function runTests() {
     let allTimesTillSevere: number[] = [];  // Also, critical. Also count # of severe and critical.
 
     for (let i = 0; i < numSamples; i++) {
-        let p = new Person(mtrand, i);
+        let p = new Person(params, mtrand, i);
         p.becomeSick(null);
         let timeTillContagious = -1;
         let timeTillSymptoms = -1;
