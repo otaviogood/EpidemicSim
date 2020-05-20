@@ -39,6 +39,14 @@ node geotiff.js
 node processBuildings.js
 ```
 
+-----------------------
+
+For large map areas, like major metro areas, you might run out of memory. In openstreetmapFilter.js, turn on noCacheHack. Then use this cmd-line for extra memory.
+
+```sh
+node --max-old-space-size=16384 openstreetmapFilter.js
+```
+
 ## Credits
 
 Made with [createapp.dev](https://createapp.dev/)

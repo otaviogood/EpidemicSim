@@ -8,11 +8,15 @@ let sleep = require("util").promisify(setTimeout);
 // San Francisco limits -122.526, -122.354, 37.708, 37.815
 const mapBounds = require("./mapBounds");
 
+const noCacheHack = false; // Use this for very large files... It can be fixed better, but this is placeholder.
+
 let nodeMap = new Map();
 let wayMap = new Map();
 const localNodesFileName = "processedData/localNodesCache.json";
 const localWaysFileName = "processedData/localWaysCache.json";
 const sourceOSMFileName = "../sourceData/norcal-latest.osm.pbf";
+
+let wait = 0;
 
 // Find all open street map *nodes* that are within our bounds
 async function localFilterNodes() {
@@ -23,8 +27,11 @@ async function localFilterNodes() {
         endDocument: function() {
             console.log("document end");
             console.log("nodes: " + nodeMap.size);
-            const localNodes = JSON.stringify(Object.fromEntries(nodeMap));
-            fs.writeFileSync(localNodesFileName, localNodes);
+            if (!noCacheHack) {
+                const localNodes = JSON.stringify(Object.fromEntries(nodeMap));
+                fs.writeFileSync(localNodesFileName, localNodes);
+            }
+            wait++;
         },
         node: function(node) {
             let lat = parseFloat(node.lat);
@@ -33,8 +40,8 @@ async function localFilterNodes() {
             if (lat > mapBounds.latMax) return;
             if (lon < mapBounds.lonMin) return;
             if (lon > mapBounds.lonMax) return;
-            let s = JSON.stringify(node);
-            // if (s.toLowerCase().includes("supermarket")) console.log('node: ' + s);
+            //  let s = JSON.stringify(node);
+            let s = JSON.stringify({ "lat": node.lat, "lon": node.lon, "tags": node.tags });
             nodeMap.set(node.id, node);
         },
         // way: function(way){
@@ -73,8 +80,11 @@ async function localFilterWays() {
         endDocument: function() {
             console.log("document end");
             console.log("ways: " + wayMap.size);
-            const localWays = JSON.stringify(Object.fromEntries(wayMap));
-            fs.writeFileSync(localWaysFileName, localWays);
+            if (!noCacheHack) {
+                const localWays = JSON.stringify(Object.fromEntries(wayMap));
+                fs.writeFileSync(localWaysFileName, localWays);
+            }
+            wait++;
         },
         way: function(way) {
             let nodeRefs = way.nodeRefs;
@@ -138,10 +148,10 @@ function extractPlaces(keywords, badWords, targetFile) {
 
 async function doStuff() {
     // Filter out all nodes and ways from a certain area (lat/lon) and generate local ways and nodes files
-    if (!fs.existsSync(localNodesFileName)) await localFilterNodes();
-    if (!fs.existsSync(localWaysFileName)) await localFilterWays();
+    if ((!fs.existsSync(localNodesFileName)) || noCacheHack) await localFilterNodes();
+    if ((!fs.existsSync(localWaysFileName)) || noCacheHack) await localFilterWays();
 
-    while (!fs.existsSync(localWaysFileName) || !fs.existsSync(localNodesFileName)) {
+    while (wait < 2) {
         await sleep(1000);
         process.stdout.write(".");
     }

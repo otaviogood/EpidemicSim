@@ -123,7 +123,7 @@ export class Sim {
     // Normalizes positions so they are in the [0..1] range on x and y.
     // Returns [x, y] tuple.
     latLonToPos(lat: number, lon: number): number[] {
-        let maxDelta = Math.max(this.lonMax - this.lonMin, this.latMax - this.latMin);
+        let maxDelta = Math.max(this.lonMax - this.lonMin, (this.latMax - this.latMin) / this.latAdjust);
         let xpos = (lon - this.lonMin) / maxDelta;
         let ypos = (this.latMax - lat) / maxDelta;  // Flip and make it relative to the top since graphics coords are from upper-left
         ypos /= this.latAdjust; // Adjust for curved earth

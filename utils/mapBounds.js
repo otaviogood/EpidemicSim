@@ -9,3 +9,9 @@ exports.latMax = 37.815;
 // exports.latMin = 36.9345;
 // exports.lonMax = -121.8226;
 // exports.latMax = 37.1483;
+
+// Entire SF Bay Area
+// exports.lonMin = -122.6651;
+// exports.latMin = 37.0771;
+// exports.lonMax = -121.5747;
+// exports.latMax = 38.2037;
