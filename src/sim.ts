@@ -233,6 +233,7 @@ export class Sim {
         for (let ts = 0; ts < num_time_steps; ts++) {
             this.numActive = 0;
             let currentHour = this.time_steps_since_start % 24;
+            this.params.doInterventionsForThisTimestep(this.time_steps_since_start);
             for (let i = 0; i < this.pop.length; i++) {
                 let person = this.pop.index(i);
                 this.numActive += person.stepTime(this, this.rand) ? 1 : 0;

@@ -19,6 +19,7 @@
       "noEmit": true,
       "jsx": "react",
       "noImplicitAny": true,
+      "noImplicitThis": true,
     },
     "include": [
       "src"

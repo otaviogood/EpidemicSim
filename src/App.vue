@@ -22,10 +22,10 @@
             Days: {{ Math.floor(hoursElapsed / 24) }}<br />
         </span>
         <span class="card clearfix" style="float:right;margin-top:16px">
-            <div style="width:365px;text-align:center;font-size:32px;">
+            <div style="width:365px;text-align:center;font-size:28px;">
                 <span style="display:inline-block;">Person info</span>
                 <label for="ticketNum">#</label>
-                <input id="personIndex" type="number" value="0" min="0" style="width:80px;" @change="changePersonIndex" />
+                <input id="personIndex" type="number" value="0" min="0" style="width:80px;font-size:24px" @change="changePersonIndex" />
             </div>
 
             <div class="stats" style="font-size:10px">Day: {{ person.routine }}</div>
@@ -42,6 +42,17 @@
                     height="32px"
                     id="timeline-canvas"
                 ></canvas>
+            </div>
+        </span>
+        <span class="card clearfix" style="float:right;margin-top:16px">
+            <div style="width:365px;text-align:center;font-size:28px;">
+                <span style="display:inline-block;">Interventions</span>
+            </div>
+
+            <div class="scrolly" style="width:365px;height:124px;overflow:hidden; overflow-y:scroll;">
+                <div v-for="i in interventions" v-bind:key="i.time">
+                    <div class="stats">T <span v-html="i"></span></div>
+                </div>
             </div>
         </span>
         <span class="card">
@@ -85,7 +96,7 @@
     </div>
 </template>
 
-<script lang="ts">
+<script lang="js">
 import Vue from "vue";
 import { Spatial, Grid } from "./spatial";
 import { Person, ActivityType } from "./person";
@@ -93,7 +104,8 @@ import { Sim } from "./sim";
 import { runTests } from "./test_person";
 import * as Params from "./params";
 
-let sim: Sim;
+let sim;//: Sim;
+let params;//: Params.Base;
 export default Vue.extend({
     data: function() {
         return {
@@ -114,6 +126,7 @@ export default Vue.extend({
                 timeSinceInfected: 0,
                 isolating: "No",
             },
+            interventions: [],
             mouse: {
                 current: {
                     x: 0,
@@ -138,7 +151,7 @@ export default Vue.extend({
     },
     mounted: async function() {
         let self = this;
-        let params = new Params.Base();
+        params = new Params.Base();
         runTests(params);
         sim = new Sim(params);
         await sim.setup();
@@ -148,7 +161,7 @@ export default Vue.extend({
         updatePerson: function() {
             let self = this;
             let currentHour = sim.time_steps_since_start % 24;
-            let p: Person = sim.pop.index(sim.selectedPersonIndex);
+            let p = sim.pop.index(sim.selectedPersonIndex);
             self.person.timeSinceInfected = p.time_since_infected;
             self.person.asymptomaticOverall = !p.symptomaticOverall;
             self.person.isolating = p.isolating ? "<strong>YES</strong>" : "No";
@@ -170,10 +183,10 @@ export default Vue.extend({
                 ["t", "Train"],
             ]);
             let act = p.getCurrentActivity(currentHour);
-            self.person.location = icons.get(act)!.toString() + " " + labels.get(act)!.toString();
+            self.person.location = icons.get(act).toString() + " " + labels.get(act).toString();
             self.person.routine = "";
             for (let i = 0; i < 24; i++) {
-                self.person.routine += icons.get(p.getCurrentActivity(i))!.toString();
+                self.person.routine += icons.get(p.getCurrentActivity(i)).toString();
             }
             self.person.status = "🙂 Happily not sick";
             if (p.isSick) self.person.status = "🦠Sick";
@@ -185,7 +198,7 @@ export default Vue.extend({
             else if (p.symptomsCurrent == 1) self.person.symptoms = "Mild";
             else if (p.symptomsCurrent == 2) self.person.symptoms = "Severe";
             else if (p.symptomsCurrent == 3) self.person.symptoms = "Critical";
-            const canvas = <HTMLCanvasElement>document.getElementById("timeline-canvas");
+            const canvas = document.getElementById("timeline-canvas");
             p.drawTimeline(canvas);
         },
         singleStepSim: function() {
@@ -201,6 +214,13 @@ export default Vue.extend({
             if (sim.time_steps_since_start > 0) {
                 self.updatePerson();
             }
+            self.interventions = [];
+            for (let i = 0; i < params.interventions.length; i++) {
+                let temp = params.interventions[i];
+                let actionStr = temp.action.toString();
+                actionStr = actionStr.replace("function () {\n      return _this.", "").replace(";\n    }", "");  // A little hacky... :P
+                self.interventions.push("<strong>" + temp.time.toString() + "</strong> &nbsp;&nbsp;&nbsp;" + actionStr);
+            }
 
             let t2 = performance.now();
             self.milliseconds = t2 - timer;
@@ -215,38 +235,38 @@ export default Vue.extend({
             this.animId = window.requestAnimationFrame(() => self.tickAnim());
         },
         // x, y will be [0..1] range from upper left to lower right.
-        controllerClick: function(event: any, x: number, y: number) {
+        controllerClick: function(event, x, y) {
             // If we're not actively dragging something, let people drag the phone screen.
             // if (this.mouse.mode != -1) event.preventDefault();
             // console.log(x.toString() + "   " + y.toString());
             sim.controllerClick(x, y);
         },
 
-        clicked: function(event: any) {
-            var rect = document.getElementById("map-canvas")!.getBoundingClientRect();
+        clicked: function(event) {
+            var rect = document.getElementById("map-canvas").getBoundingClientRect();
             this.controllerClick(
                 event,
                 (event.clientX - rect.left) / (rect.right - rect.left),
                 (event.clientY - rect.top) / (rect.bottom - rect.top)
             );
         },
-        changePersonIndex: function(e: any) {
+        changePersonIndex: function(e) {
             sim.selectedPersonIndex = e.target.valueAsNumber;
             this.updatePerson();
             sim.draw();
         },
-        mouseWheel: function(event: any) {
+        mouseWheel: function(event) {
             event.preventDefault();
             sim.changeZoom(Math.sign(event.deltaY));
         },
-        playPause: function(event: any) {
+        playPause: function(event) {
             sim.playPause();
         },
-        stepForward: function(event: any) {
+        stepForward: function(event) {
             this.singleStepSim();
         },
 
-        controllerDown: function(event: any, x: number, y: number) {
+        controllerDown: function(event, x, y) {
             this.mouse.down = true;
             this.mouse.current = {
                 x: x,
@@ -257,11 +277,11 @@ export default Vue.extend({
             // If we're not actively dragging something, let people drag the phone screen.
             if (this.mouse.mode != -1) event.preventDefault();
         },
-        controllerUp: function(event: any) {
+        controllerUp: function(event) {
             if (this.mouse.mode != -1) event.preventDefault();
             this.mouse.down = false;
         },
-        controllerMove: function(event: any, x: number, y: number) {
+        controllerMove: function(event, x, y) {
             if (this.mouse.mode != -1) event.preventDefault();
             this.mouse.previous = this.mouse.current;
             this.mouse.current = {
@@ -278,7 +298,7 @@ export default Vue.extend({
             }
         },
 
-        handleMouseDown: function(event: any) {
+        handleMouseDown: function(event) {
             let canvas = document.getElementById("map-canvas");
             if (!canvas) return;
             let [width, height] = [canvas.clientWidth, canvas.clientHeight];
@@ -289,10 +309,10 @@ export default Vue.extend({
                 ((event.clientY - rect.top) / (rect.bottom - rect.top)) * height
             );
         },
-        handleMouseUp: function(event: any) {
+        handleMouseUp: function(event) {
             this.controllerUp(event);
         },
-        handleMouseMove: function(event: any) {
+        handleMouseMove: function(event) {
             let canvas = document.getElementById("map-canvas");
             if (!canvas) return;
             let [width, height] = [canvas.clientWidth, canvas.clientHeight];
@@ -304,7 +324,7 @@ export default Vue.extend({
             );
         },
 
-        handleTouchStart: function(event: any) {
+        handleTouchStart: function(event) {
             let canvas = document.getElementById("map-canvas");
             if (!canvas) return;
             let [width, height] = [canvas.clientWidth, canvas.clientHeight];
@@ -316,10 +336,10 @@ export default Vue.extend({
                 ((touch.clientY - rect.top) / (rect.bottom - rect.top)) * height
             );
         },
-        handleTouchEnd: function(event: any) {
+        handleTouchEnd: function(event) {
             this.controllerUp(event);
         },
-        handleTouchMove: function(event: any) {
+        handleTouchMove: function(event) {
             let canvas = document.getElementById("map-canvas");
             if (!canvas) return;
             let [width, height] = [canvas.clientWidth, canvas.clientHeight];
@@ -361,4 +381,20 @@ body {
     padding-top: 4px;
     padding-bottom: 4px;
 }
+.pulse-block {
+    animation-name: pulse-anim;
+    animation-duration: 5s;
+    animation-fill-mode: forwards;
+    border: 4px solid #ff0000ff;
+}
+
+@keyframes pulse-anim {
+    from {
+        border-color: #ff0000ff;
+    }
+    to {
+        border-color: #ffffff00;
+    }
+}
+
 </style>

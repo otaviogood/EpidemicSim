@@ -1,5 +1,9 @@
 import * as util from "./util";
 
+class Intervention {
+    constructor(public time: number, public action: any) {}
+}
+
 // Default parameters all wrapped up into this class that you can inherit from to make custom experiments
 export class Base {
     randomSeed = 1234567890;
@@ -104,6 +108,23 @@ export class Base {
     home_density: number = 0.5;
     office_density: number = 1.75;
     shopping_density: number = 1.5;
+
+    // ========================================================================
+    interventions: Intervention[] = [];
+    currentInterventionIndex = 0;
+    makeIntervention(time: number, action: any) {
+        this.interventions.push(new Intervention(time, action));
+        this.interventions.sort((a, b) => a.time - b.time); // This is slow to do every time. I couldn't find a sorted list in Typescript.
+    }
+    doInterventionsForThisTimestep(time_steps_since_start: number) {
+        for (let i = this.currentInterventionIndex; i < this.interventions.length; i++) {
+            let triggerTime = this.interventions[i].time;
+            if (triggerTime == time_steps_since_start) {
+                this.interventions[i].action();
+                this.currentInterventionIndex++;
+            } else break;
+        }
+    }
 }
 
 // Example subclass for running an experiment with different parameters
@@ -111,5 +132,7 @@ export class DeadlyModel extends Base {
     infection_fatality_rate = 0.5;
     constructor() {
         super();
+        this.makeIntervention(util.fromDays(5), () => (this.prob_baseline_timestep = 0.0));
+        this.makeIntervention(util.fromDays(8), () => (this.prob_baseline_timestep = 0.01));
     }
 }
