@@ -73,12 +73,13 @@ export class Sim {
     lastMouseY = -1;
 
     // ---- visuals ----
-    canvasWidth = 768;
-    canvasHeight = 768;
+    canvasWidth = 0;
+    canvasHeight = 0;
     scalex = 1;
     scaley = 1;
     paused = false;
     infectedVisuals: number[][] = [];
+    visualsFlag = 0;
 
     constructor(params: Params.Base) {
         this.params = params;
@@ -333,10 +334,11 @@ export class Sim {
             let imgWidth: number = img.width;
             let imgHeight: number = img.height;
             let imgMax = Math.max(imgWidth, imgHeight);
-            let ratio = this.canvasWidth / imgMax;
+            let maxCanvas = Math.max(canvas.width, canvas.height);
+            let ratio = maxCanvas / imgMax;
             [this.canvasWidth, this.canvasHeight] = [canvas.width, canvas.height];
-            this.scalex = canvas.width;
-            this.scaley = canvas.height;
+            this.scalex = maxCanvas;
+            this.scaley = maxCanvas;
 
             ctx.globalAlpha = 0.3;
             ctx.drawImage(img, 0, 0, imgWidth * ratio, imgHeight * ratio);
@@ -396,56 +398,59 @@ export class Sim {
                 this.drawText(ctx, hospital.xpos - 0.0125, hospital.ypos, "🏥");
             }
 
-            if (this.paused) {
+            ctx.fillStyle = "#ffffff";
+            if ((this.visualsFlag & 1) != 0) {
                 // Rendering is by far the bottleneck, so target this many rendered points and skip the rest.
-                let skip = (this.pop.length / 256) | 0;
+                let skip = 10; // (this.pop.length / 25600) | 0;
                 for (let i = 0; i < this.pop.length; i += skip) {
                     let person = this.pop.index(i);
-                    let color = "#000000";
-                    let radius = 1;
-                    if (person.time_since_infected >= 0) {
-                        color = "rgb(255, 192, 0)";
-                        radius = 5;
-                    }
-                    if (person.time_since_infected >= this.params.mean_time_till_contagious) {
-                        color = "rgb(255, 0, 0)";
-                    }
-                    if (person.time_since_infected >= this.params.median_time_virus_is_communicable) {
-                        radius = 2;
-                        color = "rgb(0, 64, 255)";
-                    }
-                    // if (person.debug != 0) color = RandomFast.ToRGB(person.debug);
-                    this.drawCircle(ctx, person.xpos, person.ypos, radius, color);
+                    ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 1, 1);
                 }
-                for (let i = 0; i < Math.min(128, this.allOffices.length); i++) {
-                    let office = this.allOffices[i];
-                    this.drawRect(ctx, office.xpos, office.ypos, 0.0025, 0.0025, "rgb(160, 160, 160)");
-                }
-                for (let i = 0; i < supermarketJSON.length; i++) {
-                    let market = supermarketJSON[i];
-                    let lat: any = market[0]!;
-                    let lon: any = market[1]!;
-
-                    let [x, y] = this.latLonToPos(parseFloat(lat), parseFloat(lon));
-                    this.drawRect(ctx, x, y, 0.0025, 0.0025, "rgb(60, 255, 60)");
-                }
-                for (let i = 0; i < hospitalJSON.length; i++) {
-                    let hospital = hospitalJSON[i];
-                    let lat: any = hospital[0]!;
-                    let lon: any = hospital[1]!;
-
-                    let [x, y] = this.latLonToPos(parseFloat(lat), parseFloat(lon));
-                    this.drawRect(ctx, x, y, 0.0025, 0.0025, "rgb(255, 25, 20)");
-                }
-                // for (let i = 0; i < businessJSON.length; i++) {
-                //     let business = businessJSON[i];
-                //     let lat: any = business[0]!;
-                //     let lon: any = business[1]!;
-
-                //     let [x, y] = this.latLonToPos(parseFloat(lat), parseFloat(lon));
-                //     this.drawRect(ctx, x, y, 0.0015, 0.002, "rgb(255, 0, 255)");
-                // }
             }
+            if ((this.visualsFlag & 2) != 0) {
+                for (let i = 0; i < Math.min(1000000, this.allOffices.length); i++) {
+                    let office = this.allOffices[i];
+                    ctx.fillRect(office.xpos * this.scalex, office.ypos * this.scaley, 1, 1);
+                }
+            }
+            if ((this.visualsFlag & 4) != 0) {
+                for (let i = 0; i < this.allHospitals.length; i++) {
+                    let hospital = this.allHospitals[i];
+                    this.drawRect(ctx, hospital.xpos, hospital.ypos, 0.0075, 0.0075, "rgb(255, 64, 64)");
+                }
+            }
+            if ((this.visualsFlag & 8) != 0) {
+                for (let i = 0; i < this.allSuperMarkets.length; i++) {
+                    let market = this.allSuperMarkets[i];
+                    this.drawRect(ctx, market.xpos, market.ypos, 0.005, 0.005, "rgb(60, 255, 60)");
+                }
+            }
+            if ((this.visualsFlag & 16) != 0) {
+                for (let i = 0; i < this.pop.length; i++) {
+                    let person = this.pop.index(i);
+                    if (person.isVulnerable) ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 1, 1);
+                }
+            }
+            if ((this.visualsFlag & 32) != 0) {
+                for (let i = 0; i < this.pop.length; i++) {
+                    let person = this.pop.index(i);
+                    if (person.isSick) ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 2, 2);
+                }
+            }
+            if ((this.visualsFlag & 64) != 0) {
+                for (let i = 0; i < this.pop.length; i++) {
+                    let person = this.pop.index(i);
+                    if (person.isRecovered) ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 2, 2);
+                }
+            }
+            // for (let i = 0; i < businessJSON.length; i++) {
+            //     let business = businessJSON[i];
+            //     let lat: any = business[0]!;
+            //     let lon: any = business[1]!;
+
+            //     let [x, y] = this.latLonToPos(parseFloat(lat), parseFloat(lon));
+            //     this.drawRect(ctx, x, y, 0.0015, 0.002, "rgb(255, 0, 255)");
+            // }
 
             // Reference point to check lat/lon
             // let [x, y] = this.latLonToPos(37.7615, -122.44);  // middle of range

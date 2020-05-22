@@ -25,7 +25,14 @@
             <div style="width:365px;text-align:center;font-size:28px;">
                 <span style="display:inline-block;">Person info</span>
                 <label for="ticketNum">#</label>
-                <input id="personIndex" type="number" value="0" min="0" style="width:80px;font-size:24px" @change="changePersonIndex" />
+                <input
+                    id="personIndex"
+                    type="number"
+                    value="0"
+                    min="0"
+                    style="width:80px;font-size:24px"
+                    @change="changePersonIndex"
+                />
             </div>
 
             <div class="stats" style="font-size:10px">Day: {{ person.routine }}</div>
@@ -56,20 +63,29 @@
             </div>
         </span>
         <span class="card">
-            <canvas
-                style="display:block;background-color:#123456;"
-                width="768px"
-                height="768px"
-                id="map-canvas"
-                @click="clicked"
-                @wheel="mouseWheel"
-                @mousedown="handleMouseDown"
-                @mousemove="handleMouseMove"
-                @mouseup="handleMouseUp"
-                @touchstart="handleTouchStart"
-                @touchmove="handleTouchMove"
-                @touchend="handleTouchEnd"
-            ></canvas>
+            <div style="position:relative">
+                <canvas
+                    style="display:block;background-color:#123456;"
+                    width="1024px"
+                    height="768px"
+                    id="map-canvas"
+                    @click="clicked"
+                    @wheel="mouseWheel"
+                    @mousedown="handleMouseDown"
+                    @mousemove="handleMouseMove"
+                    @mouseup="handleMouseUp"
+                    @touchstart="handleTouchStart"
+                    @touchmove="handleTouchMove"
+                    @touchend="handleTouchEnd"
+                ></canvas>
+                <div class="mapkey" style="top:8px" @mouseover="mapkeyHover(1)" @mouseleave="mapkeyHover(0)">Pop / 10</div>
+                <div class="mapkey" style="top:40px" @mouseover="mapkeyHover(2)" @mouseleave="mapkeyHover(0)">Offices</div>
+                <div class="mapkey" style="top:72px" @mouseover="mapkeyHover(4)" @mouseleave="mapkeyHover(0)">Hospitals</div>
+                <div class="mapkey" style="top:104px" @mouseover="mapkeyHover(8)" @mouseleave="mapkeyHover(0)">Supermarkets</div>
+                <div class="mapkey" style="top:160px" @mouseover="mapkeyHover(16)" @mouseleave="mapkeyHover(0)">Susceptible</div>
+                <div class="mapkey" style="top:192px" @mouseover="mapkeyHover(32)" @mouseleave="mapkeyHover(0)">Infected</div>
+                <div class="mapkey" style="top:224px" @mouseover="mapkeyHover(64)" @mouseleave="mapkeyHover(0)">Recovered</div>
+            </div>
             <p style="margin:8px;">
                 <span style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;">{{
                     ["🕛", "🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚"][hoursElapsed % 12 | 0]
@@ -255,6 +271,10 @@ export default Vue.extend({
             this.updatePerson();
             sim.draw();
         },
+        mapkeyHover: function(flag) {
+            sim.visualsFlag = flag;
+            sim.draw();
+        },
         mouseWheel: function(event) {
             event.preventDefault();
             sim.changeZoom(Math.sign(event.deltaY));
@@ -397,4 +417,19 @@ body {
     }
 }
 
+.mapkey {
+    position: absolute;
+    top: 0px;
+    color: white;
+    background-color: #00000040;
+    border-radius: 10px;
+    padding: 5px;
+    margin-left: 8px;
+    cursor: default;
+}
+.mapkey:hover {
+    background-color: #cceeff;
+    color: #000000;
+    cursor: default;
+}
 </style>
