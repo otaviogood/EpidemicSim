@@ -1,5 +1,15 @@
 import MersenneTwister from "mersenne-twister";
 
+export enum VizFlags {
+    pop10 = 1,
+    offices = 2,
+    hospitals = 4,
+    supermarkets = 8,
+    susceptible = 16,
+    infected = 32,
+    recovered = 64,
+}
+
 export function assert(condition: boolean, message: string) {
     if (!condition) console.log(message);
     // throw message || "Assertion failed";

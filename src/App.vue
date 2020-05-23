@@ -1,113 +1,125 @@
 <template>
     <div>
         <div style="font-size:32px; padding:12px; color: #ff8811;"><strong>YÆS:</strong> Yet Another Epidemic Simulator</div>
-        <span class="card" style="float:right;">
-            <canvas
-                style="display:block;background-color:#123456;margin-bottom:4px"
-                width="365px"
-                height="256px"
-                id="graph-canvas"
-            ></canvas>
-            <span style="background-color:#ffcf5f;display:inline-block;width:14px;height:14px;margin-right:4px"></span
-            ><strong>Total Infected: {{ totalInfected }}</strong
-            ><br />
-            <span style="background-color:#ffffff;display:inline-block;width:14px;height:14px;margin-right:4px"></span
-            ><strong>Currently Infected: {{ currentlyInfected }}</strong
-            ><br />
-            <span style="background-color:#ff3711;display:inline-block;width:14px;height:14px;margin-right:4px"></span
-            ><strong>Total dead: {{ totalDead }}</strong
-            ><br />
-            <hr />
-            <span style="width:180px;display:inline-block">Hours: {{ hoursElapsed }}</span>
-            Days: {{ Math.floor(hoursElapsed / 24) }}<br />
-        </span>
-        <span class="card clearfix" style="float:right;margin-top:16px">
-            <div style="width:365px;text-align:center;font-size:28px;">
-                <span style="display:inline-block;">Person info</span>
-                <label for="ticketNum">#</label>
-                <input
-                    id="personIndex"
-                    type="number"
-                    value="0"
-                    min="0"
-                    style="width:80px;font-size:24px"
-                    @change="changePersonIndex"
-                />
-            </div>
-
-            <div class="stats" style="font-size:10px">Day: {{ person.routine }}</div>
-            <div class="stats">Location: {{ person.location }}</div>
-            <div class="stats">Health: {{ person.status }}</div>
-            <div class="stats">Age (TODO): {{ person.age }}</div>
-            <div class="stats">asymptomatic overall? {{ person.asymptomaticOverall }}</div>
-            <div class="stats">Symptom level: {{ person.symptoms }}</div>
-            <div class="stats">Isolating? <span v-html="person.isolating"></span></div>
-            <div class="stats">
+        <span style="display:inline-block;">
+            <span class="card">
+                <div style="position:relative">
+                    <canvas
+                        style="display:block;background-color:#123456;"
+                        width="1024px"
+                        height="768px"
+                        id="map-canvas"
+                        @click="clicked"
+                        @wheel="mouseWheel"
+                        @mousedown="handleMouseDown"
+                        @mousemove="handleMouseMove"
+                        @mouseup="handleMouseUp"
+                        @touchstart="handleTouchStart"
+                        @touchmove="handleTouchMove"
+                        @touchend="handleTouchEnd"
+                    ></canvas>
+                    <div class="mapkey" style="top:8px" @mouseover="mapkeyHover(1)" @mouseleave="mapkeyHover(0)">Pop / 10</div>
+                    <div class="mapkey" style="top:40px" @mouseover="mapkeyHover(2)" @mouseleave="mapkeyHover(0)">Offices</div>
+                    <div class="mapkey" style="top:72px" @mouseover="mapkeyHover(4)" @mouseleave="mapkeyHover(0)">Hospitals</div>
+                    <div class="mapkey" style="top:104px" @mouseover="mapkeyHover(8)" @mouseleave="mapkeyHover(0)">
+                        Supermarkets
+                    </div>
+                    <div class="mapkey" style="top:160px" @mouseover="mapkeyHover(16)" @mouseleave="mapkeyHover(0)">
+                        Susceptible
+                    </div>
+                    <div class="mapkey" style="top:192px" @mouseover="mapkeyHover(32)" @mouseleave="mapkeyHover(0)">Infected</div>
+                    <div class="mapkey" style="top:224px" @mouseover="mapkeyHover(64)" @mouseleave="mapkeyHover(0)">
+                        Recovered
+                    </div>
+                </div>
+                <p style="margin:8px;">
+                    <span
+                        style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
+                        >{{
+                            ["🕛", "🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚"][hoursElapsed % 12 | 0]
+                        }}</span
+                    >
+                    <button
+                        type="button"
+                        class=""
+                        style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
+                        @click="playPause"
+                    >
+                        ⏯️
+                    </button>
+                    <button
+                        type="button"
+                        class=""
+                        style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
+                        @click="stepForward"
+                    >
+                        ⤵️
+                    </button>
+                    <span style="float:right">Sim Time (Milliseconds): {{ Math.round(milliseconds) }}</span>
+                </p></span
+            ></span
+        ><span style="display:inline-block;width:384px;float:right"
+            ><div class="card">
                 <canvas
-                    style="display:block;background-color:#123456;margin:0px;padding:0px;border:0px"
+                    style="display:block;background-color:#123456;margin-bottom:4px"
                     width="365px"
-                    height="32px"
-                    id="timeline-canvas"
+                    height="256px"
+                    id="graph-canvas"
                 ></canvas>
+                <span style="background-color:#ffcf5f;display:inline-block;width:14px;height:14px;margin-right:4px"></span
+                ><strong>Total Infected: {{ totalInfected }}</strong
+                ><br />
+                <span style="background-color:#ffffff;display:inline-block;width:14px;height:14px;margin-right:4px"></span
+                ><strong>Currently Infected: {{ currentlyInfected }}</strong
+                ><br />
+                <span style="background-color:#ff3711;display:inline-block;width:14px;height:14px;margin-right:4px"></span
+                ><strong>Total dead: {{ totalDead }}</strong
+                ><br />
+                <hr />
+                <span style="width:180px;display:inline-block">Hours: {{ hoursElapsed }}</span>
+                Days: {{ Math.floor(hoursElapsed / 24) }}<br />
             </div>
-        </span>
-        <span class="card clearfix" style="float:right;margin-top:16px">
-            <div style="width:365px;text-align:center;font-size:28px;">
-                <span style="display:inline-block;">Interventions</span>
-            </div>
+            <div class="card" style="margin-top:16px">
+                <div style="width:365px;text-align:center;font-size:28px;">
+                    <span style="display:inline-block;">Person info</span>
+                    <label for="ticketNum">#</label>
+                    <input
+                        id="personIndex"
+                        type="number"
+                        value="0"
+                        min="0"
+                        style="width:80px;font-size:24px"
+                        @change="changePersonIndex"
+                    />
+                </div>
 
-            <div class="scrolly" style="width:365px;height:124px;overflow:hidden; overflow-y:scroll;">
-                <div v-for="i in interventions" v-bind:key="i.time">
-                    <div class="stats">T <span v-html="i"></span></div>
+                <div class="stats" style="font-size:10px">Day: {{ person.routine }}</div>
+                <div class="stats">Location: {{ person.location }}</div>
+                <div class="stats">Health: {{ person.status }}</div>
+                <div class="stats">Age (TODO): {{ person.age }}</div>
+                <div class="stats">asymptomatic overall? {{ person.asymptomaticOverall }}</div>
+                <div class="stats">Symptom level: {{ person.symptoms }}</div>
+                <div class="stats">Isolating? <span v-html="person.isolating"></span></div>
+                <div class="stats">
+                    <canvas
+                        style="display:block;background-color:#123456;margin:0px;padding:0px;border:0px"
+                        width="365px"
+                        height="32px"
+                        id="timeline-canvas"
+                    ></canvas>
                 </div>
             </div>
-        </span>
-        <span class="card">
-            <div style="position:relative">
-                <canvas
-                    style="display:block;background-color:#123456;"
-                    width="1024px"
-                    height="768px"
-                    id="map-canvas"
-                    @click="clicked"
-                    @wheel="mouseWheel"
-                    @mousedown="handleMouseDown"
-                    @mousemove="handleMouseMove"
-                    @mouseup="handleMouseUp"
-                    @touchstart="handleTouchStart"
-                    @touchmove="handleTouchMove"
-                    @touchend="handleTouchEnd"
-                ></canvas>
-                <div class="mapkey" style="top:8px" @mouseover="mapkeyHover(1)" @mouseleave="mapkeyHover(0)">Pop / 10</div>
-                <div class="mapkey" style="top:40px" @mouseover="mapkeyHover(2)" @mouseleave="mapkeyHover(0)">Offices</div>
-                <div class="mapkey" style="top:72px" @mouseover="mapkeyHover(4)" @mouseleave="mapkeyHover(0)">Hospitals</div>
-                <div class="mapkey" style="top:104px" @mouseover="mapkeyHover(8)" @mouseleave="mapkeyHover(0)">Supermarkets</div>
-                <div class="mapkey" style="top:160px" @mouseover="mapkeyHover(16)" @mouseleave="mapkeyHover(0)">Susceptible</div>
-                <div class="mapkey" style="top:192px" @mouseover="mapkeyHover(32)" @mouseleave="mapkeyHover(0)">Infected</div>
-                <div class="mapkey" style="top:224px" @mouseover="mapkeyHover(64)" @mouseleave="mapkeyHover(0)">Recovered</div>
+            <div class="card" style="margin-top:16px">
+                <div style="width:365px;text-align:center;font-size:28px;">
+                    <span style="display:inline-block;">Interventions</span>
+                </div>
+
+                <div class="scrolly" style="width:365px;height:124px;overflow:hidden; overflow-y:scroll;">
+                    <div v-for="i in interventions" v-bind:key="i.time">
+                        <div class="stats">T <span v-html="i"></span></div>
+                    </div>
+                </div>
             </div>
-            <p style="margin:8px;">
-                <span style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;">{{
-                    ["🕛", "🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚"][hoursElapsed % 12 | 0]
-                }}</span>
-                <button
-                    type="button"
-                    class=""
-                    style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
-                    @click="playPause"
-                >
-                    ⏯️
-                </button>
-                <button
-                    type="button"
-                    class=""
-                    style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
-                    @click="stepForward"
-                >
-                    ⤵️
-                </button>
-                <span style="float:right">Sim Time (Milliseconds): {{ Math.round(milliseconds) }}</span>
-            </p>
         </span>
     </div>
 </template>
@@ -117,7 +129,7 @@ import Vue from "vue";
 import { Spatial, Grid } from "./spatial";
 import { Person, ActivityType } from "./person";
 import { Sim } from "./sim";
-import { runTests } from "./test_person";
+import { TestPerson } from "./test_person";
 import * as Params from "./params";
 
 let sim;//: Sim;
@@ -167,8 +179,9 @@ export default Vue.extend({
     },
     mounted: async function() {
         let self = this;
-        params = new Params.Base();
-        runTests(params);
+        params = new Params.DeadlyModel();
+        let tests = new TestPerson();
+        tests.runTests(params);
         sim = new Sim(params);
         await sim.setup();
         sim.paused = true;
@@ -233,9 +246,10 @@ export default Vue.extend({
             self.interventions = [];
             for (let i = 0; i < params.interventions.length; i++) {
                 let temp = params.interventions[i];
+                let expired = temp.time < sim.time_steps_since_start ? "<span class='pulse-block' style='background-color:#dddddd;text-decoration: line-through;'>" : "<span>";
                 let actionStr = temp.action.toString();
                 actionStr = actionStr.replace("function () {\n      return _this.", "").replace(";\n    }", "");  // A little hacky... :P
-                self.interventions.push("<strong>" + temp.time.toString() + "</strong> &nbsp;&nbsp;&nbsp;" + actionStr);
+                self.interventions.push(expired + "<strong>" + temp.time.toString() + "</strong> &nbsp;&nbsp;&nbsp;" + actionStr + "</span>");
             }
 
             let t2 = performance.now();
@@ -403,9 +417,9 @@ body {
 }
 .pulse-block {
     animation-name: pulse-anim;
-    animation-duration: 5s;
+    animation-duration: 4s;
     animation-fill-mode: forwards;
-    border: 4px solid #ff0000ff;
+    border: 2px solid #ff0000ff;
 }
 
 @keyframes pulse-anim {

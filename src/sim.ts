@@ -340,7 +340,7 @@ export class Sim {
             this.scalex = maxCanvas;
             this.scaley = maxCanvas;
 
-            ctx.globalAlpha = 0.3;
+            ctx.globalAlpha = 0.4;
             ctx.drawImage(img, 0, 0, imgWidth * ratio, imgHeight * ratio);
             ctx.globalAlpha = 1.0;
 
@@ -399,7 +399,7 @@ export class Sim {
             }
 
             ctx.fillStyle = "#ffffff";
-            if ((this.visualsFlag & 1) != 0) {
+            if ((this.visualsFlag & util.VizFlags.pop10) != 0) {
                 // Rendering is by far the bottleneck, so target this many rendered points and skip the rest.
                 let skip = 10; // (this.pop.length / 25600) | 0;
                 for (let i = 0; i < this.pop.length; i += skip) {
@@ -407,37 +407,37 @@ export class Sim {
                     ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 1, 1);
                 }
             }
-            if ((this.visualsFlag & 2) != 0) {
+            if ((this.visualsFlag & util.VizFlags.offices) != 0) {
                 for (let i = 0; i < Math.min(1000000, this.allOffices.length); i++) {
                     let office = this.allOffices[i];
                     ctx.fillRect(office.xpos * this.scalex, office.ypos * this.scaley, 1, 1);
                 }
             }
-            if ((this.visualsFlag & 4) != 0) {
+            if ((this.visualsFlag & util.VizFlags.hospitals) != 0) {
                 for (let i = 0; i < this.allHospitals.length; i++) {
                     let hospital = this.allHospitals[i];
                     this.drawRect(ctx, hospital.xpos, hospital.ypos, 0.0075, 0.0075, "rgb(255, 64, 64)");
                 }
             }
-            if ((this.visualsFlag & 8) != 0) {
+            if ((this.visualsFlag & util.VizFlags.supermarkets) != 0) {
                 for (let i = 0; i < this.allSuperMarkets.length; i++) {
                     let market = this.allSuperMarkets[i];
                     this.drawRect(ctx, market.xpos, market.ypos, 0.005, 0.005, "rgb(60, 255, 60)");
                 }
             }
-            if ((this.visualsFlag & 16) != 0) {
+            if ((this.visualsFlag & util.VizFlags.susceptible) != 0) {
                 for (let i = 0; i < this.pop.length; i++) {
                     let person = this.pop.index(i);
                     if (person.isVulnerable) ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 1, 1);
                 }
             }
-            if ((this.visualsFlag & 32) != 0) {
+            if ((this.visualsFlag & util.VizFlags.infected) != 0) {
                 for (let i = 0; i < this.pop.length; i++) {
                     let person = this.pop.index(i);
                     if (person.isSick) ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 2, 2);
                 }
             }
-            if ((this.visualsFlag & 64) != 0) {
+            if ((this.visualsFlag & util.VizFlags.recovered) != 0) {
                 for (let i = 0; i < this.pop.length; i++) {
                     let person = this.pop.index(i);
                     if (person.isRecovered) ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 2, 2);

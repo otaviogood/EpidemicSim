@@ -129,7 +129,7 @@ export class Base {
 
 // Example subclass for running an experiment with different parameters
 export class DeadlyModel extends Base {
-    infection_fatality_rate = 0.5;
+    // infection_fatality_rate = 0.5;
     constructor() {
         super();
         this.makeIntervention(util.fromDays(5), () => (this.prob_baseline_timestep = 0.0));
