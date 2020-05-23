@@ -256,16 +256,16 @@ export class Sim {
 
             ctx.fillStyle = "#ffcf5f";
             let height = (this.infected_array[x] / this.pop.length) * canvas.height;
-            ctx.fillRect(x, canvas.height - height, 1, height);
+            ctx.fillRect(x, canvas.height - height, 2, 2);
 
             ctx.fillStyle = "#ffffff";
             height = (this.numActive / this.pop.length) * canvas.height;
-            ctx.fillRect(x, canvas.height - height, 1, 5);
+            ctx.fillRect(x, canvas.height - height, 2, 2);
 
             if (this.totalDead > 0) {
                 ctx.fillStyle = "#ff3711";
                 height = (this.totalDead / this.pop.length) * canvas.height;
-                ctx.fillRect(x, canvas.height - height, 1, 3);
+                ctx.fillRect(x, canvas.height - height, 2, 2);
             }
         }
     }
