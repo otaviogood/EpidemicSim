@@ -1,7 +1,7 @@
 <template>
     <div>
-        <div style="font-size:32px; padding:12px; color: #ff8811;"><strong>YÆS:</strong> Yet Another Epidemic Simulator</div>
-        <span style="display:inline-block;">
+        <div style="font-size:32px; padding:6px; color: #ff8811;"><strong>YÆS:</strong> Yet Another Epidemic Simulator</div>
+        <span style="display:inline-block">
             <span class="card">
                 <div style="position:relative">
                     <canvas
@@ -111,7 +111,7 @@
             </div>
             <div class="card" style="margin-top:16px">
                 <div style="width:365px;text-align:center;font-size:28px;">
-                    <span style="display:inline-block;">Interventions</span>
+                    <span style="display:inline-block;">Timeline events</span>
                 </div>
 
                 <div class="scrolly" style="width:365px;height:124px;overflow:hidden; overflow-y:scroll;">
@@ -121,6 +121,36 @@
                 </div>
             </div>
         </span>
+        <span class="card" style="margin-top:16px;margin-bottom:16px">
+            <div style="width:365px;text-align:center;font-size:28px;">
+                <span style="display:inline-block;">Disease Model Statistics</span>
+            </div>
+            <table id="stats-table" style="width:100%">
+                <tr>
+                    <th v-for="i in this.statsFields" v-bind:key="i">
+                        {{ i }}
+                    </th>
+                </tr>
+                <tr v-for="i in this.stats" v-bind:key="i.name">
+                    <td @mouseover="statsHover(i.name, '')" @mouseleave="statsHover('')">{{ i.name }}</td>
+                    <td @mouseover="statsHover(i.name, 'mean')" @mouseleave="statsHover('')">{{ i.mean.toFixed(3) }}</td>
+                    <td @mouseover="statsHover(i.name, 'std')" @mouseleave="statsHover('')">{{ i.std.toFixed(3) }}</td>
+                    <td @mouseover="statsHover(i.name, 'min')" @mouseleave="statsHover('')">{{ i.min.toFixed(2) }}</td>
+                    <td @mouseover="statsHover(i.name, 'max')" @mouseleave="statsHover('')">{{ i.max.toFixed(2) }}</td>
+                    <td @mouseover="statsHover(i.name, 'median')" @mouseleave="statsHover('')">{{ i.median.toFixed(2) }}</td>
+                    <td @mouseover="statsHover(i.name, 'occurrence')" @mouseleave="statsHover('')">
+                        {{ i.occurrence.toFixed(5) }}
+                    </td>
+                </tr>
+            </table>
+
+            <canvas
+                style="display:block;background-color:#123456;margin:0px;padding:0px;border:0px"
+                width="1024px"
+                height="256px"
+                id="statistics-canvas"
+            ></canvas>
+        </span>
     </div>
 </template>
 
@@ -129,11 +159,12 @@ import Vue from "vue";
 import { Spatial, Grid } from "./spatial";
 import { Person, ActivityType } from "./person";
 import { Sim } from "./sim";
-import { TestPerson } from "./test_person";
+import { TestPerson, StatsRecord } from "./test_person";
 import * as Params from "./params";
 
-let sim;//: Sim;
-let params;//: Params.Base;
+let sim;
+let params;
+let tests;
 export default Vue.extend({
     data: function() {
         return {
@@ -155,6 +186,8 @@ export default Vue.extend({
                 isolating: "No",
             },
             interventions: [],
+            stats:[],
+            statsFields:[],
             mouse: {
                 current: {
                     x: 0,
@@ -180,13 +213,19 @@ export default Vue.extend({
     mounted: async function() {
         let self = this;
         params = new Params.DeadlyModel();
-        let tests = new TestPerson();
+        this.statsFields = StatsRecord.fields;
+        tests = new TestPerson();
         tests.runTests(params);
+        tests.drawHistogram(document.getElementById("statistics-canvas"));
+        this.updateStats();
         sim = new Sim(params);
         await sim.setup();
         sim.paused = true;
     },
     methods: {
+        updateStats: function() {
+            for (const stats of tests.allStats) this.stats.push(stats.makeStatsObject(1.0/24.0));
+        },
         updatePerson: function() {
             let self = this;
             let currentHour = sim.time_steps_since_start % 24;
@@ -230,6 +269,16 @@ export default Vue.extend({
             const canvas = document.getElementById("timeline-canvas");
             p.drawTimeline(canvas);
         },
+        updateInterventions: function() {
+            this.interventions = [];
+            for (let i = 0; i < params.interventions.length; i++) {
+                let temp = params.interventions[i];
+                let expired = temp.time < sim.time_steps_since_start ? "<span class='pulse-block' style='background-color:#dddddd;text-decoration: line-through;'>" : "<span>";
+                let actionStr = temp.action.toString();
+                actionStr = actionStr.replace("function () {\n      return _this.", "").replace(";\n    }", "");  // A little hacky... :P
+                this.interventions.push(expired + "<strong>" + temp.time.toString() + "</strong> &nbsp;&nbsp;&nbsp;" + actionStr + "</span>");
+            }
+        },
         singleStepSim: function() {
             let self = this;
             let timer = performance.now();
@@ -243,14 +292,7 @@ export default Vue.extend({
             if (sim.time_steps_since_start > 0) {
                 self.updatePerson();
             }
-            self.interventions = [];
-            for (let i = 0; i < params.interventions.length; i++) {
-                let temp = params.interventions[i];
-                let expired = temp.time < sim.time_steps_since_start ? "<span class='pulse-block' style='background-color:#dddddd;text-decoration: line-through;'>" : "<span>";
-                let actionStr = temp.action.toString();
-                actionStr = actionStr.replace("function () {\n      return _this.", "").replace(";\n    }", "");  // A little hacky... :P
-                self.interventions.push(expired + "<strong>" + temp.time.toString() + "</strong> &nbsp;&nbsp;&nbsp;" + actionStr + "</span>");
-            }
+            self.updateInterventions();
 
             let t2 = performance.now();
             self.milliseconds = t2 - timer;
@@ -288,6 +330,11 @@ export default Vue.extend({
         mapkeyHover: function(flag) {
             sim.visualsFlag = flag;
             sim.draw();
+        },
+        statsHover: function(name, col) {
+            tests.selected = name;
+            tests.selectedStat = col;
+            tests.drawHistogram(document.getElementById("statistics-canvas"));
         },
         mouseWheel: function(event) {
             event.preventDefault();
@@ -445,5 +492,17 @@ body {
     background-color: #cceeff;
     color: #000000;
     cursor: default;
+}
+table#stats-table,
+th,
+td {
+    border: 1px solid #aaaaaa;
+    border-collapse: collapse;
+    padding: 4px;
+    background-color: #fff8e8;
+}
+table td:hover {
+    color: #ffffff;
+    background-color: #123456;
 }
 </style>
