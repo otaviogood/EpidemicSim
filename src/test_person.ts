@@ -164,14 +164,14 @@ export class TestPerson {
                     let max = allStats["max"];
                     let mean = allStats["mean"];
                     let std = allStats["std"];
-                    ctx.fillStyle = "#00ff4440";
+                    // Draw a gaussian function just because I feel like it...
+                    ctx.fillStyle = "#00ff4430";
                     ctx.beginPath();
                     let lastY = 0;
                     ctx.moveTo(min * scale, height);
                     for (let i = min; i <= max; i++) {
-                        // TODO: actually draw the standard deviation lines
                         let y = (i - mean) / std;
-                        y = Math.exp(-(y * y) / 2);  // https://en.wikipedia.org/wiki/Gaussian_function
+                        y = Math.exp(-(y * y) / 2); // https://en.wikipedia.org/wiki/Gaussian_function
                         y *= height / scaley;
                         ctx.lineTo(i * scale, height - y * scaley);
                         lastY = y;
@@ -179,6 +179,10 @@ export class TestPerson {
                     ctx.lineTo(max * scale, height);
                     ctx.closePath();
                     ctx.fill();
+                    // Actually draw the standard deviation lines
+                    this.drawRect(ctx, (mean + std) * scale, 0, 2, height, "#00ff44");
+                    this.drawRect(ctx, (mean - std) * scale, 0, 2, height, "#00ff44");
+                    this.drawRect(ctx, mean * scale, 0, 2, height*0.1, "#00ff44");
                 } else {
                     if (this.selectedStat != "occurrence") {
                         this.drawRect(ctx, allStats[this.selectedStat] * scale, 0, 2, height, "#00ff44");

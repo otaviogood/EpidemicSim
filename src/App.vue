@@ -186,8 +186,8 @@ export default Vue.extend({
                 isolating: "No",
             },
             interventions: [],
-            stats:[],
-            statsFields:[],
+            stats: [],
+            statsFields: [],
             mouse: {
                 current: {
                     x: 0,
@@ -224,7 +224,7 @@ export default Vue.extend({
     },
     methods: {
         updateStats: function() {
-            for (const stats of tests.allStats) this.stats.push(stats.makeStatsObject(1.0/24.0));
+            for (const stats of tests.allStats) this.stats.push(stats.makeStatsObject(1.0 / 24.0));
         },
         updatePerson: function() {
             let self = this;
@@ -273,10 +273,15 @@ export default Vue.extend({
             this.interventions = [];
             for (let i = 0; i < params.interventions.length; i++) {
                 let temp = params.interventions[i];
-                let expired = temp.time < sim.time_steps_since_start ? "<span class='pulse-block' style='background-color:#dddddd;text-decoration: line-through;'>" : "<span>";
+                let expired =
+                    temp.time < sim.time_steps_since_start
+                        ? "<span class='pulse-block' style='background-color:#dddddd;text-decoration: line-through;'>"
+                        : "<span>";
                 let actionStr = temp.action.toString();
-                actionStr = actionStr.replace("function () {\n      return _this.", "").replace(";\n    }", "");  // A little hacky... :P
-                this.interventions.push(expired + "<strong>" + temp.time.toString() + "</strong> &nbsp;&nbsp;&nbsp;" + actionStr + "</span>");
+                actionStr = actionStr.replace("function () {\n      return _this.", "").replace(";\n    }", ""); // A little hacky... :P
+                this.interventions.push(
+                    expired + "<strong>" + temp.time.toString() + "</strong> &nbsp;&nbsp;&nbsp;" + actionStr + "</span>"
+                );
             }
         },
         singleStepSim: function() {
