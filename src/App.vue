@@ -280,7 +280,7 @@ export default Vue.extend({
                 let actionStr = temp.action.toString();
                 actionStr = actionStr.replace("function () {\n      return _this.", "").replace(";\n    }", ""); // A little hacky... :P
                 this.interventions.push(
-                    expired + "<strong>" + temp.time.toString() + "</strong> &nbsp;&nbsp;&nbsp;" + actionStr + "</span>"
+                    expired + "<strong>" + temp.time.hours.toString() + "</strong> &nbsp;&nbsp;&nbsp;" + actionStr + "</span>"
                 );
             }
         },
