@@ -228,7 +228,7 @@ export default Vue.extend({
         },
         updatePerson: function() {
             let self = this;
-            let currentHour = sim.time_steps_since_start % 24;
+            let currentStep = sim.time_steps_since_start.getStepModDay();// % 24;
             let p = sim.pop.index(sim.selectedPersonIndex);
             self.person.timeSinceInfected = p.time_since_infected;
             self.person.asymptomaticOverall = !p.symptomaticOverall;
@@ -250,7 +250,7 @@ export default Vue.extend({
                 ["c", "Car"],
                 ["t", "Train"],
             ]);
-            let act = p.getCurrentActivity(currentHour);
+            let act = p.getCurrentActivity(currentStep);
             self.person.location = icons.get(act).toString() + " " + labels.get(act).toString();
             self.person.routine = "";
             for (let i = 0; i < 24; i++) {
@@ -274,7 +274,7 @@ export default Vue.extend({
             for (let i = 0; i < params.interventions.length; i++) {
                 let temp = params.interventions[i];
                 let expired =
-                    temp.time < sim.time_steps_since_start
+                    temp.time.raw < sim.time_steps_since_start.raw
                         ? "<span class='pulse-block' style='background-color:#dddddd;text-decoration: line-through;'>"
                         : "<span>";
                 let actionStr = temp.action.toString();
@@ -289,12 +289,12 @@ export default Vue.extend({
             let timer = performance.now();
 
             sim.run_simulation(1);
-            self.hoursElapsed = sim.time_steps_since_start;
+            self.hoursElapsed = sim.time_steps_since_start.hours;
             self.currentlyInfected = sim.numActive;
             self.totalInfected = sim.totalInfected;
             self.totalDead = sim.totalDead;
 
-            if (sim.time_steps_since_start > 0) {
+            if (sim.time_steps_since_start.raw > 0) {
                 self.updatePerson();
             }
             self.updateInterventions();

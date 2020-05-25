@@ -1,7 +1,56 @@
 import * as util from "./util";
 
+export class TimeStep {
+    static readonly stepsInDay = 24;
+    // This needs to be an integer.
+    protected time: number = 0;
+
+    static fromHours(hours: number): TimeStep {
+        let t: TimeStep = new TimeStep();
+        t.time = hours | 0;
+        return t;
+    }
+
+    static fromDays(days: number): TimeStep {
+        let t: TimeStep = new TimeStep();
+        t.time = (days * 24) | 0;
+        return t;
+    }
+
+    get days(): number {
+        return this.time / 24.0;
+    }
+    get hours(): number {
+        return this.time;
+    }
+    // Return the time variable for doing unitless things like sorting.
+    get raw(): number {
+        return this.time;
+    }
+
+    clone() {
+        let t: TimeStep = new TimeStep();
+        t.time = this.time;
+        return t;
+    }
+    add(a: TimeStep): TimeStep {
+        let t: TimeStep = new TimeStep();
+        t.time = this.time + a.time;
+        return t;
+    }
+    equals(a: TimeStep): boolean {
+        return this.time === a.time;
+    }
+    increment() {
+        this.time++;
+    }
+    getStepModDay(): number {
+        return this.time % TimeStep.stepsInDay;
+    }
+}
+
 class Intervention {
-    constructor(public time: number, public action: any) {}
+    constructor(public time: TimeStep, public action: any) {}
 }
 
 // Default parameters all wrapped up into this class that you can inherit from to make custom experiments
@@ -16,34 +65,34 @@ export class Base {
     prob_baseline_timestep = 0.01; // .002
 
     // https://www.nature.com/articles/s41591-020-0869-5
-    mean_time_till_contagious = util.fromDays(3);
+    mean_time_till_contagious: TimeStep = TimeStep.fromDays(3);
     // infectiousness was shown to peak at 0–2 days before symptom onset - https://www.nature.com/articles/s41591-020-0869-5
-    contagious_range = util.fromDays(2);
-    mean_time_till_symptoms = util.fromHours(5.25 * 24); // Rounded a little from 5.2.
+    contagious_range: TimeStep = TimeStep.fromDays(2);
+    mean_time_till_symptoms: TimeStep = TimeStep.fromHours(5.25 * 24); // Rounded a little from 5.2.
     // https://www.jhsph.edu/news/news-releases/2020/new-study-on-COVID-19-estimates-5-days-for-incubation-period.html
     // The analysis suggests that about 97.5 percent of people who develop symptoms of SARS-CoV-2 infection will do so within 11.5 days of exposure.
     // symptom_range = util.fromDays(6.25);
     // https://www.thelancet.com/pdfs/journals/lancet/PIIS0140-6736(20)30566-3.pdf
     // Median duration of viral shedding was 20·0 days (IQR 17·0–24·0)
-    median_contagious_duration = util.fromDays(20);
+    median_contagious_duration: TimeStep = TimeStep.fromDays(20);
     // https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf
-    time_till_severe = this.mean_time_till_symptoms + util.fromDays(7);
+    time_till_severe: TimeStep = this.mean_time_till_symptoms.add(TimeStep.fromDays(7));
     //  Approximately 80% of laboratory confirmed patients have had mild to moderate disease, which includes
     // non-pneumonia and pneumonia cases, 13.8% have severe disease (dyspnea, respiratory
     // frequency ≥30/minute, blood oxygen saturation ≤93%, PaO2/FiO2 ratio <300, and/or lung
     // infiltrates >50% of the lung field within 24-48 hours) and 6.1% are critical (respiratory
     // failure, septic shock, and/or multiple organ dysfunction/failure).
-    severe_or_critical = 0.2;
-    critical_given_severe_or_critical = 0.3; // 6.1 / (6.1 + 13.8)
+    prob_severe_or_critical = 0.2;
+    prob_critical_given_severe_or_critical = 0.3; // 6.1 / (6.1 + 13.8)
     // median communicable period = 9.5 days https://link.springer.com/article/10.1007/s11427-020-1661-4
     // However, the communicable period could be up to ***three weeks***
     // TODO: make this a distribution instead of a single number.
-    median_time_virus_is_communicable = util.fromDays(9.5) + this.mean_time_till_contagious;
+    median_time_virus_is_communicable: TimeStep = TimeStep.fromDays(9.5).add(this.mean_time_till_contagious);
     // Among patients who have died, the time from symptom onset to outcome ranges from 2-8 weeks
     // https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf
-    range_time_till_death_relative_to_syptoms = [util.fromDays(2 * 7), util.fromDays(8 * 7)];
+    range_time_till_death_relative_to_syptoms: TimeStep[] = [TimeStep.fromDays(2 * 7), TimeStep.fromDays(8 * 7)];
     // https://www.statista.com/statistics/1105420/covid-icu-admission-rates-us-by-age-group/
-    cases_that_go_to_ICU = 0.082; // Out of what population???
+    prob_cases_that_go_to_ICU = 0.082; // Out of what population???
     // Probability of spreading virus multiplier if you get people to handwash
     // https://onlinelibrary.wiley.com/doi/full/10.1111/j.1365-3156.2006.01568.x
     handwashing_probability_multiplier = 0.76;
@@ -51,7 +100,7 @@ export class Base {
     // https://wwwnc.cdc.gov/eid/article/26/8/20-1274_article
     // Among the cases with relevant information (n=329, 28.48%), 49 (14.89%) were asymptomatic, 256 (77.81%) mild to moderate, and 24 (7.29%) severe.
     // https://www.medrxiv.org/content/10.1101/2020.03.21.20040329v1.full.pdf
-    fully_asymptomatic = 0.1489;
+    prob_fully_asymptomatic = 0.1489;
 
     // From: https://science.sciencemag.org/content/early/2020/04/09/science.abb6936/tab-figures-data
     // Relative infectiousness of asymptomatics
@@ -112,14 +161,14 @@ export class Base {
     // ========================================================================
     interventions: Intervention[] = [];
     currentInterventionIndex = 0;
-    makeIntervention(time: number, action: any) {
+    makeIntervention(time: TimeStep, action: any) {
         this.interventions.push(new Intervention(time, action));
-        this.interventions.sort((a, b) => a.time - b.time); // This is slow to do every time. I couldn't find a sorted list in Typescript.
+        this.interventions.sort((a, b) => a.time.raw - b.time.raw); // This is slow to do every time. I couldn't find a sorted list in Typescript.
     }
-    doInterventionsForThisTimestep(time_steps_since_start: number) {
+    doInterventionsForThisTimestep(time_steps_since_start: TimeStep) {
         for (let i = this.currentInterventionIndex; i < this.interventions.length; i++) {
             let triggerTime = this.interventions[i].time;
-            if (triggerTime == time_steps_since_start) {
+            if (triggerTime.equals(time_steps_since_start)) {
                 this.interventions[i].action();
                 this.currentInterventionIndex++;
             } else break;
@@ -132,7 +181,7 @@ export class DeadlyModel extends Base {
     // infection_fatality_rate = 0.5;
     constructor() {
         super();
-        this.makeIntervention(util.fromDays(5), () => (this.prob_baseline_timestep = 0.0));
-        this.makeIntervention(util.fromDays(8), () => (this.prob_baseline_timestep = 0.01));
+        this.makeIntervention(TimeStep.fromDays(5), () => (this.prob_baseline_timestep = 0.0));
+        this.makeIntervention(TimeStep.fromDays(8), () => (this.prob_baseline_timestep = 0.01));
     }
 }

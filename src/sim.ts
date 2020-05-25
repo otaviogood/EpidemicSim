@@ -61,7 +61,7 @@ export class Sim {
     latMax: number = mapBounds.latMax;
     latAdjust: number;
 
-    time_steps_since_start = 0;
+    time_steps_since_start: Params.TimeStep = new Params.TimeStep();
     infected_array: number[] = [];
     totalInfected = 0;
     numActive = 0;
@@ -78,7 +78,7 @@ export class Sim {
     scalex = 1;
     scaley = 1;
     paused = false;
-    infectedVisuals: number[][] = [];
+    infectedVisuals: any[][] = [];
     visualsFlag = 0;
 
     constructor(params: Params.Base) {
@@ -233,18 +233,18 @@ export class Sim {
     run_simulation(num_time_steps: number) {
         for (let ts = 0; ts < num_time_steps; ts++) {
             this.numActive = 0;
-            let currentHour = this.time_steps_since_start % 24;
+            let currentStep = this.time_steps_since_start.getStepModDay();
             this.params.doInterventionsForThisTimestep(this.time_steps_since_start);
             for (let i = 0; i < this.pop.length; i++) {
                 let person = this.pop.index(i);
                 this.numActive += person.stepTime(this, this.rand) ? 1 : 0;
-                person.spread(this.time_steps_since_start, i, this.pop, this.rand, currentHour, this);
+                person.spread(this.time_steps_since_start, i, this.pop, this.rand, currentStep, this);
             }
-            this.time_steps_since_start++;
+            this.time_steps_since_start.increment();
         }
 
         // Every day, save off total infected so i can graph it.
-        if (this.time_steps_since_start % 24 == 0) this.infected_array.push(this.totalInfected);
+        if (this.time_steps_since_start.hours % 24 == 0) this.infected_array.push(this.totalInfected);
     }
     drawGraph() {
         const canvas = <HTMLCanvasElement>document.getElementById("graph-canvas");
@@ -374,8 +374,8 @@ export class Sim {
                 let office = this.allOffices[p.officeIndex];
                 let hospital = this.allHospitals[p.hospitalIndex];
 
-                let currentHour = this.time_steps_since_start % 24;
-                let activity = p.getCurrentActivity(currentHour);
+                let currentStep = this.time_steps_since_start.getStepModDay();
+                let activity = p.getCurrentActivity(currentStep);
                 let localx: number = house.xpos;
                 let localy: number = house.ypos;
                 if (activity == ActivityType.work) (localx = office.xpos), (localy = office.ypos);
@@ -466,7 +466,7 @@ export class Sim {
             let tempIV: number[][] = [];
             ctx.lineWidth = 2;
             for (let i = 0; i < this.infectedVisuals.length; i++) {
-                let t = (this.time_steps_since_start - this.infectedVisuals[i][2]) / 2;
+                let t = (this.time_steps_since_start.hours - this.infectedVisuals[i][2].hours) / 2;
                 let alpha = Math.max(0, 100 - t) / 100.0;
                 if (alpha > 0.0) tempIV.push(this.infectedVisuals[i]);
 

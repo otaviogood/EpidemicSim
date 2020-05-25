@@ -122,6 +122,11 @@ export class TestPerson {
             ctx.drawRect(x, y, width, height);
         }
     }
+    drawText(ctx: any, x: number, y: number, text: string, size: number = 16, color: string = "rgb(255, 255, 255)") {
+        ctx.fillStyle = color;
+        ctx.font = size.toString() + "px sans-serif";
+        ctx.fillText(text, x, y);
+    }
     drawHistogram(canvas: any) {
         if (!canvas) return;
         if (!canvas.getContext) return;
@@ -138,6 +143,7 @@ export class TestPerson {
             this.drawRect(ctx, i * 24 * scale, 0, 1, height, i % 7 == 0 ? "#405060" : "#304048");
             this.drawRect(ctx, i * 24 * scale, 0, 2, i % 7 == 0 ? 10 : 4, "#bbbbbb");
         }
+        this.drawText(ctx, width - 48, 24, "Days");
 
         let i = 0;
         for (const stats of this.allStats) {
@@ -182,7 +188,7 @@ export class TestPerson {
                     // Actually draw the standard deviation lines
                     this.drawRect(ctx, (mean + std) * scale, 0, 2, height, "#00ff44");
                     this.drawRect(ctx, (mean - std) * scale, 0, 2, height, "#00ff44");
-                    this.drawRect(ctx, mean * scale, 0, 2, height*0.1, "#00ff44");
+                    this.drawRect(ctx, mean * scale, 0, 2, height * 0.1, "#00ff44");
                 } else {
                     if (this.selectedStat != "occurrence") {
                         this.drawRect(ctx, allStats[this.selectedStat] * scale, 0, 2, height, "#00ff44");
