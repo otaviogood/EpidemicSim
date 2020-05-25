@@ -306,12 +306,12 @@ export class Person {
 
     spreadInAPlace(place: Place, density: number, pop: Spatial, rand: MersenneTwister, sim: Sim, currentHour: number, seed: number) {
         let prob = sim.params.prob_baseline_timestep * this.probabilityMultiplierFromDensity(density);
-        let residentsInPlace = place.residentsInPlacePerHour[currentHour];
-        let numSpread = this.howManyCatchItInThisTimeStep(rand, prob, residentsInPlace);
+        let residentsInPlace: number[] = place.residentsInPlacePerHour[currentHour];
+        let numSpread = this.howManyCatchItInThisTimeStep(rand, prob, residentsInPlace.length);
         if (place.residents.length == 0) return;
         //console.log("Spreading totResidents=" + place.residents.length + " inPlace=" + residentsInPlace);
         for (let i = 0; i < numSpread; i++) {
-            let targetIndex = place.residents[RandomFast.HashIntApprox(seed, 0, place.residents.length)];
+            let targetIndex = residentsInPlace[RandomFast.HashIntApprox(seed, 0, residentsInPlace.length)];
             if (pop.index(targetIndex).isVulnerable) pop.index(targetIndex).becomeSick(sim);
         }
     }

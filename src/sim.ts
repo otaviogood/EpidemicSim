@@ -33,7 +33,7 @@ export class Place {
         return hh;
     }
 
-    residentsInPlacePerHour: number[] = new Array(24)
+    residentsInPlacePerHour: number[][] = new Array(24)
 
 }
 
@@ -246,23 +246,23 @@ export class Sim {
     initializeResidentsInPlace() {
         for (let currentHour = 0; currentHour < 24; currentHour++) {
             for (let place of this.allHouseholds) {
-                place.residentsInPlacePerHour[currentHour] = 0;
+                place.residentsInPlacePerHour[currentHour] = [];
             }
             for (let place of this.allOffices) {
-                place.residentsInPlacePerHour[currentHour] = 0;
+                place.residentsInPlacePerHour[currentHour] = [];
             }
             for (let place of this.allSuperMarkets) {
-                place.residentsInPlacePerHour[currentHour] = 0;
+                place.residentsInPlacePerHour[currentHour] = [];
             }
             for (let i = 0; i < this.pop.length; i++) {
                 let person = this.pop.index(i);
                 let activity: ActivityType = person.getCurrentActivity(currentHour);
                 if (activity == ActivityType.home && person.homeIndex >= 0) {
-                    this.allHouseholds[person.homeIndex].residentsInPlacePerHour[currentHour] += 1;
+                    this.allHouseholds[person.homeIndex].residentsInPlacePerHour[currentHour].push(i);
                 } else if (activity == ActivityType.work && person.officeIndex >= 0) {
-                    this.allOffices[person.officeIndex].residentsInPlacePerHour[currentHour] += 1;
+                    this.allOffices[person.officeIndex].residentsInPlacePerHour[currentHour].push(i);
                 } else if (activity == ActivityType.shopping && person.marketIndex >= 0) {
-                    this.allSuperMarkets[person.marketIndex].residentsInPlacePerHour[currentHour] += 1;
+                    this.allSuperMarkets[person.marketIndex].residentsInPlacePerHour[currentHour].push(i);;
                 }
             }
         }
