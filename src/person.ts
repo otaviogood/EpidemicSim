@@ -351,20 +351,6 @@ export class Person {
         }
     }
 
-    drawRect(ctx: any, x: number, y: number, width: number, height: number, color: string = "#ffffff", fill: boolean = true) {
-        if (fill) {
-            ctx.fillStyle = color;
-            ctx.fillRect(x, y, width, height);
-        } else {
-            ctx.strokeStyle = color;
-            ctx.drawRect(x, y, width, height);
-        }
-    }
-    drawText(ctx: any, x: number, y: number, text: string, size: number = 16, color: string = "rgb(255, 255, 255)") {
-        ctx.fillStyle = color;
-        ctx.font = size.toString() + "px sans-serif";
-        ctx.fillText(text, x, y);
-    }
     drawTimeline(canvas: any) {
         if (!canvas) return;
         if (!canvas.getContext) return;
@@ -375,11 +361,11 @@ export class Person {
             height = canvas.height;
         let scale = 7.0 / 24.0; // 1 day = 7 pixels
 
-        this.drawText(ctx, 252, 16, "Infection timeline", 14, "#aaaaaa");
+        util.drawText(ctx, 252, 16, "Infection timeline", 14, "#aaaaaa");
         if (this.symptomaticOverall) {
             if (this.severeTrigger < Number.MAX_SAFE_INTEGER) {
                 if (this.criticalIfSevere)
-                    this.drawRect(
+                    util.drawRect(
                         ctx,
                         this.severeTrigger * scale,
                         height * 0.0,
@@ -388,7 +374,7 @@ export class Person {
                         "#ff3f00"
                     );
                 else
-                    this.drawRect(
+                    util.drawRect(
                         ctx,
                         this.severeTrigger * scale,
                         height * 0.25,
@@ -397,7 +383,7 @@ export class Person {
                         "#ff7f00"
                     );
             }
-            this.drawRect(
+            util.drawRect(
                 ctx,
                 this.symptomsTrigger * scale,
                 height * 0.5,
@@ -406,7 +392,7 @@ export class Person {
                 "#ffbf00"
             );
         }
-        this.drawRect(
+        util.drawRect(
             ctx,
             this.contagiousTrigger * scale,
             height * 0.75,
@@ -416,11 +402,11 @@ export class Person {
         );
 
         for (let i = 0; i < 7 * 8; i++) {
-            this.drawRect(ctx, i * 24 * scale, i % 7 == 0 ? 24 : 28, 2, 8, "#bbbbbb");
+            util.drawRect(ctx, i * 24 * scale, i % 7 == 0 ? 24 : 28, 2, 8, "#bbbbbb");
         }
         if (this.time_since_infected >= 0.0) {
-            this.drawRect(ctx, this.time_since_infected * scale, height * 0.5, 2, height, "#ff4040");
-            this.drawText(
+            util.drawRect(ctx, this.time_since_infected * scale, height * 0.5, 2, height, "#ff4040");
+            util.drawText(
                 ctx,
                 this.time_since_infected * scale,
                 height * 0.4,
@@ -430,12 +416,12 @@ export class Person {
             );
         }
         if (this.deadTrigger < Number.MAX_SAFE_INTEGER) {
-            this.drawRect(ctx, this.deadTrigger * scale, 0, 2, height, "#ffffff");
-            this.drawText(ctx, this.deadTrigger * scale - 9, 16, "☠️", 16);
+            util.drawRect(ctx, this.deadTrigger * scale, 0, 2, height, "#ffffff");
+            util.drawText(ctx, this.deadTrigger * scale - 9, 16, "☠️", 16);
         }
         if (this.isolationTrigger < Number.MAX_SAFE_INTEGER) {
-            this.drawRect(ctx, this.isolationTrigger * scale, 0, 2, height, "#ff5f1f");
-            this.drawText(ctx, this.isolationTrigger * scale - 9, 14, "😷", 14);
+            util.drawRect(ctx, this.isolationTrigger * scale, 0, 2, height, "#ff5f1f");
+            util.drawText(ctx, this.isolationTrigger * scale - 9, 14, "😷", 14);
         }
     }
 }

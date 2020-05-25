@@ -133,11 +133,11 @@
                 </tr>
                 <tr v-for="i in this.stats" v-bind:key="i.name">
                     <td @mouseover="statsHover(i.name, '')" @mouseleave="statsHover('')">{{ i.name }}</td>
-                    <td @mouseover="statsHover(i.name, 'mean')" @mouseleave="statsHover('')">{{ i.mean.toFixed(3) }}</td>
-                    <td @mouseover="statsHover(i.name, 'std')" @mouseleave="statsHover('')">{{ i.std.toFixed(3) }}</td>
+                    <td @mouseover="statsHover(i.name, 'median')" @mouseleave="statsHover('')">{{ i.median.toFixed(2) }}</td>
+                    <td @mouseover="statsHover(i.name, 'mean')" @mouseleave="statsHover('')">{{ i.mean.toFixed(2) }}</td>
+                    <td @mouseover="statsHover(i.name, 'std')" @mouseleave="statsHover('')">{{ i.std.toFixed(2) }}</td>
                     <td @mouseover="statsHover(i.name, 'min')" @mouseleave="statsHover('')">{{ i.min.toFixed(2) }}</td>
                     <td @mouseover="statsHover(i.name, 'max')" @mouseleave="statsHover('')">{{ i.max.toFixed(2) }}</td>
-                    <td @mouseover="statsHover(i.name, 'median')" @mouseleave="statsHover('')">{{ i.median.toFixed(2) }}</td>
                     <td @mouseover="statsHover(i.name, 'occurrence')" @mouseleave="statsHover('')">
                         {{ i.occurrence.toFixed(5) }}
                     </td>

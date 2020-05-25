@@ -94,3 +94,27 @@ export function fromHours(hours: number): number {
 export function fromDays(days: number): number {
     return days * 24;
 }
+
+// ---------------- Canvas functions ----------------
+export function drawRect(
+    ctx: any,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    color: string = "#ffffff",
+    fill: boolean = true
+) {
+    if (fill) {
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, width, height);
+    } else {
+        ctx.strokeStyle = color;
+        ctx.drawRect(x, y, width, height);
+    }
+}
+export function drawText(ctx: any, x: number, y: number, text: string, size: number = 16, color: string = "rgb(255, 255, 255)") {
+    ctx.fillStyle = color;
+    ctx.font = size.toString() + "px sans-serif";
+    ctx.fillText(text, x, y);
+}

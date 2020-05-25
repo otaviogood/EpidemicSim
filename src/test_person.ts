@@ -35,7 +35,7 @@ export class StatsRecord {
     written: boolean = false;
     samples: number[] = [];
 
-    static readonly fields = ["name", "mean", "std", "min", "max", "median", "occurrence"];
+    static readonly fields = ["name", "median", "mean", "std", "min", "max", "occurrence"];
 
     constructor(public name: string, public conditionFunc: any) {}
 
@@ -65,11 +65,11 @@ export class StatsRecord {
         let scaled = mathjs.multiply!(this.samples, multiplier);
         let result = {
             name: this.name,
+            median: mathjs.median!(scaled),
             mean: mathjs.mean!(scaled),
             std: mathjs.std!(scaled),
             min: mathjs.min!(scaled),
             max: mathjs.max!(scaled),
-            median: mathjs.median!(scaled),
             occurrence: (scaled.length * 1.0) / TestPerson.numSamples,
         };
         return result;
@@ -113,20 +113,6 @@ export class TestPerson {
         console.log("-------- DONE TESTS --------");
     }
 
-    drawRect(ctx: any, x: number, y: number, width: number, height: number, color: string = "#ffffff", fill: boolean = true) {
-        if (fill) {
-            ctx.fillStyle = color;
-            ctx.fillRect(x, y, width, height);
-        } else {
-            ctx.strokeStyle = color;
-            ctx.drawRect(x, y, width, height);
-        }
-    }
-    drawText(ctx: any, x: number, y: number, text: string, size: number = 16, color: string = "rgb(255, 255, 255)") {
-        ctx.fillStyle = color;
-        ctx.font = size.toString() + "px sans-serif";
-        ctx.fillText(text, x, y);
-    }
     drawHistogram(canvas: any) {
         if (!canvas) return;
         if (!canvas.getContext) return;
@@ -140,10 +126,10 @@ export class TestPerson {
         let maxRangeDays = 7 * 8;
 
         for (let i = 0; i < maxRangeDays; i++) {
-            this.drawRect(ctx, i * 24 * scale, 0, 1, height, i % 7 == 0 ? "#405060" : "#304048");
-            this.drawRect(ctx, i * 24 * scale, 0, 2, i % 7 == 0 ? 10 : 4, "#bbbbbb");
+            util.drawRect(ctx, i * 24 * scale, 0, 1, height, i % 7 == 0 ? "#405060" : "#304048");
+            util.drawRect(ctx, i * 24 * scale, 0, 2, i % 7 == 0 ? 10 : 4, "#bbbbbb");
         }
-        this.drawText(ctx, width - 48, 24, "Days");
+        util.drawText(ctx, width - 48, 24, "Days");
 
         let i = 0;
         for (const stats of this.allStats) {
@@ -186,12 +172,12 @@ export class TestPerson {
                     ctx.closePath();
                     ctx.fill();
                     // Actually draw the standard deviation lines
-                    this.drawRect(ctx, (mean + std) * scale, 0, 2, height, "#00ff44");
-                    this.drawRect(ctx, (mean - std) * scale, 0, 2, height, "#00ff44");
-                    this.drawRect(ctx, mean * scale, 0, 2, height * 0.1, "#00ff44");
+                    util.drawRect(ctx, (mean + std) * scale, 0, 2, height, "#00ff44");
+                    util.drawRect(ctx, (mean - std) * scale, 0, 2, height, "#00ff44");
+                    util.drawRect(ctx, mean * scale, 0, 2, height * 0.1, "#00ff44");
                 } else {
                     if (this.selectedStat != "occurrence") {
-                        this.drawRect(ctx, allStats[this.selectedStat] * scale, 0, 2, height, "#00ff44");
+                        util.drawRect(ctx, allStats[this.selectedStat] * scale, 0, 2, height, "#00ff44");
                     }
                 }
             }
