@@ -16,7 +16,7 @@ import supermarketJSON from "../utils/processedData/sfSupermarkets.json";
 import hospitalJSON from "../utils/processedData/sfHospitals.json";
 // import businessJSON from "../utils/processedData/sfBusinesses.json";
 
-class Place {
+export class Place {
     xpos: number = 0;
     ypos: number = 0;
     residents: number[] = [];
@@ -32,6 +32,9 @@ class Place {
         hh.latLonToPos(sim);
         return hh;
     }
+
+    residentsInPlacePerHour: number[][] = new Array(24)
+
 }
 
 var img: any;
@@ -190,6 +193,9 @@ export class Sim {
                 }
                 randMarket = this.rfast.RandIntApprox(0, this.allSuperMarkets.length);
             }
+            if (person.marketIndex >= 0) {
+                this.allSuperMarkets[person.marketIndex].residents.push(this.pop.length);
+            }
 
             // Assign a semi-random, but close-to-your-house hospital as your favorite place to go
             let randHospital = this.rfast.RandIntApprox(0, this.allHospitals.length);
@@ -210,6 +216,9 @@ export class Sim {
             this.pop.add(person);
             i++;
         }
+
+        this.initializeResidentsInPlace();
+
         console.log("total people: " + this.pop.length);
         console.log("used homes: " + householdIndex);
         // console.log("used offices: " + officeIndex);
@@ -229,6 +238,34 @@ export class Sim {
 
         this.pop.index(this.selectedPersonIndex).drawTimeline(<HTMLCanvasElement>document.getElementById("timeline-canvas"));
         window.requestAnimationFrame(() => this.draw());
+    }
+    // Counts the residents in each place, given their hourly activity schedule.
+    // Updating this is more costly than the rest of the simulation, because at the beginning the number
+    // of infected people is much smaller and Person.spread is only run on infected people.
+    // TODO: this will need to be recomputed when sick population ratio changes drastically.
+    initializeResidentsInPlace() {
+        for (let currentHour = 0; currentHour < 24; currentHour++) {
+            for (let place of this.allHouseholds) {
+                place.residentsInPlacePerHour[currentHour] = [];
+            }
+            for (let place of this.allOffices) {
+                place.residentsInPlacePerHour[currentHour] = [];
+            }
+            for (let place of this.allSuperMarkets) {
+                place.residentsInPlacePerHour[currentHour] = [];
+            }
+            for (let i = 0; i < this.pop.length; i++) {
+                let person = this.pop.index(i);
+                let activity: ActivityType = person.getCurrentActivity(currentHour);
+                if (activity == ActivityType.home && person.homeIndex >= 0) {
+                    this.allHouseholds[person.homeIndex].residentsInPlacePerHour[currentHour].push(i);
+                } else if (activity == ActivityType.work && person.officeIndex >= 0) {
+                    this.allOffices[person.officeIndex].residentsInPlacePerHour[currentHour].push(i);
+                } else if (activity == ActivityType.shopping && person.marketIndex >= 0) {
+                    this.allSuperMarkets[person.marketIndex].residentsInPlacePerHour[currentHour].push(i);;
+                }
+            }
+        }
     }
     run_simulation(num_time_steps: number) {
         for (let ts = 0; ts < num_time_steps; ts++) {

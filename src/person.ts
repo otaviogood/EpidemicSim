@@ -3,7 +3,7 @@ import MersenneTwister from "mersenne-twister";
 // https://github.com/boo1ean/mersenne-twister
 // var MersenneTwister = require("mersenne-twister");
 
-import { Sim } from "./sim";
+import { Sim, Place } from "./sim";
 import { Spatial, Grid } from "./spatial";
 import * as Params from "./params";
 import * as util from "./util";
@@ -310,11 +310,14 @@ export class Person {
         return total;
     }
 
-    spreadInAPlace(residents: number[], density: number, pop: Spatial, rand: MersenneTwister, sim: Sim, seed: number) {
+    spreadInAPlace(place: Place, density: number, pop: Spatial, rand: MersenneTwister, sim: Sim, currentHour: number, seed: number) {
         let prob = sim.params.prob_baseline_timestep * this.probabilityMultiplierFromDensity(density);
-        let numSpread = this.howManyCatchItInThisTimeStep(rand, prob, residents.length);
+        let residentsInPlace: number[] = place.residentsInPlacePerHour[currentHour];
+        let numSpread = this.howManyCatchItInThisTimeStep(rand, prob, residentsInPlace.length);
+        if (place.residents.length == 0) return;
+        //console.log("Spreading totResidents=" + place.residents.length + " inPlace=" + residentsInPlace);
         for (let i = 0; i < numSpread; i++) {
-            let targetIndex = residents[RandomFast.HashIntApprox(seed, 0, residents.length)];
+            let targetIndex = residentsInPlace[RandomFast.HashIntApprox(seed, 0, residentsInPlace.length)];
             if (pop.index(targetIndex).isVulnerable) pop.index(targetIndex).becomeSick(sim);
         }
     }
@@ -335,16 +338,17 @@ export class Person {
             let activity = this.getCurrentActivity(currentStep);
             let seed = Math.trunc(time_steps_since_start.raw + index); // Unique for time step and each person
             if (activity == ActivityType.home) {
-                this.spreadInAPlace(sim.allHouseholds[this.homeIndex].residents, sim.params.home_density, pop, rand, sim, seed);
+                this.spreadInAPlace(sim.allHouseholds[this.homeIndex], sim.params.home_density, pop, rand, sim, currentHour, seed);
             } else if (activity == ActivityType.work) {
-                this.spreadInAPlace(sim.allOffices[this.officeIndex].residents, sim.params.office_density, pop, rand, sim, seed);
+                this.spreadInAPlace(sim.allOffices[this.officeIndex], sim.params.office_density, pop, rand, sim, currentHour, seed);
             } else if (activity == ActivityType.shopping) {
                 this.spreadInAPlace(
-                    sim.allSuperMarkets[this.marketIndex].residents,
+                    sim.allSuperMarkets[this.marketIndex],
                     sim.params.shopping_density,
                     pop,
                     rand,
                     sim,
+                    currentHour,
                     seed
                 );
             }
