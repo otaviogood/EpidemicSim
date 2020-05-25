@@ -190,6 +190,9 @@ export class Sim {
                 }
                 randMarket = this.rfast.RandIntApprox(0, this.allSuperMarkets.length);
             }
+            if (person.marketIndex >= 0) {
+                this.allSuperMarkets[person.marketIndex].residents.push(this.pop.length);
+            }
 
             // Assign a semi-random, but close-to-your-house hospital as your favorite place to go
             let randHospital = this.rfast.RandIntApprox(0, this.allHospitals.length);
