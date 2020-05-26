@@ -20,12 +20,14 @@ class Place {
     xpos: number = 0;
     ypos: number = 0;
     residents: number[] = [];
+    currentOccupants: number[] = [];
+
     constructor(readonly lat: number, readonly lon: number, readonly capacity: number) {}
 
     latLonToPos(sim: Sim) {
         [this.xpos, this.ypos] = sim.latLonToPos(this.lat, this.lon);
     }
-    static genHousehold(sim: Sim, lat: any, lon: any, capacity: number): Place {
+    static genPlace(sim: Sim, lat: any, lon: any, capacity: number): Place {
         let lat2: any = lat!;
         let lon2: any = lon!;
         let hh = new Place(parseFloat(lat2), parseFloat(lon2), capacity);
@@ -132,8 +134,8 @@ export class Sim {
         console.log("Total offices: " + this.allOffices.length);
         console.log("Average office size: " + totalOfficeCapacity / this.allOffices.length);
 
-        for (const sm of supermarketJSON) this.allSuperMarkets.push(Place.genHousehold(this, sm[0], sm[1], 200)); // TODO: supermarket capacity???
-        for (const h of hospitalJSON) this.allHospitals.push(Place.genHousehold(this, h[0], h[1], 200)); // TODO: hospital capacity???
+        for (const sm of supermarketJSON) this.allSuperMarkets.push(Place.genPlace(this, sm[0], sm[1], 200)); // TODO: supermarket capacity???
+        for (const h of hospitalJSON) this.allHospitals.push(Place.genPlace(this, h[0], h[1], 200)); // TODO: hospital capacity???
 
         util.shuffleArrayInPlace(this.allHouseholds, this.rand);
         for (let i = 0; i < this.allHouseholds.length; i++) this.allHouseholds[i].latLonToPos(this);
@@ -190,6 +192,7 @@ export class Sim {
                 }
                 randMarket = this.rfast.RandIntApprox(0, this.allSuperMarkets.length);
             }
+            this.allSuperMarkets[randMarket].residents.push(this.pop.length);
 
             // Assign a semi-random, but close-to-your-house hospital as your favorite place to go
             let randHospital = this.rfast.RandIntApprox(0, this.allHospitals.length);
@@ -230,15 +233,36 @@ export class Sim {
         this.pop.index(this.selectedPersonIndex).drawTimeline(<HTMLCanvasElement>document.getElementById("timeline-canvas"));
         window.requestAnimationFrame(() => this.draw());
     }
+    clearOccupants() {
+        for (let i = 0; i < this.allHouseholds.length; i++) this.allHouseholds[i].currentOccupants = [];
+        for (let i = 0; i < this.allOffices.length; i++) this.allOffices[i].currentOccupants = [];
+        for (let i = 0; i < this.allSuperMarkets.length; i++) this.allSuperMarkets[i].currentOccupants = [];
+    }
+    // Allocate all the people to the places they will occupy for this timestep.
+    occupyPlaces() {
+        this.clearOccupants();
+        let currentStep = this.time_steps_since_start.getStepModDay();
+        for (let i = 0; i < this.pop.length; i++) {
+            let person = this.pop.index(i);
+            let activity = person.getCurrentActivity(currentStep);
+            if (activity == ActivityType.home) {
+                this.allHouseholds[person.homeIndex].currentOccupants.push(i);
+            } else if (activity == ActivityType.work) {
+                this.allOffices[person.officeIndex].currentOccupants.push(i);
+            } else if (activity == ActivityType.shopping) {
+                this.allSuperMarkets[person.marketIndex].currentOccupants.push(i);
+            }
+        }
+    }
     run_simulation(num_time_steps: number) {
         for (let ts = 0; ts < num_time_steps; ts++) {
             this.numActive = 0;
-            let currentStep = this.time_steps_since_start.getStepModDay();
             this.params.doInterventionsForThisTimestep(this.time_steps_since_start);
+            this.occupyPlaces();
             for (let i = 0; i < this.pop.length; i++) {
                 let person = this.pop.index(i);
                 this.numActive += person.stepTime(this, this.rand) ? 1 : 0;
-                person.spread(this.time_steps_since_start, i, this.pop, this.rand, currentStep, this);
+                person.spread(this.time_steps_since_start, i, this.pop, this.rand, this);
             }
             this.time_steps_since_start.increment();
         }

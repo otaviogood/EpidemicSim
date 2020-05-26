@@ -55,7 +55,7 @@
                     >
                         ⤵️
                     </button>
-                    <span style="float:right">Sim Time (Milliseconds): {{ Math.round(milliseconds) }}</span>
+                    <span style="float:right">Sim Time (Milliseconds): {{ Math.round(milliseconds) }}, total 20 days: {{ timerAccum.toFixed(0) }}</span>
                 </p></span
             ></span
         ><span style="display:inline-block;width:384px;float:right"
@@ -173,6 +173,7 @@ export default Vue.extend({
             currentlyInfected: 0,
             totalInfected: 0,
             milliseconds: 0,
+            timerAccum:0,
             totalDead: 0,
             person: {
                 age: -1,
@@ -301,6 +302,7 @@ export default Vue.extend({
 
             let t2 = performance.now();
             self.milliseconds = t2 - timer;
+            if (sim.time_steps_since_start.days < 20) this.timerAccum += t2 - timer;
             sim.draw();
         },
         tickAnim: function() {
@@ -501,7 +503,7 @@ body {
 table#stats-table,
 th,
 td {
-    border: 1px solid #aaaaaa;
+    border: 1px solid #d0d0d0;
     border-collapse: collapse;
     padding: 4px;
     background-color: #fff8e8;
