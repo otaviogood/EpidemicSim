@@ -9,7 +9,7 @@ import MersenneTwister from "mersenne-twister";
 // var MersenneTwister = require("mersenne-twister");
 
 import { Sim } from "./sim";
-import { Person, ActivityType } from "./person";
+import { Person, SymptomsLevels } from "./person";
 import * as Params from "./params";
 import * as util from "./util";
 
@@ -37,7 +37,7 @@ export class StatsRecord {
 
     static readonly fields = ["name", "median", "mean", "std", "min", "max", "occurrence"];
 
-    constructor(public name: string, public conditionFunc: any) {}
+    constructor(public name: string, public conditionFunc: any, public timeFunc: any = null) {}
 
     log(multiplier: number) {
         console.log(
@@ -63,16 +63,28 @@ export class StatsRecord {
     makeStatsObject(multiplier: number = 1.0): any {
         // let freqs = this.makeFrequencyCounts();
         let scaled = mathjs.multiply!(this.samples, multiplier);
-        let result = {
-            name: this.name,
-            median: mathjs.median!(scaled),
-            mean: mathjs.mean!(scaled),
-            std: mathjs.std!(scaled),
-            min: mathjs.min!(scaled),
-            max: mathjs.max!(scaled),
-            occurrence: (scaled.length * 1.0) / TestPerson.numSamples,
-        };
+        let result = { name: this.name, median: 0, mean: 0, std: 0, min: 0, max: 0, occurrence: 0 };
+        if (scaled.length > 0) {
+            result = {
+                name: this.name,
+                median: mathjs.median!(scaled),
+                mean: mathjs.mean!(scaled),
+                std: mathjs.std!(scaled),
+                min: mathjs.min!(scaled),
+                max: mathjs.max!(scaled),
+                occurrence: (scaled.length * 1.0) / TestPerson.numSamples,
+            };
+        }
+
         return result;
+    }
+    checkStats(p: Person) {
+        if (!this.written && this.conditionFunc(p)) {
+            let timeStamp = p.time_since_infected;
+            if (this.timeFunc != null) timeStamp = this.timeFunc(p);
+            this.samples.push(timeStamp);
+            this.written = true;
+        }
     }
 }
 
@@ -90,8 +102,15 @@ export class TestPerson {
         this.allStats.push(new StatsRecord("Time till symptoms", (p: Person) => p.isShowingSymptoms));
         this.allStats.push(new StatsRecord("Time till recovered", (p: Person) => p.isRecovered));
         this.allStats.push(new StatsRecord("Time till death", (p: Person) => p.dead));
-        let allContagiousDurations: number[] = [];
-        let allTimesTillSevere: number[] = []; // Also, critical. Also count # of severe and critical.
+        this.allStats.push(new StatsRecord("Time till severe", (p: Person) => p.symptomsCurrent >= SymptomsLevels.severe));
+        this.allStats.push(new StatsRecord("Time till critical", (p: Person) => p.symptomsCurrent >= SymptomsLevels.critical));
+        this.allStats.push(
+            new StatsRecord(
+                "Span of contagious",
+                (p: Person) => p.isRecovered,
+                (p: Person) => p.time_since_infected - p.contagiousTrigger
+            )
+        );
 
         for (let i = 0; i < TestPerson.numSamples; i++) {
             let p = new Person(params, mtrand, i);
@@ -100,12 +119,7 @@ export class TestPerson {
             for (const stats of this.allStats) stats.written = false;
 
             for (let hour = 0; hour < 24 * 45; hour++) {
-                for (const stats of this.allStats) {
-                    if (!stats.written && stats.conditionFunc(p)) {
-                        stats.samples.push(p.time_since_infected);
-                        stats.written = true;
-                    }
-                }
+                for (const stats of this.allStats) stats.checkStats(p);
                 p.stepTime(null, mtrand);
             }
         }
@@ -151,33 +165,35 @@ export class TestPerson {
 
             if (this.selectedStat && this.selectedStat != "") {
                 let allStats = stats.makeStatsObject();
-                if (this.selectedStat == "std") {
-                    let min = allStats["min"];
-                    let max = allStats["max"];
-                    let mean = allStats["mean"];
-                    let std = allStats["std"];
-                    // Draw a gaussian function just because I feel like it...
-                    ctx.fillStyle = "#00ff4430";
-                    ctx.beginPath();
-                    let lastY = 0;
-                    ctx.moveTo(min * scale, height);
-                    for (let i = min; i <= max; i++) {
-                        let y = (i - mean) / std;
-                        y = Math.exp(-(y * y) / 2); // https://en.wikipedia.org/wiki/Gaussian_function
-                        y *= height / scaley;
-                        ctx.lineTo(i * scale, height - y * scaley);
-                        lastY = y;
-                    }
-                    ctx.lineTo(max * scale, height);
-                    ctx.closePath();
-                    ctx.fill();
-                    // Actually draw the standard deviation lines
-                    util.drawRect(ctx, (mean + std) * scale, 0, 2, height, "#00ff44");
-                    util.drawRect(ctx, (mean - std) * scale, 0, 2, height, "#00ff44");
-                    util.drawRect(ctx, mean * scale, 0, 2, height * 0.1, "#00ff44");
-                } else {
-                    if (this.selectedStat != "occurrence") {
-                        util.drawRect(ctx, allStats[this.selectedStat] * scale, 0, 2, height, "#00ff44");
+                if (allStats["occurrence"] > 0) {
+                    if (this.selectedStat == "std") {
+                        let min = allStats["min"];
+                        let max = allStats["max"];
+                        let mean = allStats["mean"];
+                        let std = allStats["std"];
+                        // Draw a gaussian function just because I feel like it...
+                        ctx.fillStyle = "#00ff4430";
+                        ctx.beginPath();
+                        let lastY = 0;
+                        ctx.moveTo(min * scale, height);
+                        for (let i = min; i <= max; i++) {
+                            let y = (i - mean) / std;
+                            y = Math.exp(-(y * y) / 2); // https://en.wikipedia.org/wiki/Gaussian_function
+                            y *= height / scaley;
+                            ctx.lineTo(i * scale, height - y * scaley);
+                            lastY = y;
+                        }
+                        ctx.lineTo(max * scale, height);
+                        ctx.closePath();
+                        ctx.fill();
+                        // Actually draw the standard deviation lines
+                        util.drawRect(ctx, (mean + std) * scale, 0, 2, height, "#00ff44");
+                        util.drawRect(ctx, (mean - std) * scale, 0, 2, height, "#00ff44");
+                        util.drawRect(ctx, mean * scale, 0, 2, height * 0.1, "#00ff44");
+                    } else {
+                        if (this.selectedStat != "occurrence") {
+                            util.drawRect(ctx, allStats[this.selectedStat] * scale, 0, 2, height, "#00ff44");
+                        }
                     }
                 }
             }
