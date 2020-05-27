@@ -87,6 +87,9 @@ export class Person {
             params.mean_time_till_contagious.hours + params.contagious_range.hours * 0.5
         );
 
+        [this.endContagiousTrigger] = util.RandGaussian(rand, params.median_time_virus_is_communicable.hours, util.fromHours(30));
+        this.endContagiousTrigger = this.endContagiousTrigger + this.contagiousTrigger;
+
         // Skewed distribution
         [this.symptomsTrigger] = util.RandGaussian(rand, 0.0, 0.5); // Include 2 standard deviations before clamping.
         this.symptomsTrigger = util.clamp(this.symptomsTrigger, -1.0, 1.0) * 0.5 + 0.5; //  Now show be [0..1] range
@@ -94,25 +97,15 @@ export class Person {
         // Apply new mean and std sorta...
         this.symptomsTrigger =
             this.symptomsTrigger * util.fromDays(7.25) + params.mean_time_till_symptoms.hours - util.fromDays(1.0);
+        this.symptomsTrigger = Math.min(this.symptomsTrigger, this.endContagiousTrigger - util.fromDays(1.0));
 
         // See if this person is overall asymptomatic and if so, backtrack the symptom onset.
         this.symptomaticOverall = util.Bernoulli(rand, 1.0 - params.prob_fully_asymptomatic);
         if (!this.symptomaticOverall) this.symptomsTrigger = Number.MAX_SAFE_INTEGER; // Never trigger symptoms for asymptomatic people
 
-        // TODO: Math here is a bit arbitrary. Need more data about the distribution if I wanna make it more meaningful...
-        // It seems to be a skewed distribution.
-        [this.endContagiousTrigger] = util.RandGaussian(rand, 0.0, 0.3);
-        this.endContagiousTrigger = util.clamp(this.endContagiousTrigger, -1.0, 1.0) * 0.5 + 0.5; //  Now show be [0..1] range
-        this.endContagiousTrigger = Math.pow(this.endContagiousTrigger, 1.5); // skew the distribution
-        // Apply new mean and std sorta...
-        this.endContagiousTrigger =
-            this.endContagiousTrigger * util.fromDays(7) +
-            params.median_contagious_duration.hours -
-            util.fromDays(1) +
-            this.contagiousTrigger;
-
         // TODO: When do symptoms end? I couldn't find numbers for this so I made something up.
-        if (this.symptomaticOverall) this.endSymptomsTrigger = (this.symptomsTrigger + this.endContagiousTrigger) * 0.5;
+        if (this.symptomaticOverall)
+            this.endSymptomsTrigger = util.randint(rand, this.symptomsTrigger + util.fromHours(1), this.endContagiousTrigger);
 
         // Death
         // Adjust fatality rate by asymptomatic people
@@ -136,14 +129,14 @@ export class Person {
 
         // Severe disease
         if (this.symptomaticOverall && util.Bernoulli(rand, params.prob_severe_or_critical)) {
-            [this.severeTrigger] = util.RandGaussian(rand, params.time_till_severe.hours, 0.3);
-            this.severeTrigger = util.clamp(this.severeTrigger, this.symptomsTrigger + 1, this.endSymptomsTrigger - 1);
+            this.severeTrigger = (this.symptomsTrigger + this.endSymptomsTrigger) * 0.5; // TODO: Fix me. Didn't find numbers that fit with other numbers.
+            this.severeTrigger = util.clamp(this.severeTrigger, this.symptomsTrigger, this.endSymptomsTrigger);
             this.criticalIfSevere = util.Bernoulli(rand, params.prob_critical_given_severe_or_critical);
         }
 
         if (this.symptomaticOverall) {
             let [temp] = util.RandGaussian(rand, this.symptomsTrigger + util.fromDays(2), util.fromDays(1));
-            this.isolationTrigger = util.clamp(temp, this.symptomsTrigger, this.symptomsTrigger + util.fromDays(4));
+            this.isolationTrigger = util.clamp(temp, this.symptomsTrigger, this.endSymptomsTrigger);
         }
     }
 
@@ -327,7 +320,7 @@ export class Person {
         if (this.isContagious) {
             let currentStep = sim.time_steps_since_start.getStepModDay();
             let activity = this.getCurrentActivity(currentStep);
-            let seed = Math.trunc(time_steps_since_start.raw*4096 + index); // Unique for time step and each person
+            let seed = Math.trunc(time_steps_since_start.raw * 4096 + index); // Unique for time step and each person
             if (activity == ActivityType.home) {
                 this.spreadInAPlace(
                     sim.allHouseholds[this.homeIndex].currentOccupants,

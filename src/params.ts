@@ -72,11 +72,10 @@ export class Base {
     // https://www.jhsph.edu/news/news-releases/2020/new-study-on-COVID-19-estimates-5-days-for-incubation-period.html
     // The analysis suggests that about 97.5 percent of people who develop symptoms of SARS-CoV-2 infection will do so within 11.5 days of exposure.
     // symptom_range = util.fromDays(6.25);
-    // https://www.thelancet.com/pdfs/journals/lancet/PIIS0140-6736(20)30566-3.pdf
-    // Median duration of viral shedding was 20·0 days (IQR 17·0–24·0)
-    median_contagious_duration: TimeStep = TimeStep.fromDays(20);
     // https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf
-    time_till_severe: TimeStep = this.mean_time_till_symptoms.add(TimeStep.fromDays(7));
+    // Preliminary data suggests that the time period from [symptom???] onset to the development of severe disease, including hypoxia, is 1 week
+    // TODO: This one needs some more sources.
+    time_till_severe: TimeStep = TimeStep.fromDays(7);
     //  Approximately 80% of laboratory confirmed patients have had mild to moderate disease, which includes
     // non-pneumonia and pneumonia cases, 13.8% have severe disease (dyspnea, respiratory
     // frequency ≥30/minute, blood oxygen saturation ≤93%, PaO2/FiO2 ratio <300, and/or lung
@@ -85,9 +84,12 @@ export class Base {
     prob_severe_or_critical = 0.2;
     prob_critical_given_severe_or_critical = 0.3; // 6.1 / (6.1 + 13.8)
     // median communicable period = 9.5 days https://link.springer.com/article/10.1007/s11427-020-1661-4
-    // However, the communicable period could be up to ***three weeks***
-    // TODO: make this a distribution instead of a single number.
-    median_time_virus_is_communicable: TimeStep = TimeStep.fromDays(9.5).add(this.mean_time_till_contagious);
+    // However, the communicable period could be up to ***three weeks*** (contradicted by below)
+    // May 23: https://www.ams.edu.sg/view-pdf.aspx?file=media%5C5558_fi_168.pdf&ofile=Period+of+Infectivity+Position+Statement+(final)+23-5-20.pdf
+    // Based on the accumulated data since the start of the COVID-19 pandemic, the infectious period of SARS-CoV-2 in symptomatic individuals may begin around 2 days
+    // before the onset of symptoms, and persists for about 7 - 10 days after the onset of symptoms. Active viral replication drops quickly after the first week, and viable virus
+    // was not found after the second week of illness despite the persistence of PCR detection of RNA.
+    median_time_virus_is_communicable: TimeStep = TimeStep.fromDays(8.5);
     // Among patients who have died, the time from symptom onset to outcome ranges from 2-8 weeks
     // https://www.who.int/docs/default-source/coronaviruse/who-china-joint-mission-on-covid-19-final-report.pdf
     range_time_till_death_relative_to_syptoms: TimeStep[] = [TimeStep.fromDays(2 * 7), TimeStep.fromDays(8 * 7)];
