@@ -225,7 +225,7 @@ export default Vue.extend({
     },
     methods: {
         updateStats: function() {
-            for (const stats of tests.allStats) this.stats.push(stats.makeStatsObject(1.0 / 24.0));
+            for (const stats of tests.allStats) this.stats.push(stats.makeMetricsObject(1.0 / 24.0));
         },
         updatePerson: function() {
             let self = this;

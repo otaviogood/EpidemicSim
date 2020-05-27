@@ -27,13 +27,18 @@ function logStats(data: number[], message: string, multiplier: number = 1) {
     );
 }
 
+let alreadyAlerted = false;
 function check(condition: boolean, message: string) {
-    if (!condition) alert(message);
+    if (!condition && !alreadyAlerted) {
+        alert(message);
+        alreadyAlerted = true;
+    }
 }
 
 export class StatsRecord {
     written: boolean = false;
     samples: number[] = [];
+    metricsObject: any; // This will be a dictionary (js object) with the different stats
 
     static readonly fields = ["name", "median", "mean", "std", "min", "max", "occurrence"];
 
@@ -60,12 +65,12 @@ export class StatsRecord {
         }
         return freqs;
     }
-    makeStatsObject(multiplier: number = 1.0): any {
+    makeMetricsObject(multiplier: number = 1.0): any {
         // let freqs = this.makeFrequencyCounts();
         let scaled = mathjs.multiply!(this.samples, multiplier);
-        let result = { name: this.name, median: 0, mean: 0, std: 0, min: 0, max: 0, occurrence: 0 };
+        this.metricsObject = { name: this.name, median: 0, mean: 0, std: 0, min: 0, max: 0, occurrence: 0 };
         if (scaled.length > 0) {
-            result = {
+            this.metricsObject = {
                 name: this.name,
                 median: mathjs.median!(scaled),
                 mean: mathjs.mean!(scaled),
@@ -76,9 +81,9 @@ export class StatsRecord {
             };
         }
 
-        return result;
+        return this.metricsObject;
     }
-    checkStats(p: Person) {
+    checkStatsEventHappened(p: Person) {
         if (!this.written && this.conditionFunc(p)) {
             let timeStamp = p.time_since_infected;
             if (this.timeFunc != null) timeStamp = this.timeFunc(p);
@@ -93,9 +98,32 @@ export class TestPerson {
     selected: string = "";
     selectedStat: string = "";
     allStats: StatsRecord[] = [];
+    getStat(name: string) {
+        return this.allStats.find(a => a.name == name);
+    }
+    getMetric(name: string, metric: string) {
+        return this.allStats.find(a => a.name == name)?.metricsObject[metric];
+    }
+    checkInRange(name: string, stat: string, range: number[], message: string) {
+        check(this.getStat(name)?.metricsObject[stat] >= range[0], "ERROR (Stats check): " + message);
+        check(this.getStat(name)?.metricsObject[stat] <= range[1], "ERROR (Stats check): " + message);
+    }
+    allChecks() {
+        check(
+            this.getMetric("Time till contagious", "std") < util.fromDays(2),
+            "Time till contagious standard deviation is too big."
+        );
+        this.checkInRange(
+            "Time till contagious",
+            "mean",
+            [util.fromDays(2.5), util.fromDays(3.5)],
+            "Time till contagious is out of range."
+        );
+    }
     runTests(params: Params.Base) {
         // ------------------ test Person virus model --------------------------
         console.log("-------- RUNNING " + TestPerson.numSamples + " TESTS... --------");
+        let timer = performance.now();
 
         let mtrand = new MersenneTwister(1234567890);
         this.allStats.push(new StatsRecord("Time till contagious", (p: Person) => p.isContagious));
@@ -119,12 +147,14 @@ export class TestPerson {
             for (const stats of this.allStats) stats.written = false;
 
             for (let hour = 0; hour < 24 * 45; hour++) {
-                for (const stats of this.allStats) stats.checkStats(p);
+                for (let i = 0; i < this.allStats.length; i++) this.allStats[i].checkStatsEventHappened(p);
                 p.stepTime(null, mtrand);
             }
         }
-        // for (const stats of this.allStats) stats.log(1.0 / 24.0);
-        console.log("-------- DONE TESTS --------");
+        for (const stats of this.allStats) stats.makeMetricsObject();
+
+        this.allChecks();
+        console.log("-------- DONE TESTS in " + (performance.now() - timer).toFixed(0) + "ms --------");
     }
 
     drawHistogram(canvas: any) {
@@ -135,7 +165,7 @@ export class TestPerson {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         let width = canvas.width,
             height = canvas.height;
-        let scale = 1.0; // 7.0 / 24.0; // 1 day = 7 pixels
+        let scale = 2.0; // 7.0 / 24.0; // 1 day = 7 pixels
         let scaley = 5.0;
         let maxRangeDays = 7 * 8;
 
@@ -159,12 +189,12 @@ export class TestPerson {
                 if (freqs.hasOwnProperty(key)) {
                     const val = freqs[key] * scaley;
                     const pos = parseFloat(key);
-                    ctx.fillRect(pos * scale, height - val, 1, val);
+                    ctx.fillRect(pos * scale, height - val, Math.max(scale, 1), val);
                 }
             }
 
             if (this.selectedStat && this.selectedStat != "") {
-                let allStats = stats.makeStatsObject();
+                let allStats = stats.makeMetricsObject();
                 if (allStats["occurrence"] > 0) {
                     if (this.selectedStat == "std") {
                         let min = allStats["min"];
