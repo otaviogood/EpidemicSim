@@ -504,6 +504,12 @@ export class Sim {
             this.infectedVisuals = tempIV;
             ctx.lineWidth = 1.0;
 
+            // Draw map lat/lon extents around the map
+            this.drawText(ctx, 0.45, -0.01, "max lat: " + this.latMax);
+            this.drawText(ctx, 0.45, 1.02 * this.latAdjust, "min lat: " + this.latMin);
+            this.drawText(ctx, -0.215, 0.49 * this.latAdjust, "min lon: " + this.lonMin);
+            this.drawText(ctx, 1.01, 0.49 * this.latAdjust, "max lon: " + this.lonMax);
+
             // // Look at Google timeline data
             // for (let i = 0; i < 100; i++) {
             //     let slide = this.time_steps_since_start + i + 2200;
