@@ -12,8 +12,10 @@ const noCacheHack = false; // Use this for very large files... It can be fixed b
 
 let nodeMap = new Map();
 let wayMap = new Map();
-const localNodesFileName = "processedData/localNodesCache.json";
-const localWaysFileName = "processedData/localWaysCache.json";
+if (!fs.existsSync("tempCache/")) fs.mkdirSync("tempCache/");
+const localNodesFileName = "tempCache/" + mapBounds.defaultPlace + "_localNodesCache.json";
+const localWaysFileName = "tempCache/" + mapBounds.defaultPlace + "_localWaysCache.json";
+// Got northern california OpenStreetMaps data here: http://download.geofabrik.de/north-america/us/california/norcal.html
 const sourceOSMFileName = "../sourceData/norcal-latest.osm.pbf";
 
 let wait = 0;
@@ -22,7 +24,6 @@ let wait = 0;
 async function localFilterNodes() {
     console.log("Generating file of local openstreetmaps 'nodes'...");
     await osmread.parse({
-        // Got northern california OpenStreetMaps data here: http://download.geofabrik.de/north-america/us/california/norcal.html
         filePath: sourceOSMFileName,
         endDocument: function() {
             console.log("document end");
@@ -36,10 +37,10 @@ async function localFilterNodes() {
         node: function(node) {
             let lat = parseFloat(node.lat);
             let lon = parseFloat(node.lon);
-            if (lat < mapBounds.latMin) return;
-            if (lat > mapBounds.latMax) return;
-            if (lon < mapBounds.lonMin) return;
-            if (lon > mapBounds.lonMax) return;
+            if (lat < mapBounds.info[mapBounds.defaultPlace].latMin) return;
+            if (lat > mapBounds.info[mapBounds.defaultPlace].latMax) return;
+            if (lon < mapBounds.info[mapBounds.defaultPlace].lonMin) return;
+            if (lon > mapBounds.info[mapBounds.defaultPlace].lonMax) return;
             //  let s = JSON.stringify(node);
             let s = JSON.stringify({ "lat": node.lat, "lon": node.lon, "tags": node.tags });
             nodeMap.set(node.id, node);
@@ -142,14 +143,14 @@ function extractPlaces(keywords, badWords, targetFile) {
             // console.log(val);
         }
     }
-    fs.writeFileSync(targetFile, JSON.stringify(allPlaces, null, "\t"));
-    console.log("Wrote file: " + targetFile);
+    fs.writeFileSync("processedData/" + targetFile, JSON.stringify(allPlaces, null, "\t"));
+    console.log("Wrote file: " + "processedData/" + targetFile);
 }
 
 async function doStuff() {
     // Filter out all nodes and ways from a certain area (lat/lon) and generate local ways and nodes files
-    if ((!fs.existsSync(localNodesFileName)) || noCacheHack) await localFilterNodes();
-    if ((!fs.existsSync(localWaysFileName)) || noCacheHack) await localFilterWays();
+    if (!fs.existsSync(localNodesFileName) || noCacheHack) await localFilterNodes();
+    if (!fs.existsSync(localWaysFileName) || noCacheHack) await localFilterWays();
 
     while (wait < 2) {
         await sleep(1000);
@@ -163,13 +164,13 @@ async function doStuff() {
     // prettier-ignore
     // Extract business locations
     extractPlaces(["department","office","business","parking","pharmacy","coffee","sandwich","deli","cafe","bank","shop","site","center","plaza","hotel","industr","store","auto","garage","museum","square","tower"],
-                  ["garden"], "processedData/sfBusinesses.json")
+                  ["garden"], mapBounds.defaultPlace + "_Businesses.json")
     extractPlaces(
         ["hospital", "medical center"],
         ["pet", "veterinary", "animal", "hospitality", "marijuana"],
-        "processedData/sfHospitals.json"
+        mapBounds.defaultPlace + "_Hospitals.json"
     );
-    extractPlaces(["supermarket"], [], "processedData/sfSupermarkets.json");
+    extractPlaces(["supermarket"], [], mapBounds.defaultPlace + "_Supermarkets.json");
 }
 doStuff();
 

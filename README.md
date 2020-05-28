@@ -8,7 +8,7 @@ First install dependencies:
 npm install
 ```
 
-To run in hot module reloading mode:
+To run in hot module reloading mode (disabled HMR):
 
 ```sh
 npm start

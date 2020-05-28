@@ -12,10 +12,6 @@ import RandomFast from "./random-fast";
 
 const mapBounds = require("../utils/mapBounds");
 
-import supermarketJSON from "../utils/processedData/sfSupermarkets.json";
-import hospitalJSON from "../utils/processedData/sfHospitals.json";
-// import businessJSON from "../utils/processedData/sfBusinesses.json";
-
 class Place {
     xpos: number = 0;
     ypos: number = 0;
@@ -57,10 +53,10 @@ export class Sim {
     allOffices: Place[] = [];
     allSuperMarkets: Place[] = [];
     allHospitals: Place[] = [];
-    lonMin: number = mapBounds.lonMin;
-    latMin: number = mapBounds.latMin;
-    lonMax: number = mapBounds.lonMax;
-    latMax: number = mapBounds.latMax;
+    latMin: number = mapBounds.info[mapBounds.defaultPlace].latMin;
+    latMax: number = mapBounds.info[mapBounds.defaultPlace].latMax;
+    lonMin: number = mapBounds.info[mapBounds.defaultPlace].lonMin;
+    lonMax: number = mapBounds.info[mapBounds.defaultPlace].lonMax;
     latAdjust: number;
 
     time_steps_since_start: Params.TimeStep = new Params.TimeStep();
@@ -106,10 +102,18 @@ export class Sim {
 
     async setup() {
         console.log("-------- SETUP --------");
-        img = await loadImage("sf_map_osm_hi.jpg");
+        // TODO: use promise.all() on all these awaits???
+        img = await loadImage(mapBounds.info[mapBounds.defaultPlace].mapImage);
 
         // -------- Load HOUSE position and size data --------
-        let jsonTemp = await fetch("sfHouseholds.json");
+        let jsonTempA = await fetch("datafiles/" + mapBounds.defaultPlace + "_Supermarkets.json");
+        let supermarketJSON = await jsonTempA.json();
+
+        let jsonTempB = await fetch("datafiles/" + mapBounds.defaultPlace + "_Hospitals.json");
+        let hospitalJSON = await jsonTempB.json();
+
+        // -------- Load HOUSE position and size data --------
+        let jsonTemp = await fetch("datafiles/" + mapBounds.defaultPlace + "_Households.json");
         let homeDataJSON = await jsonTemp.json();
         this.allHouseholds = [];
         let totalHomeCapacity = 0;
@@ -122,7 +126,7 @@ export class Sim {
         console.log("Average household size: " + totalHomeCapacity / this.allHouseholds.length);
 
         // -------- Load OFFICE position and size data --------
-        jsonTemp = await fetch("sfOffices.json");
+        jsonTemp = await fetch("datafiles/" + mapBounds.defaultPlace + "_Offices.json");
         let officeDataJSON = await jsonTemp.json();
         this.allOffices = [];
         let totalOfficeCapacity = 0;

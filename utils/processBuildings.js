@@ -4,8 +4,10 @@ const fs = require("fs");
 var MersenneTwister = require("mersenne-twister");
 var rand = new MersenneTwister(1234567890);
 
-let houseHoldFile = "processedData/sfHouseholds.json";
-let officeFile = "processedData/sfOffices.json";
+const mapBounds = require("./mapBounds");
+
+let houseHoldFile = "processedData/" + mapBounds.defaultPlace + "_Households.json";
+let officeFile = "processedData/" + mapBounds.defaultPlace + "_Offices.json";
 
 function loadJSON(fname) {
     const fileContents = fs.readFileSync(fname, "utf8");
@@ -17,7 +19,7 @@ function loadJSON(fname) {
 }
 
 // -------------------- Households --------------------
-let buildingPositionsJSON = loadJSON("processedData/sfBuildingPositions.json");
+let buildingPositionsJSON = loadJSON("processedData/" + mapBounds.defaultPlace + "_BuildingPositions.json");
 
 let households = [];
 
@@ -44,7 +46,7 @@ console.log("Population: " + population);
 fs.writeFileSync(houseHoldFile, JSON.stringify(households, null, "\t"));
 
 // -------------------- Offices --------------------
-let businessesJSON = loadJSON("processedData/sfBusinesses.json");
+let businessesJSON = loadJSON("processedData/" + mapBounds.defaultPlace + "_Businesses.json");
 
 // Offices are approximated, so just make more until we have an office for most people.
 // TODO: this is a bit arbitrary... look into more representative numbers.

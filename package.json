@@ -1,33 +1,42 @@
 {
-  "name": "group_testing",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "scripts": {
-    "clean": "rm dist/bundle.js",
-    "start": "npm run copystuff && parcel src/index.html --no-hmr",
-    "build-prod": "parcel build src/index.html",
-    "copystuff": "shx cp src/sf_map_osm_hi.jpg dist/ && shx cp utils/processedData/sfHouseholds.json dist/ && shx cp utils/processedData/sfOffices.json dist/"
-  },
-  "dependencies": {
-    "@types/mathjs": "^6.0.5",
-    "@types/mersenne-twister": "^1.1.2",
-    "@types/node": "^13.11.0",
-    "mathjs": "^7.0.0",
-    "mersenne-twister": "^1.1.0",
-    "shx": "^0.3.2",
-    "vue": "^2.6.11",
-    "vue-hot-reload-api": "^2.3.4"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.9.0",
-    "@vue/component-compiler-utils": "^3.1.1",
-    "parcel-bundler": "^1.12.4",
-    "prettier": "^1.19.1",
-    "typescript": "^3.8.3",
-    "vue-template-compiler": "^2.6.11"
-  }
+    "name": "group_testing",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "scripts": {
+        "clean": "rm dist/bundle.js",
+        "start": "parcel src/index.html --no-hmr",
+        "build-prod": "parcel build src/index.html"
+    },
+    "dependencies": {
+        "@types/mathjs": "^6.0.5",
+        "@types/mersenne-twister": "^1.1.2",
+        "@types/node": "^13.11.0",
+        "mathjs": "^7.0.0",
+        "mersenne-twister": "^1.1.0",
+        "shx": "^0.3.2",
+        "vue": "^2.6.11",
+        "vue-hot-reload-api": "^2.3.4"
+    },
+    "devDependencies": {
+        "@babel/core": "^7.9.0",
+        "@vue/component-compiler-utils": "^3.1.1",
+        "parcel-bundler": "^1.12.4",
+        "parcel-plugin-static-files-copy": "^2.3.1",
+        "prettier": "^1.19.1",
+        "typescript": "^3.8.3",
+        "vue-template-compiler": "^2.6.11"
+    },
+    "staticFiles": {
+        "staticPath": [
+            {
+                "staticPath": "utils/processedData",
+                "staticOutDir": "datafiles"
+            }
+        ],
+        "watcherGlob": "**/*.{png,jpg,json}"
+    }
 }

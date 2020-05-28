@@ -7,6 +7,10 @@ var MersenneTwister = require("mersenne-twister");
 var rand = new MersenneTwister(1234567890);
 
 const mapBounds = require("./mapBounds");
+const boundsLatMin = mapBounds.info[mapBounds.defaultPlace].latMin;
+const boundsLatMax = mapBounds.info[mapBounds.defaultPlace].latMax;
+const boundsLonMin = mapBounds.info[mapBounds.defaultPlace].lonMin;
+const boundsLonMax = mapBounds.info[mapBounds.defaultPlace].lonMax;
 
 // From https://dataforgood.fb.com/docs/high-resolution-population-density-maps-demographic-estimates-documentation/
 // Data here: https://data.humdata.org/dataset/united-states-high-resolution-population-density-maps-demographic-estimates
@@ -70,14 +74,14 @@ async function doStuff() {
     let latMin = bbox[1];
     let lonMax = bbox[2];
     let latMax = bbox[3];
-    assert(lonMin <= mapBounds.lonMin, "ERROR: source map file doesn't contain desired map bounds.");
-    assert(latMin <= mapBounds.latMin, "ERROR: source map file doesn't contain desired map bounds.");
-    assert(lonMax >= mapBounds.lonMax, "ERROR: source map file doesn't contain desired map bounds.");
-    assert(latMax >= mapBounds.latMax, "ERROR: source map file doesn't contain desired map bounds.");
+    assert(lonMin <= boundsLonMin, "ERROR: source map file doesn't contain desired map bounds.");
+    assert(latMin <= boundsLatMin, "ERROR: source map file doesn't contain desired map bounds.");
+    assert(lonMax >= boundsLonMax, "ERROR: source map file doesn't contain desired map bounds.");
+    assert(latMax >= boundsLatMax, "ERROR: source map file doesn't contain desired map bounds.");
     var cellArea = calcCellArea(origin[1]); // Use corner... Works for smallish areas like cities - not for whole countries.
 
     console.log("lat/lon bounds in geotiff file:   " + bbox);
-    console.log("lat/lon bounds in for our region: " + [mapBounds.lonMin, mapBounds.latMin, mapBounds.lonMax, mapBounds.latMax]);
+    console.log("lat/lon bounds in for our region: " + [boundsLonMin, boundsLatMin, boundsLonMax, boundsLatMax]);
     const data = await image.readRasters();
     const { width2, height2 } = data;
     let allPeople = [];
@@ -92,10 +96,10 @@ async function doStuff() {
             let lon = xpos * (lonMax - lonMin) + lonMin;
             let lat = ypos * (latMax - latMin) + latMin;
             // I guess this could be done more efficiently if anyone cares...
-            if (lat < mapBounds.latMin) continue;
-            if (lon < mapBounds.lonMin) continue;
-            if (lat > mapBounds.latMax) continue;
-            if (lon > mapBounds.lonMax) continue;
+            if (lat < boundsLatMin) continue;
+            if (lon < boundsLonMin) continue;
+            if (lat > boundsLatMax) continue;
+            if (lon > boundsLonMax) continue;
             let numPeopleInCell = roundRandom(pixel); // Randomly sample the fractional component
             if (numPeopleInCell > 0) {
                 allBuildings.push([lat, lon, numPeopleInCell]);
@@ -105,9 +109,9 @@ async function doStuff() {
             }
         }
     }
-    fs.writeFileSync("processedData/sfPeoplePositions.json", JSON.stringify(allPeople));
+    fs.writeFileSync("processedData/" + mapBounds.defaultPlace + "_PeoplePositions.json", JSON.stringify(allPeople));
     console.log(allPeople.length.toString() + " people locations written to file.");
-    fs.writeFileSync("processedData/sfBuildingPositions.json", JSON.stringify(allBuildings));
+    fs.writeFileSync("processedData/" + mapBounds.defaultPlace + "_BuildingPositions.json", JSON.stringify(allBuildings));
     console.log(allBuildings.length.toString() + " building locations written to file.");
 }
 
