@@ -9,6 +9,7 @@ const mapBounds = require("./mapBounds");
 
 let houseHoldFile = "processedData/" + mapBounds.defaultPlace + "_Households.json";
 let officeFile = "processedData/" + mapBounds.defaultPlace + "_Offices.json";
+let countyPolygonsFile = "processedData/" + mapBounds.defaultPlace + "_CountyPolygons.json";
 
 function loadJSONMap(fname) {
     const fileContents = fs.readFileSync(fname, "utf8");
@@ -19,10 +20,11 @@ function loadJSONMap(fname) {
     }
 }
 
+let relevantCounties = new Map();
 // Make a dictionary (Map) of points and which counties they are in.
 // Takes lon, lat order
 // returns lon, lat order.
-function loadCounties(pointList, households) {
+function loadCounties(pointList) {
     console.log("Loading county boundaries");
     let pointToCounty = new Map();
     let ourCounties = Object.values(mapBounds.info[mapBounds.defaultPlace].includedCounties);
@@ -51,6 +53,12 @@ function loadCounties(pointList, households) {
                         point.geometry.coordinates[0].toString() + "_" + point.geometry.coordinates[1].toString(),
                         ourCountyId
                     );
+                }
+                // Save off the polygon for any counties that have people in them.
+                if (ptsWithin.features.length > 0) {
+                    let orig = county.geometry.coordinates[0];
+                    orig = orig.map((a) => [a[1], a[0]]);  // Get back to lat, lon order.
+                    relevantCounties.set(ourCountyId, orig)
                 }
                 console.log("Points inside county: " + ptsWithin.features.length);
             }
@@ -96,6 +104,8 @@ for (let i = 0; i < households.length; i++) {
 }
 
 fs.writeFileSync(houseHoldFile, JSON.stringify(households, null, "\t"));
+
+fs.writeFileSync(countyPolygonsFile, JSON.stringify(Object.fromEntries(relevantCounties)));
 
 // -------------------- Offices --------------------
 let businessesJSON = loadJSONMap("processedData/" + mapBounds.defaultPlace + "_Businesses.json");

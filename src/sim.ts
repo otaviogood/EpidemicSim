@@ -58,6 +58,7 @@ export class Sim {
     lonMin: number = mapBounds.info[mapBounds.defaultPlace].lonMin;
     lonMax: number = mapBounds.info[mapBounds.defaultPlace].lonMax;
     latAdjust: number;
+    countyPolygons: number[][] = [];
 
     time_steps_since_start: Params.TimeStep = new Params.TimeStep();
     infected_array: number[] = [];
@@ -105,6 +106,10 @@ export class Sim {
         console.log("-------- SETUP --------");
         // TODO: use promise.all() on all these awaits???
         img = await loadImage(mapBounds.info[mapBounds.defaultPlace].mapImage);
+
+        // -------- Load county polygon info --------
+        let jsonTemp0 = await fetch("datafiles/" + mapBounds.defaultPlace + "_CountyPolygons.json");
+        this.countyPolygons = await jsonTemp0.json();
 
         // -------- Load HOUSE position and size data --------
         let jsonTempA = await fetch("datafiles/" + mapBounds.defaultPlace + "_Supermarkets.json");
@@ -521,6 +526,26 @@ export class Sim {
             this.drawText(ctx, 0.45, 1.02 * this.latAdjust, "min lat: " + this.latMin);
             this.drawText(ctx, -0.215, 0.49 * this.latAdjust, "min lon: " + this.lonMin);
             this.drawText(ctx, 1.01, 0.49 * this.latAdjust, "max lon: " + this.lonMax);
+
+            // Draw selected county polygon outline and fill
+            if (this.selectedCountyIndex >= 0) {
+                ctx.fillStyle = "#00ff4410";
+                ctx.beginPath();
+                // TODO: This is slow to convert latlon every draw. fixme.
+                let poly:any = this.countyPolygons[this.selectedCountyIndex];
+                let lastPos = this.latLonToPos(poly[0][0], poly[0][1]);
+                ctx.moveTo(lastPos[0] * this.scalex, lastPos[1] * this.scaley);
+                for (let i = 0; i < poly.length; i++) {
+                    let pos = this.latLonToPos(poly[i][0], poly[i][1]);
+                    ctx.lineTo(pos[0] * this.scalex, pos[1] * this.scaley);
+                    lastPos = pos;
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = "#ff700a";
+                ctx.stroke();
+            }
+
 
             // // Look at Google timeline data
             // for (let i = 0; i < 100; i++) {
