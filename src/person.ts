@@ -251,6 +251,7 @@ export class Person {
     // Returns true if this person is sick.
     stepTime(sim: Sim | null, rand: MersenneTwister): boolean {
         if (this.isSick) {
+            // if (util.evenDistributionInTimeRange(2*24, 7*24, this.time_since_infected, rand)) this.becomeContagious();
             if (this.inRange(!this.contagious, this.contagiousTrigger, this.endContagiousTrigger)) this.becomeContagious();
             if (this.inRange(!this.symptomsCurrent, this.symptomsTrigger, this.endSymptomsTrigger)) this.becomeSymptomy();
             if (this.symptomsCurrent && this.symptomaticOverall && this.time_since_infected >= this.endSymptomsTrigger)

@@ -77,6 +77,22 @@ export function toRadians(angle: number): number {
     return angle * 0.0174532925199;
 }
 
+// TODO: What is the proper mathy name for this?
+// If you sample this at every time step, there will be an equal probability at every time step of being true,
+// and by the last timestep, you are guaranteed to have a true condition. You will not make it through to the other side and still be false.
+// Math is like this:
+// For a time span that is 2 long, the first step will be 0.5 probability, the next step will be 1.0.
+// p = 1/2, 1
+// For 3 long, it's like this... etc.
+// p = 1/3, 1/2, 1
+// p = 1/4, 1/3, 1/2, 1
+export function evenDistributionInTimeRange(t0: number, t1: number, tNow: number, rand: MersenneTwister) {
+    if (tNow < t0 || tNow > t1) return false;
+    let p = 1.0 / (t1 - tNow);
+    return Bernoulli(rand, p);
+}
+
+// ---------------- Non-math functions ----------------
 export function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
