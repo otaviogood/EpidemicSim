@@ -172,12 +172,13 @@ export class TestPerson {
         for (let i = 0; i < maxRangeDays; i++) {
             util.drawRect(ctx, i * 24 * scale, 0, 1, height, i % 7 == 0 ? "#405060" : "#304048");
             util.drawRect(ctx, i * 24 * scale, 0, 2, i % 7 == 0 ? 10 : 4, "#bbbbbb");
+            if (i % 7 == 0) util.drawText(ctx, Math.max(0, i * 24 * scale - 4), 24, i.toFixed(0));
         }
-        util.drawText(ctx, width - 48, 24, "Days");
+        util.drawText(ctx, width - 40, 44, "Days");
 
         let i = 0;
         for (const stats of this.allStats) {
-            let color = RandomFast.HashRGB(i + 15);
+            let color = util.getPaletteBasic6(i);
             if (this.selected != "") {
                 if (stats.name == this.selected) color = "#ffffff";
                 else continue;

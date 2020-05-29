@@ -18,17 +18,34 @@
                         @touchmove="handleTouchMove"
                         @touchend="handleTouchEnd"
                     ></canvas>
-                    <div class="mapkey" style="top:8px" @mouseover="mapkeyHover(1)" @mouseleave="mapkeyHover(0)">Pop / 10</div>
-                    <div class="mapkey" style="top:40px" @mouseover="mapkeyHover(2)" @mouseleave="mapkeyHover(0)">Offices</div>
-                    <div class="mapkey" style="top:72px" @mouseover="mapkeyHover(4)" @mouseleave="mapkeyHover(0)">Hospitals</div>
-                    <div class="mapkey" style="top:104px" @mouseover="mapkeyHover(8)" @mouseleave="mapkeyHover(0)">
+                    <label>
+                        <select
+                            style="position: absolute;top:8px;font-size:16px;background-color:#cceeff50;border:1px solid #ffffff80;border-radius: 10px;padding: 4px;margin-left: 8px;"
+                            @change="changeCounty"
+                        >
+                            <option :value="null" hidden>Select County</option>
+                            <option value="-1">None</option>
+                            <option
+                                v-for="(county, id) in $mapBounds.info[$mapBounds.defaultPlace].includedCounties"
+                                v-bind:key="id"
+                                :value="id"
+                                >{{ county }}</option
+                            >
+                        </select>
+                    </label>
+
+                    <div class="mapkey" style="top:40px" @mouseover="mapkeyHover(1)" @mouseleave="mapkeyHover(0)">Pop / 10</div>
+                    <div class="mapkey" style="top:72px" @mouseover="mapkeyHover(2)" @mouseleave="mapkeyHover(0)">Homes</div>
+                    <div class="mapkey" style="top:104px" @mouseover="mapkeyHover(4)" @mouseleave="mapkeyHover(0)">Offices</div>
+                    <div class="mapkey" style="top:136px" @mouseover="mapkeyHover(8)" @mouseleave="mapkeyHover(0)">Hospitals</div>
+                    <div class="mapkey" style="top:168px" @mouseover="mapkeyHover(16)" @mouseleave="mapkeyHover(0)">
                         Supermarkets
                     </div>
-                    <div class="mapkey" style="top:160px" @mouseover="mapkeyHover(16)" @mouseleave="mapkeyHover(0)">
+                    <div class="mapkey" style="top:232px" @mouseover="mapkeyHover(32)" @mouseleave="mapkeyHover(0)">
                         Susceptible
                     </div>
-                    <div class="mapkey" style="top:192px" @mouseover="mapkeyHover(32)" @mouseleave="mapkeyHover(0)">Infected</div>
-                    <div class="mapkey" style="top:224px" @mouseover="mapkeyHover(64)" @mouseleave="mapkeyHover(0)">
+                    <div class="mapkey" style="top:264px" @mouseover="mapkeyHover(64)" @mouseleave="mapkeyHover(0)">Infected</div>
+                    <div class="mapkey" style="top:296px" @mouseover="mapkeyHover(128)" @mouseleave="mapkeyHover(0)">
                         Recovered
                     </div>
                 </div>
@@ -55,7 +72,9 @@
                     >
                         ⤵️
                     </button>
-                    <span style="float:right">Sim Time (Milliseconds): {{ Math.round(milliseconds) }}, total 20 days: {{ timerAccum.toFixed(0) }}</span>
+                    <span style="float:right"
+                        >Sim Time (Milliseconds): {{ Math.round(milliseconds) }}, total 20 days: {{ timerAccum.toFixed(0) }}</span
+                    >
                 </p></span
             ></span
         ><span style="display:inline-block;width:384px;float:right"
@@ -161,6 +180,8 @@ import { Person, ActivityType } from "./person";
 import { Sim } from "./sim";
 import { TestPerson, StatsRecord } from "./test_person";
 import * as Params from "./params";
+
+Vue.prototype.$mapBounds = require("../utils/mapBounds");
 
 let sim;
 let params;
@@ -328,6 +349,10 @@ export default Vue.extend({
                 (event.clientX - rect.left) / (rect.right - rect.left),
                 (event.clientY - rect.top) / (rect.bottom - rect.top)
             );
+        },
+        changeCounty: function(e) {
+            sim.selectedCountyIndex = parseInt(e.target.value);
+            sim.draw();
         },
         changePersonIndex: function(e) {
             sim.selectedPersonIndex = e.target.valueAsNumber;

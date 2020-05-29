@@ -2,12 +2,13 @@ import MersenneTwister from "mersenne-twister";
 
 export enum VizFlags {
     pop10 = 1,
-    offices = 2,
-    hospitals = 4,
-    supermarkets = 8,
-    susceptible = 16,
-    infected = 32,
-    recovered = 64,
+    homes = 2,
+    offices = 4,
+    hospitals = 8,
+    supermarkets = 16,
+    susceptible = 32,
+    infected = 64,
+    recovered = 128,
 }
 
 export function assert(condition: boolean, message: string) {
@@ -133,4 +134,13 @@ export function drawText(ctx: any, x: number, y: number, text: string, size: num
     ctx.fillStyle = color;
     ctx.font = size.toString() + "px sans-serif";
     ctx.fillText(text, x, y);
+}
+
+export function getPaletteBasic6(i: number): string {
+    let p = ["#efef70", "#ef70ef", "#ef7070", "#70efef", "#70ef70", "#7070ef"];
+    return p[i % p.length];
+}
+export function getPaletteHappy(i: number): string {
+    let p = ["#ff2635", "#b0d9bd", "#bd0835", "#fbd85a"];
+    return p[i % p.length];
 }

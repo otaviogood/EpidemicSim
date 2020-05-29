@@ -18,7 +18,7 @@ class Place {
     residents: number[] = [];
     currentOccupants: number[] = [];
 
-    constructor(readonly lat: number, readonly lon: number, readonly capacity: number) {}
+    constructor(readonly lat: number, readonly lon: number, readonly capacity: number, readonly county: number = -1) {}
 
     latLonToPos(sim: Sim) {
         [this.xpos, this.ypos] = sim.latLonToPos(this.lat, this.lon);
@@ -69,6 +69,7 @@ export class Sim {
     selectedPersonIndex = 0;
     lastMouseX = -1;
     lastMouseY = -1;
+    selectedCountyIndex = -1;
 
     // ---- visuals ----
     canvasWidth = 0;
@@ -118,7 +119,7 @@ export class Sim {
         this.allHouseholds = [];
         let totalHomeCapacity = 0;
         for (const p of homeDataJSON) {
-            this.allHouseholds.push(new Place(p[0], p[1], p[2]));
+            this.allHouseholds.push(new Place(p[0], p[1], p[2], p[3]));
             totalHomeCapacity += p[2];
         }
         console.log("Total home capacity from file: " + totalHomeCapacity);
@@ -429,10 +430,17 @@ export class Sim {
             ctx.fillStyle = "#ffffff";
             if ((this.visualsFlag & util.VizFlags.pop10) != 0) {
                 // Rendering is by far the bottleneck, so target this many rendered points and skip the rest.
-                let skip = 10; // (this.pop.length / 25600) | 0;
+                let skip = 10;
                 for (let i = 0; i < this.pop.length; i += skip) {
                     let person = this.pop.index(i);
                     ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 1, 1);
+                }
+            }
+            if ((this.visualsFlag & util.VizFlags.homes) != 0) {
+                for (let i = 0; i < this.allHouseholds.length; i++) {
+                    let house = this.allHouseholds[i];
+                    if (this.selectedCountyIndex == -1 || house.county == this.selectedCountyIndex)
+                        ctx.fillRect(house.xpos * this.scalex, house.ypos * this.scaley, 1, 1);
                 }
             }
             if ((this.visualsFlag & util.VizFlags.offices) != 0) {

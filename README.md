@@ -26,13 +26,14 @@ Put all these big downloaded files in the sourceData folder. TODO: automate the 
 Get northern california OpenStreetMaps data (norcal-latest.osm.pbf) here: http://download.geofabrik.de/north-america/us/california/norcal.html  
 Use openstreetmapFilter.js to filter out the relevant region (lat/lon bounds set in code) and find buildings of interest, like businesses, hospitals, supermarkets.  
 
-Got Facebook population density maps here: https://data.humdata.org/dataset/united-states-high-resolution-population-density-maps-demographic-estimates  
+Get Facebook population density maps here: https://data.humdata.org/dataset/united-states-high-resolution-population-density-maps-demographic-estimates  
+filename that includes california: population_usa28_-130_2019-07-01.tif  
 Use QGIS software to export a layer inside of the lat/lon bounds.  
 Use geotiff.js to export a people positions file from the population density data.  
 
-County data from here: https://public.opendatasoft.com/explore/dataset/us-county-boundaries/export/?q=santa+clara
-Downloaded geojson, whole dataset.
-It will be used by processBuildings.js to put each house in a county.
+County data from here: https://public.opendatasoft.com/explore/dataset/us-county-boundaries/export/?q=santa+clara  
+Download geojson, whole dataset.  
+It will be used by processBuildings.js to put each house in a county.  
 
 Define map boundaries in utils/mapBounds.js
 
