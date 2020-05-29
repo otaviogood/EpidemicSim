@@ -111,7 +111,7 @@
             </div>
             <div class="card" style="margin-top:16px">
                 <div style="width:365px;text-align:center;font-size:28px;">
-                    <span style="display:inline-block;">Timeline events</span>
+                    <span style="display:inline-block;">Policy Timeline</span>
                 </div>
 
                 <div class="scrolly" style="width:365px;height:124px;overflow:hidden; overflow-y:scroll;">

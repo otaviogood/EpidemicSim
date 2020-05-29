@@ -48,14 +48,8 @@ async function localFilterNodes() {
         // way: function(way){
         //     console.log('way: ' + JSON.stringify(way));
         // },
-        // relation: function(relation){
-        //     // let lat = parseFloat(node.lat);
-        //     // let lon = parseFloat(node.lon);
-        //     // if (lat < 37.44034) return;
-        //     // if (lat > 37.45255) return;
-        //     // if (lon < -122.16916) return;
-        //     // if (lon > -122.14545) return;
-        //     console.log('relation: ' + JSON.stringify(relation));
+        // relation: function(relation) {
+        //     console.log("relation: " + JSON.stringify(relation));
         // },
         error: function(msg) {
             console.error("error: " + msg);
@@ -64,7 +58,7 @@ async function localFilterNodes() {
     });
 }
 
-function loadJSON(fname) {
+function loadJSONMap(fname) {
     const fileContents = fs.readFileSync(fname, "utf8");
     try {
         return new Map(Object.entries(JSON.parse(fileContents)));
@@ -150,7 +144,9 @@ function extractPlaces(keywords, badWords, targetFile) {
 async function doStuff() {
     // Filter out all nodes and ways from a certain area (lat/lon) and generate local ways and nodes files
     if (!fs.existsSync(localNodesFileName) || noCacheHack) await localFilterNodes();
+    else wait++;
     if (!fs.existsSync(localWaysFileName) || noCacheHack) await localFilterWays();
+    else wait++;
 
     while (wait < 2) {
         await sleep(1000);
@@ -159,8 +155,8 @@ async function doStuff() {
     console.log("");
 
     console.log("Loading local nodes and ways...");
-    if (nodeMap.size <= 0) nodeMap = loadJSON(localNodesFileName);
-    if (wayMap.size <= 0) wayMap = loadJSON(localWaysFileName);
+    if (nodeMap.size <= 0) nodeMap = loadJSONMap(localNodesFileName);
+    if (wayMap.size <= 0) wayMap = loadJSONMap(localWaysFileName);
     // prettier-ignore
     // Extract business locations
     extractPlaces(["department","office","business","parking","pharmacy","coffee","sandwich","deli","cafe","bank","shop","site","center","plaza","hotel","industr","store","auto","garage","museum","square","tower"],
