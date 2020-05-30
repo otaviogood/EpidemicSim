@@ -32,7 +32,20 @@ export class Person {
     static readonly activitiesNormal = [
         "hhhhhhhhcwwwswwwwwchhhhh", // needs to be 24-long
         "hhhhhhhhcshhshhhhhshhhhh",
-        "hhhhhhhccsscchhhhshhhhhh",
+        "hhhhhhhccsschhhhhshhhhhh",
+        // shifted duplicates - hacky way of getting variety. placeholder.
+        "hhhhhhhcwwwswwwwwchhhhhh",  // << 1
+        "hhhhhhhcshhshhhhhshhhhhh",
+        "hhhhhhccsschhhhhshhhhhhh",
+        "hhhhhhcwwwswwwwwchhhhhhh",  // << 2
+        "hhhhhhcshhshhhhhshhhhhhh",
+        "hhhhhccsschhhhhshhhhhhhh",
+        "hhhhhhhhhcwwwswwwwwchhhh", // >> 1
+        "hhhhhhhhhcshhshhhhhshhhh",
+        "hhhhhhhhccsschhhhhshhhhh",
+        "hhhhhhhhhhcwwwswwwwwchhh", // >> 2
+        "hhhhhhhhhhcshhshhhhhshhh",
+        "hhhhhhhhhccsschhhhhshhhh",
     ];
     static readonly activitiesWhileSick = [
         "hhhhhhhhhhhhcshhhhhhhhhh",

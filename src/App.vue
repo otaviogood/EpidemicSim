@@ -34,20 +34,14 @@
                         </select>
                     </label>
 
-                    <div class="mapkey" style="top:40px" @mouseover="mapkeyHover(1)" @mouseleave="mapkeyHover(0)">Pop / 10</div>
-                    <div class="mapkey" style="top:72px" @mouseover="mapkeyHover(2)" @mouseleave="mapkeyHover(0)">Homes</div>
-                    <div class="mapkey" style="top:104px" @mouseover="mapkeyHover(4)" @mouseleave="mapkeyHover(0)">Offices</div>
-                    <div class="mapkey" style="top:136px" @mouseover="mapkeyHover(8)" @mouseleave="mapkeyHover(0)">Hospitals</div>
-                    <div class="mapkey" style="top:168px" @mouseover="mapkeyHover(16)" @mouseleave="mapkeyHover(0)">
-                        Supermarkets
-                    </div>
-                    <div class="mapkey" style="top:232px" @mouseover="mapkeyHover(32)" @mouseleave="mapkeyHover(0)">
-                        Susceptible
-                    </div>
-                    <div class="mapkey" style="top:264px" @mouseover="mapkeyHover(64)" @mouseleave="mapkeyHover(0)">Infected</div>
-                    <div class="mapkey" style="top:296px" @mouseover="mapkeyHover(128)" @mouseleave="mapkeyHover(0)">
-                        Recovered
-                    </div>
+                    <div class="mapkey" style="top:40px" @mousedown.prevent="mapkeyHover(1)">Pop / 10</div>
+                    <div class="mapkey" style="top:72px" @mousedown.prevent="mapkeyHover(2)">Homes</div>
+                    <div class="mapkey" style="top:104px" @mousedown.prevent="mapkeyHover(4)">Offices</div>
+                    <div class="mapkey" style="top:136px" @mousedown.prevent="mapkeyHover(8)">Hospitals</div>
+                    <div class="mapkey" style="top:168px" @mousedown.prevent="mapkeyHover(16)">Supermarkets</div>
+                    <div class="mapkey" style="top:232px" @mousedown.prevent="mapkeyHover(32)">Susceptible</div>
+                    <div class="mapkey" style="top:264px" @mousedown.prevent="mapkeyHover(64)">Infected</div>
+                    <div class="mapkey" style="top:296px" @mousedown.prevent="mapkeyHover(128)">Recovered</div>
                 </div>
                 <p style="margin:8px;">
                     <span
@@ -173,7 +167,8 @@
     </div>
 </template>
 
-<script lang="js">
+<script>
+// <script lang="js">
 import Vue from "vue";
 import { Spatial, Grid } from "./spatial";
 import { Person, ActivityType } from "./person";
@@ -194,7 +189,7 @@ export default Vue.extend({
             currentlyInfected: 0,
             totalInfected: 0,
             milliseconds: 0,
-            timerAccum:0,
+            timerAccum: 0,
             totalDead: 0,
             person: {
                 age: -1,
@@ -250,7 +245,7 @@ export default Vue.extend({
         },
         updatePerson: function() {
             let self = this;
-            let currentStep = sim.time_steps_since_start.getStepModDay();// % 24;
+            let currentStep = sim.time_steps_since_start.getStepModDay(); // % 24;
             let p = sim.pop.index(sim.selectedPersonIndex);
             self.person.timeSinceInfected = p.time_since_infected;
             self.person.asymptomaticOverall = !p.symptomaticOverall;
@@ -360,7 +355,7 @@ export default Vue.extend({
             sim.draw();
         },
         mapkeyHover: function(flag) {
-            sim.visualsFlag = flag;
+            sim.visualsFlag ^= flag;
             sim.draw();
         },
         statsHover: function(name, col) {
@@ -481,7 +476,7 @@ body {
     display: inline-block;
     border: 1px solid #aaaaaa;
     padding: 8px;
-    background-color: #dfe5e2;
+    background-color: #e0e0e0;
     border-radius: 8px;
 }
 .clearfix {
@@ -521,7 +516,7 @@ body {
     cursor: default;
 }
 .mapkey:hover {
-    background-color: #dfe5e2;
+    background-color: #e0e0e0;
     color: #000000;
     cursor: default;
 }

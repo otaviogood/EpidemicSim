@@ -462,15 +462,34 @@ export class Sim {
                 this.drawText(ctx, hospital.xpos - 0.0125, hospital.ypos, "🏥");
             }
 
-            ctx.fillStyle = "#ffffff";
             if ((this.visualsFlag & util.VizFlags.pop10) != 0) {
                 // Rendering is by far the bottleneck, so target this many rendered points and skip the rest.
                 let skip = 10;
                 for (let i = 0; i < this.pop.length; i += skip) {
                     let person = this.pop.index(i);
-                    ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 1, 1);
+                    let pos = [person.xpos, person.ypos];
+                    let currentStep = this.time_steps_since_start.getStepModDay();
+                    let activity = person.getCurrentActivity(currentStep);
+                    if (activity == ActivityType.home) {
+                        let p = this.allHouseholds[person.homeIndex];
+                        pos = [p.xpos, p.ypos];
+                        ctx.fillStyle = "#ccbb50";
+                    } else if (activity == ActivityType.work) {
+                        let p = this.allOffices[person.officeIndex];
+                        pos = [p.xpos, p.ypos];
+                        ctx.fillStyle = "#00bbff";
+                    } else if (activity == ActivityType.shopping) {
+                        let p = this.allSuperMarkets[person.marketIndex];
+                        pos = [p.xpos, p.ypos];
+                        ctx.fillStyle = "#88ff88";
+                    } else {
+                        ctx.fillStyle = "#dd8888";
                 }
+                    
+                    ctx.fillRect(pos[0] * this.scalex, pos[1] * this.scaley, 1, 1);
             }
+            }
+            ctx.fillStyle = "#ffffff";
             if ((this.visualsFlag & util.VizFlags.homes) != 0) {
                 for (let i = 0; i < this.allHouseholds.length; i++) {
                     let house = this.allHouseholds[i];
