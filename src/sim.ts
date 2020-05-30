@@ -285,7 +285,16 @@ export class Sim {
         if (canvas.getContext) {
             const ctx = canvas.getContext("2d");
             if (!ctx) return;
-            //            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            //    ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#235078";
+            ctx.fillRect(canvas.width - 154, 0, 154, 24);
+            if (this.selectedCountyIndex >= 0) {
+                let county = mapBounds.info[mapBounds.defaultPlace].includedCounties[this.selectedCountyIndex];
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "16px sans-serif";
+                ctx.fillText(county, canvas.width - 154 + 8, 16);
+            }
+
             let x = this.infected_array.length - 1;
 
             ctx.fillStyle = "#ffcf5f";
@@ -378,6 +387,27 @@ export class Sim {
             ctx.drawImage(img, 0, 0, imgWidth * ratio, imgHeight * ratio);
             ctx.globalAlpha = 1.0;
 
+            // Draw selected county polygon outline and fill
+            if (this.selectedCountyIndex >= 0) {
+                ctx.lineWidth = 3;
+                ctx.fillStyle = "#00ff4410";
+                ctx.beginPath();
+                // TODO: This is slow to convert latlon every draw. fixme.
+                let poly: any = this.countyPolygons[this.selectedCountyIndex];
+                let lastPos = this.latLonToPos(poly[0][0], poly[0][1]);
+                ctx.moveTo(lastPos[0] * this.scalex, lastPos[1] * this.scaley);
+                for (let i = 0; i < poly.length; i++) {
+                    let pos = this.latLonToPos(poly[i][0], poly[i][1]);
+                    ctx.lineTo(pos[0] * this.scalex, pos[1] * this.scaley);
+                    lastPos = pos;
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = "#ff700a";
+                ctx.stroke();
+                ctx.lineWidth = 1.0;
+            }
+
             // ---- Draw selected *household* info ----
             if (this.selectedHouseholdIndex >= 0) {
                 let hh: Place = this.allHouseholds[this.selectedHouseholdIndex];
@@ -457,7 +487,10 @@ export class Sim {
             if ((this.visualsFlag & util.VizFlags.hospitals) != 0) {
                 for (let i = 0; i < this.allHospitals.length; i++) {
                     let hospital = this.allHospitals[i];
-                    this.drawRect(ctx, hospital.xpos, hospital.ypos, 0.0075, 0.0075, "rgb(255, 64, 64)");
+                    // Draw a happy little red cross because there's no red cross emoji.
+                    this.drawCircle(ctx, hospital.xpos, hospital.ypos, 0.008 * this.scalex, "#ffffff", true);
+                    this.drawRect(ctx, hospital.xpos - 0.006, hospital.ypos - 0.002, 0.012, 0.004, "rgb(255, 64, 64)");
+                    this.drawRect(ctx, hospital.xpos - 0.002, hospital.ypos - 0.006, 0.004, 0.012, "rgb(255, 64, 64)");
                 }
             }
             if ((this.visualsFlag & util.VizFlags.supermarkets) != 0) {
@@ -526,26 +559,6 @@ export class Sim {
             this.drawText(ctx, 0.45, 1.02 * this.latAdjust, "min lat: " + this.latMin);
             this.drawText(ctx, -0.215, 0.49 * this.latAdjust, "min lon: " + this.lonMin);
             this.drawText(ctx, 1.01, 0.49 * this.latAdjust, "max lon: " + this.lonMax);
-
-            // Draw selected county polygon outline and fill
-            if (this.selectedCountyIndex >= 0) {
-                ctx.fillStyle = "#00ff4410";
-                ctx.beginPath();
-                // TODO: This is slow to convert latlon every draw. fixme.
-                let poly:any = this.countyPolygons[this.selectedCountyIndex];
-                let lastPos = this.latLonToPos(poly[0][0], poly[0][1]);
-                ctx.moveTo(lastPos[0] * this.scalex, lastPos[1] * this.scaley);
-                for (let i = 0; i < poly.length; i++) {
-                    let pos = this.latLonToPos(poly[i][0], poly[i][1]);
-                    ctx.lineTo(pos[0] * this.scalex, pos[1] * this.scaley);
-                    lastPos = pos;
-                }
-                ctx.closePath();
-                ctx.fill();
-                ctx.strokeStyle = "#ff700a";
-                ctx.stroke();
-            }
-
 
             // // Look at Google timeline data
             // for (let i = 0; i < 100; i++) {

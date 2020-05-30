@@ -141,6 +141,6 @@ export function getPaletteBasic6(i: number): string {
     return p[i % p.length];
 }
 export function getPaletteHappy(i: number): string {
-    let p = ["#ff2635", "#b0d9bd", "#bd0835", "#fbd85a"];
+    let p = ["#f2bb07", "#f28322", "#f2622e", "#ff2635", "#b0d9bd", "#bd0835"];
     return p[i % p.length];
 }

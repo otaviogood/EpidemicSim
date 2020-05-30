@@ -94,7 +94,7 @@
                 <span style="background-color:#ff3711;display:inline-block;width:14px;height:14px;margin-right:4px"></span
                 ><strong>Total dead: {{ totalDead }}</strong
                 ><br />
-                <hr />
+                <div class="stats"></div>
                 <span style="width:180px;display:inline-block">Hours: {{ hoursElapsed }}</span>
                 Days: {{ Math.floor(hoursElapsed / 24) }}<br />
             </div>
@@ -481,7 +481,7 @@ body {
     display: inline-block;
     border: 1px solid #aaaaaa;
     padding: 8px;
-    background-color: #cceeff;
+    background-color: #dfe5e2;
     border-radius: 8px;
 }
 .clearfix {
@@ -521,7 +521,7 @@ body {
     cursor: default;
 }
 .mapkey:hover {
-    background-color: #cceeff;
+    background-color: #dfe5e2;
     color: #000000;
     cursor: default;
 }

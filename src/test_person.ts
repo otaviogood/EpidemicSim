@@ -178,7 +178,7 @@ export class TestPerson {
 
         let i = 0;
         for (const stats of this.allStats) {
-            let color = util.getPaletteBasic6(i);
+            let color = util.getPaletteHappy(i);
             if (this.selected != "") {
                 if (stats.name == this.selected) color = "#ffffff";
                 else continue;
