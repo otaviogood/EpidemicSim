@@ -135,8 +135,8 @@
             </div>
         </span>
         <span class="card" style="margin-top:16px;margin-bottom:16px">
-            <div style="width:365px;text-align:center;font-size:28px;">
-                <span style="display:inline-block;">Disease Model Statistics</span>
+            <div style="text-align:center;font-size:28px;margin-bottom:4px">
+                <span style="display:inline-block;">Disease Model Statistics (1000 samples)</span>
             </div>
             <table id="stats-table" style="width:100%">
                 <tr>
