@@ -5,6 +5,7 @@ import MersenneTwister from "mersenne-twister";
 
 import { Sim } from "./sim";
 import { Spatial, Grid } from "./spatial";
+import { GraphType } from "./county-stats";
 import * as Params from "./params";
 import * as util from "./util";
 
@@ -34,10 +35,10 @@ export class Person {
         "hhhhhhhhcshhshhhhhshhhhh",
         "hhhhhhhccsschhhhhshhhhhh",
         // shifted duplicates - hacky way of getting variety. placeholder.
-        "hhhhhhhcwwwswwwwwchhhhhh",  // << 1
+        "hhhhhhhcwwwswwwwwchhhhhh", // << 1
         "hhhhhhhcshhshhhhhshhhhhh",
         "hhhhhhccsschhhhhshhhhhhh",
-        "hhhhhhcwwwswwwwwchhhhhhh",  // << 2
+        "hhhhhhcwwwswwwwwchhhhhhh", // << 2
         "hhhhhhcshhshhhhhshhhhhhh",
         "hhhhhccsschhhhhshhhhhhhh",
         "hhhhhhhhhcwwwswwwwwchhhh", // >> 1
@@ -61,6 +62,7 @@ export class Person {
     marketIndex = -1;
     hospitalIndex = -1;
     currentActivity: string = Person.activitiesNormal[0];
+    county = -1;
 
     // flags
     infected = false;
@@ -185,7 +187,10 @@ export class Person {
         if (sim) {
             let info: [number, number, Params.TimeStep] = [this.xpos, this.ypos, sim.time_steps_since_start.clone()];
             sim.infectedVisuals.push(info);
-            sim.totalInfected++;
+            if (this.county >= 0) {
+                sim.countyStats.counters[this.county][GraphType.totalInfected]++;
+                sim.countyStats.counters[this.county][GraphType.currentInfected]++;
+            }
         }
     }
 
@@ -219,7 +224,7 @@ export class Person {
         this.contagious = false;
     }
 
-    becomeRecovered() {
+    becomeRecovered(sim: Sim | null) {
         util.assert(this.infected, "ERROR: recovered without being infected." + this.id);
         util.assert(!this.dead, "ERROR: already dead!" + this.id);
         util.assert(!this.recovered, "ERROR: already recovered!" + this.id);
@@ -229,6 +234,7 @@ export class Person {
         this.contagious = false;
         this.isolating = false;
         this.currentActivity = this.getPersonDefaultActivity();
+        if (sim && this.county >= 0) sim.countyStats.counters[this.county][GraphType.currentInfected]--;
     }
 
     becomeSevereOrCritical() {
@@ -241,7 +247,7 @@ export class Person {
         else this.symptomsCurrent = SymptomsLevels.severe;
     }
 
-    becomeDead() {
+    becomeDead(sim: Sim | null) {
         util.assert(this.infected, "ERROR: dead without being infected." + this.id);
         util.assert(this.contagious, "ERROR: dying without being contagious" + this.id);
         util.assert(!this.dead, "ERROR: already dead!" + this.id);
@@ -249,6 +255,10 @@ export class Person {
         this.dead = true;
         this.infected = false;
         this.contagious = false;
+        if (sim && this.county >= 0) {
+            sim.countyStats.counters[this.county][GraphType.totalDead]++;
+            sim.countyStats.counters[this.county][GraphType.currentInfected]--;
+        }
     }
 
     becomeIsolated() {
@@ -262,7 +272,7 @@ export class Person {
     }
 
     // Returns true if this person is sick.
-    stepTime(sim: Sim | null, rand: MersenneTwister): boolean {
+    stepTime(sim: Sim | null, rand: MersenneTwister) {
         if (this.isSick) {
             // if (util.evenDistributionInTimeRange(2*24, 7*24, this.time_since_infected, rand)) this.becomeContagious();
             if (this.inRange(!this.contagious, this.contagiousTrigger, this.endContagiousTrigger)) this.becomeContagious();
@@ -272,21 +282,16 @@ export class Person {
             if (this.contagious && this.time_since_infected >= this.endContagiousTrigger) {
                 // Maybe a little redundant...
                 this.endContagious();
-                this.becomeRecovered();
+                this.becomeRecovered(sim);
             }
             if (this.inRange(this.symptomsCurrent < SymptomsLevels.severe, this.severeTrigger, this.endSymptomsTrigger))
                 // if (this.symptomsCurrent < SymptomsLevels.severe && this.time_since_infected >= this.severeTrigger)
                 this.becomeSevereOrCritical();
-            if (this.contagious && this.time_since_infected >= this.deadTrigger) {
-                this.becomeDead();
-                if (sim) sim.totalDead++;
-            }
+            if (this.contagious && this.time_since_infected >= this.deadTrigger) this.becomeDead(sim);
             if (this.symptomsCurrent && this.time_since_infected >= this.isolationTrigger) this.becomeIsolated();
 
             this.time_since_infected = this.time_since_infected + 1;
-            return true;
         }
-        return false;
     }
 
     // For now, density can be thought of as your distance to the closest person.

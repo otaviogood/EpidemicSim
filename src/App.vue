@@ -26,15 +26,22 @@
                             <option :value="null" hidden>Select County</option>
                             <option value="-1">None</option>
                             <option
-                                v-for="(county, id) in $mapBounds.info[$mapBounds.defaultPlace].includedCounties"
+                                v-for="(countyName, id) in $mapBounds.info[$mapBounds.defaultPlace].includedCounties"
                                 v-bind:key="id"
                                 :value="id"
-                                >{{ county }}</option
+                                >{{ countyName }}</option
                             >
                         </select>
                     </label>
 
-                    <div class="mapkey" style="top:40px" @mousedown.prevent="mapkeyHover(1)">Pop / 10</div>
+                    <div
+                        class="mapkey"
+                        :class="visualsFlag(1) ? 'highlight' : ''"
+                        style="top:40px"
+                        @mousedown.prevent="mapkeyHover(1)"
+                    >
+                        Pop / 10
+                    </div>
                     <div class="mapkey" style="top:72px" @mousedown.prevent="mapkeyHover(2)">Homes</div>
                     <div class="mapkey" style="top:104px" @mousedown.prevent="mapkeyHover(4)">Offices</div>
                     <div class="mapkey" style="top:136px" @mousedown.prevent="mapkeyHover(8)">Hospitals</div>
@@ -73,22 +80,13 @@
             ></span
         ><span style="display:inline-block;width:384px;float:right"
             ><div class="card">
+                <div style="text-align:center;font-size:28px;margin-bottom:4px">📈 {{ county }}</div>
                 <canvas
                     style="display:block;background-color:#123456;margin-bottom:4px"
                     width="365px"
                     height="256px"
                     id="graph-canvas"
                 ></canvas>
-                <span style="background-color:#ffcf5f;display:inline-block;width:14px;height:14px;margin-right:4px"></span
-                ><strong>Total Infected: {{ totalInfected }}</strong
-                ><br />
-                <span style="background-color:#ffffff;display:inline-block;width:14px;height:14px;margin-right:4px"></span
-                ><strong>Currently Infected: {{ currentlyInfected }}</strong
-                ><br />
-                <span style="background-color:#ff3711;display:inline-block;width:14px;height:14px;margin-right:4px"></span
-                ><strong>Total dead: {{ totalDead }}</strong
-                ><br />
-                <div class="stats"></div>
                 <span style="width:180px;display:inline-block">Hours: {{ hoursElapsed }}</span>
                 Days: {{ Math.floor(hoursElapsed / 24) }}<br />
             </div>
@@ -174,6 +172,7 @@ import { Spatial, Grid } from "./spatial";
 import { Person, ActivityType } from "./person";
 import { Sim } from "./sim";
 import { TestPerson, StatsRecord } from "./test_person";
+import { CountyStats, GraphType } from "./county-stats";
 import * as Params from "./params";
 
 Vue.prototype.$mapBounds = require("../utils/mapBounds");
@@ -186,11 +185,9 @@ export default Vue.extend({
         return {
             animId: -1,
             hoursElapsed: 0,
-            currentlyInfected: 0,
-            totalInfected: 0,
             milliseconds: 0,
             timerAccum: 0,
-            totalDead: 0,
+            county: Vue.prototype.$mapBounds.info[Vue.prototype.$mapBounds.defaultPlace].includedCounties[0],
             person: {
                 age: -1,
                 id: -1,
@@ -307,9 +304,6 @@ export default Vue.extend({
 
             sim.run_simulation(1);
             self.hoursElapsed = sim.time_steps_since_start.hours;
-            self.currentlyInfected = sim.numActive;
-            self.totalInfected = sim.totalInfected;
-            self.totalDead = sim.totalDead;
 
             if (sim.time_steps_since_start.raw > 0) {
                 self.updatePerson();
@@ -323,7 +317,7 @@ export default Vue.extend({
         },
         tickAnim: function() {
             let self = this;
-            if (sim && sim.numActive > 0 && !sim.paused) {
+            if (sim && sim.countyStats.numInfected() > 0 && !sim.paused) {
                 self.singleStepSim();
             }
 
@@ -347,6 +341,8 @@ export default Vue.extend({
         },
         changeCounty: function(e) {
             sim.selectedCountyIndex = parseInt(e.target.value);
+            this.county =
+                Vue.prototype.$mapBounds.info[Vue.prototype.$mapBounds.defaultPlace].includedCounties[sim.selectedCountyIndex];
             sim.draw();
         },
         changePersonIndex: function(e) {
@@ -357,6 +353,10 @@ export default Vue.extend({
         mapkeyHover: function(flag) {
             sim.visualsFlag ^= flag;
             sim.draw();
+        },
+        visualsFlag: function(flag) {
+            if (!sim) return false;
+            return (sim.visualsFlag & flag) != 0;
         },
         statsHover: function(name, col) {
             tests.selected = name;
@@ -516,6 +516,11 @@ body {
     cursor: default;
 }
 .mapkey:hover {
+    background-color: #23507880;
+    color: white;
+    cursor: default;
+}
+.highlight {
     background-color: #e0e0e0;
     color: #000000;
     cursor: default;

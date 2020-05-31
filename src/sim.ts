@@ -1,6 +1,7 @@
 import "@babel/polyfill"; // This is for using ES2017 features, like async/await.
 import { Person, ActivityType } from "./person";
 import { Spatial, Grid } from "./spatial";
+import { CountyStats, GraphType } from "./county-stats";
 import * as Params from "./params";
 import * as util from "./util";
 // https://github.com/boo1ean/mersenne-twister
@@ -61,10 +62,6 @@ export class Sim {
     countyPolygons: number[][] = [];
 
     time_steps_since_start: Params.TimeStep = new Params.TimeStep();
-    infected_array: number[] = [];
-    totalInfected = 0;
-    numActive = 0;
-    totalDead = 0;
 
     selectedHouseholdIndex = -1;
     selectedPersonIndex = 0;
@@ -80,6 +77,7 @@ export class Sim {
     paused = false;
     infectedVisuals: any[][] = [];
     visualsFlag = 0;
+    countyStats: CountyStats = new CountyStats();
 
     constructor(params: Params.Base) {
         this.params = params;
@@ -152,6 +150,8 @@ export class Sim {
         util.shuffleArrayInPlace(this.allOffices, this.rand);
         for (let i = 0; i < this.allOffices.length; i++) this.allOffices[i].latLonToPos(this);
 
+        this.countyStats.init(Object.keys(mapBounds.info[mapBounds.defaultPlace].includedCounties).length);
+
         // Allocate people to their houses and offices.
         console.log("Generating people data...");
 
@@ -174,6 +174,8 @@ export class Sim {
             person.xpos = hh.xpos;
             person.ypos = hh.ypos;
             person.homeIndex = householdIndex;
+            person.county = hh.county;
+            if (person.county >= 0) this.countyStats.counters[person.county][GraphType.startingPopulation]++;
 
             // Assign a random office
             let randOff = RandomFast.HashIntApprox(i, 0, this.allOffices.length);
@@ -235,9 +237,6 @@ export class Sim {
         // this.pop.index(near).occupation = 2;
         for (let i = 0; i < 31; i++) {
             this.pop.index(i).becomeSick(this);
-            // this.pop.index(i).time_since_infected = Person.mean_time_till_contagious + 1;
-            // this.totalInfected++;
-            this.numActive++;
         }
 
         this.pop.index(this.selectedPersonIndex).drawTimeline(<HTMLCanvasElement>document.getElementById("timeline-canvas"));
@@ -266,51 +265,18 @@ export class Sim {
     }
     run_simulation(num_time_steps: number) {
         for (let ts = 0; ts < num_time_steps; ts++) {
-            this.numActive = 0;
             this.params.doInterventionsForThisTimestep(this.time_steps_since_start);
             this.occupyPlaces();
             for (let i = 0; i < this.pop.length; i++) {
                 let person = this.pop.index(i);
-                this.numActive += person.stepTime(this, this.rand) ? 1 : 0;
+                person.stepTime(this, this.rand);
                 person.spread(this.time_steps_since_start, i, this.pop, this.rand, this);
             }
             this.time_steps_since_start.increment();
         }
 
-        // Every day, save off total infected so i can graph it.
-        if (this.time_steps_since_start.hours % 24 == 0) this.infected_array.push(this.totalInfected);
-    }
-    drawGraph() {
-        const canvas = <HTMLCanvasElement>document.getElementById("graph-canvas");
-        if (canvas.getContext) {
-            const ctx = canvas.getContext("2d");
-            if (!ctx) return;
-            //    ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#235078";
-            ctx.fillRect(canvas.width - 154, 0, 154, 24);
-            if (this.selectedCountyIndex >= 0) {
-                let county = mapBounds.info[mapBounds.defaultPlace].includedCounties[this.selectedCountyIndex];
-                ctx.fillStyle = "#ffffff";
-                ctx.font = "16px sans-serif";
-                ctx.fillText(county, canvas.width - 154 + 8, 16);
-            }
-
-            let x = this.infected_array.length - 1;
-
-            ctx.fillStyle = "#ffcf5f";
-            let height = (this.infected_array[x] / this.pop.length) * canvas.height;
-            ctx.fillRect(x, canvas.height - height, 2, 2);
-
-            ctx.fillStyle = "#ffffff";
-            height = (this.numActive / this.pop.length) * canvas.height;
-            ctx.fillRect(x, canvas.height - height, 2, 2);
-
-            if (this.totalDead > 0) {
-                ctx.fillStyle = "#ff3711";
-                height = (this.totalDead / this.pop.length) * canvas.height;
-                ctx.fillRect(x, canvas.height - height, 2, 2);
-            }
-        }
+        // Update graphs with latest stats
+        this.countyStats.updateTimeSeriesFromCounters();
     }
 
     drawLine(ctx: any, x0: number, y0: number, x1: number, y1: number, color: string) {
@@ -484,10 +450,10 @@ export class Sim {
                         ctx.fillStyle = "#88ff88";
                     } else {
                         ctx.fillStyle = "#dd8888";
-                }
-                    
+                    }
+
                     ctx.fillRect(pos[0] * this.scalex, pos[1] * this.scaley, 1, 1);
-            }
+                }
             }
             ctx.fillStyle = "#ffffff";
             if ((this.visualsFlag & util.VizFlags.homes) != 0) {
@@ -602,11 +568,7 @@ export class Sim {
             //     // ctx.fillRect((x * this.scalex) | 0, (y * this.scaley) | 0, 2, 2);
             // }
 
-            this.drawGraph();
-            // if ((this.numActive > 0) && (!this.paused)) {
-            //     this.run_simulation(1);
-            //     window.requestAnimationFrame(() => this.draw());
-            // }
+            this.countyStats.drawGraph(Math.max(0, this.selectedCountyIndex));
             // ctx.setTransform(1, 0, 0, 1, 0, 0);
         }
     }
