@@ -33,11 +33,15 @@
     },
     "staticFiles": {
         "staticPath": [
-            {
-                "staticPath": "utils/processedData",
-                "staticOutDir": "datafiles"
-            }
+          {
+            "staticPath": "utils/processedData",
+            "staticOutDir": "datafiles"
+          },
+          {
+            "staticPath": "src/generated_wasm",
+            "staticOutDir": ""
+          }
         ],
-        "watcherGlob": "**/*.{png,jpg,json}"
+        "watcherGlob": "**/*.{png,jpg,json,wasm}"
     }
 }

@@ -8,6 +8,8 @@ import * as util from "./util";
 // https://github.com/boo1ean/mersenne-twister
 import MersenneTwister from "mersenne-twister";
 import RandomFast from "./random-fast";
+import Module from './generated_wasm/resident_counter'
+var moduleInstance : any = null;
 // import latlons from "../../contact_tracing/devon_since_feb.json";
 // const allLocations = (<any>latlons).locations;
 // console.log(allLocations);
@@ -70,6 +72,8 @@ export class Sim {
     lastMouseY = -1;
     selectedCountyIndex = -1;
 
+    residentCounter: any = null;
+
     // ---- visuals ----
     canvasWidth = 0;
     canvasHeight = 0;
@@ -100,7 +104,7 @@ export class Sim {
     async setup() {
         console.log("-------- SETUP --------");
         // TODO: use promise.all() on all these awaits???
-        img = await loadImage(mapBounds.info[mapBounds.defaultPlace].mapImage);
+        img = await loadImage("datafiles/" + mapBounds.info[mapBounds.defaultPlace].mapImage);
 
         // -------- Load county polygon info --------
         let jsonTemp0 = await fetch("datafiles/" + mapBounds.defaultPlace + "_CountyPolygons.json");
@@ -224,6 +228,7 @@ export class Sim {
         }
         console.log("total people: " + this.pop.length);
         console.log("used homes: " + householdIndex);
+
         // console.log("used offices: " + officeIndex);
 
         // this.pop.index(1).occupation = 1;
@@ -238,6 +243,30 @@ export class Sim {
 
         this.pop[this.selectedPersonIndex].drawTimeline(<HTMLCanvasElement>document.getElementById("timeline-canvas"));
         window.requestAnimationFrame(() => this.draw());
+
+        this.paused = true; // locks the sim while loading
+        console.log("Loading wasm module");
+        await Module().then(function (loadedModule: any) {
+            moduleInstance = loadedModule;
+        });
+        console.log("Loaded wasm module");
+        this.paused = false;
+
+        // sets up the activities
+        for (var j = 0; j < Person.activitiesNormal.length; j++) {
+            moduleInstance.ResidentCounter.registerNormalActivitySchedule(Person.activitiesNormal[j]);
+        }
+        for (var j = 0; j < Person.activitiesWhileSick.length; j++) {
+            moduleInstance.ResidentCounter.registerSickActivitySchedule(Person.activitiesWhileSick[j]);
+        }
+
+        this.residentCounter = new moduleInstance.ResidentCounter(this.allHouseholds.length, this.allOffices.length, this.allSuperMarkets.length, this.allHospitals.length);
+
+        for (var j = 0; j < this.pop.length; j++) {
+            let person: Person = this.pop[j];
+            this.residentCounter.addPerson(new moduleInstance.PersonCore(person.id, person.homeIndex, person.officeIndex, person.marketIndex, person.hospitalIndex, person.getPersonDefaultActivityIndex()));
+        }
+
     }
     clearOccupants() {
         for (let i = 0; i < this.allHouseholds.length; i++) this.allHouseholds[i].currentOccupants = [];
@@ -248,6 +277,7 @@ export class Sim {
     occupyPlaces() {
         this.clearOccupants();
         let currentStep = this.time_steps_since_start.getStepModDay();
+
         for (let i = 0; i < this.pop.length; i++) {
             let person = this.pop[i];
             let activity = person.getCurrentActivity(currentStep);
@@ -259,6 +289,48 @@ export class Sim {
                 this.allSuperMarkets[person.marketIndex].currentOccupants.push(i);
             }
         }
+
+        // TODO: this should be event based or extremely perf-wasteful
+        for (let i = 0; i < this.pop.length; i++) {
+            let person = this.pop[i];
+            this.residentCounter.updatePersonIsolating(person.id, person.isolating);
+        }
+        this.residentCounter.count(currentStep);
+
+        // Work in progress!!
+        // checks the result against the javascript impl for testing purposes
+        // Since we don't call updatePersonSickMode, it will diverge after a few iters.
+        for (var i = 0; i < this.allOffices.length; i++) {
+            let a = this.residentCounter.getOfficeResidentCount(i);
+            let b = this.allOffices[i].currentOccupants.length;
+
+            if (a != b) {
+                console.log("Office Error at" + i + " n_c=" + a + "n_js" + b);
+                break;
+            }
+        }
+
+        for (var i = 0; i < this.allHouseholds.length; i++) {
+            let a = this.residentCounter.getHouseholdResidentCount(i);
+            let b = this.allHouseholds[i].currentOccupants.length;
+
+            if (a != b) {
+                console.log("Household count Error at" + i + " n_c=" + a + "n_js" + b);
+                break;
+            }
+        }
+
+        for (var i = 0; i < this.allSuperMarkets.length; i++) {
+            let a = this.residentCounter.getMarketResidentCount(i);
+            let b = this.allSuperMarkets[i].currentOccupants.length;
+
+            if (a != b) {
+                console.log("Supermarket count Error at" + i + " n_c=" + a + "n_js" + b);
+                break;
+            }
+        }
+
+
     }
     run_simulation(num_time_steps: number) {
         for (let ts = 0; ts < num_time_steps; ts++) {

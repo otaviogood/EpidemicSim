@@ -155,8 +155,12 @@ export class Person {
         }
     }
 
+    getPersonDefaultActivityIndex(): number {
+        return RandomFast.HashIntApprox(this.id, 0, Person.activitiesNormal.length);
+    }
+
     getPersonDefaultActivity(): string {
-        return Person.activitiesNormal[RandomFast.HashIntApprox(this.id, 0, Person.activitiesNormal.length)];
+        return Person.activitiesNormal[this.getPersonDefaultActivityIndex()];
     }
 
     get hashId() {
