@@ -88,7 +88,7 @@
                     id="graph-canvas"
                 ></canvas>
                 <span class="stats" style="width:128px;display:inline-block">Hours: {{ hoursElapsed }}</span>
-                <span class="stats" style="width:128px;display:inline-block">Days: {{ Math.floor(hoursElapsed / 24) }}</span>
+                <span class="stats" style="width:120px;display:inline-block">Days: {{ Math.floor(hoursElapsed / 24) }}</span>
                 <span class="stats" style="display:inline-block">{{ date }}</span>
             </div>
             <div class="card" style="margin-top:16px">

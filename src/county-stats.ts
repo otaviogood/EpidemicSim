@@ -1,3 +1,5 @@
+import moment from "moment";
+import * as Params from "./params";
 const mapBounds = require("../utils/mapBounds");
 
 // All the graphs need to be registered here.
@@ -62,7 +64,7 @@ export class CountyStats {
         }
         return total;
     }
-    drawGraph(countyIndex: number) {
+    drawGraph(countyIndex: number, params: Params.Base) {
         const canvas = <HTMLCanvasElement>document.getElementById("graph-canvas");
         if (canvas.getContext) {
             let cHeight = canvas.height;
@@ -70,18 +72,35 @@ export class CountyStats {
             const ctx = canvas.getContext("2d");
             if (!ctx) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.lineWidth = 2;
             ctx.font = "16px sans-serif";
 
+            let countyGraph = this.timeSeries.get(countyIndex);
+            if (!countyGraph) return;
             const countyPopulation = this.counters[countyIndex][GraphType.startingPopulation];
             let scaley = (cHeight * 1.0) / countyPopulation;
             let skipX = 24; // Only draw once per day.
-            // let countyName = mapBounds.info[mapBounds.defaultPlace].includedCounties[countyIndex];
-            // ctx.fillStyle = "#ffffff";
+
+            // Make vertical calendar stripes to indicate months
+            ctx.fillStyle = "#184062";
+            ctx.fillRect(31, 0, 29, cHeight); // jan-feb
+            ctx.fillRect(31 + 29 + 31, 0, 30, cHeight); // mar-apr
+            ctx.fillRect(31 + 29 + 31 + 30 + 31, 0, 30, cHeight); // may-jun
+            ctx.fillRect(31 + 29 + 31 + 30 + 31 + 30 + 31, 0, 31, cHeight); // jul-aug
+            ctx.fillRect(31 + 29 + 31 + 30 + 31 + 30 + 31 + 31 + 30, 0, 31, cHeight); // sep-oct
+            ctx.fillRect(31 + 29 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30, 0, 31, cHeight); // nov-dec
+            // Draw the first letter of each month in the correct x-position
+            const months = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
+            ctx.fillStyle = "#386082";
+            for (let i = 0; i < months.length; i++) {
+                ctx.fillText(months[i], i * 30.4 + 10, cHeight - 4);
+            }
+            // Draw a current-time cursor at the top
+            ctx.fillStyle = "#888888";
+            let currentDay = moment(params.startDate).dayOfYear() + this.timeSeries.get(0)?.get(graphNames[0])?.length! / skipX;
+            ctx.fillRect(currentDay - 1, 0, 2, cHeight / 10);
+
+            ctx.lineWidth = 2;
             ctx.textAlign = "end";
-            // ctx.fillText(countyName, cWidth - 8, cHeight - 10);
-            let countyGraph = this.timeSeries.get(countyIndex);
-            if (!countyGraph) return;
             let graphIndex = 0;
             for (const [name, arr] of countyGraph) {
                 ctx.fillStyle = getPalette(graphIndex);
@@ -92,7 +111,7 @@ export class CountyStats {
                     ctx.strokeStyle = getPalette(graphIndex);
                     ctx.beginPath();
                     // ctx.moveTo(, );
-                    let xpos = 0;
+                    let xpos = params.startDate.dayOfYear();
                     for (let i = 0; i < arr.length; i += skipX) {
                         ctx.lineTo(xpos, cHeight - arr[i] * scaley);
                         xpos++;

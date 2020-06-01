@@ -85,11 +85,6 @@ export class Sim {
         this.rand = new MersenneTwister(params.randomSeed);
         this.rfast = new RandomFast(params.randomSeed);
         this.latAdjust = Math.cos(util.toRadians((this.latMin + this.latMax) * 0.5)); // Adjust for curved earth (approximately with a point)
-        console.log("sim.minlat: " + this.latMin);
-        console.log("sim.maxlat: " + this.latMax);
-        console.log("sim.minlon: " + this.lonMin);
-        console.log("sim.maxlon: " + this.lonMax);
-        console.log("aspect ratio: " + (this.latMax - this.latMin) / (this.lonMax - this.lonMin));
         this.time_steps_since_start = new Params.TimeStep();
     }
     // Normalizes positions so they are in the [0..1] range on x and y.
@@ -571,7 +566,7 @@ export class Sim {
             //     // ctx.fillRect((x * this.scalex) | 0, (y * this.scaley) | 0, 2, 2);
             // }
 
-            this.countyStats.drawGraph(Math.max(0, this.selectedCountyIndex));
+            this.countyStats.drawGraph(Math.max(0, this.selectedCountyIndex), this.params);
             // ctx.setTransform(1, 0, 0, 1, 0, 0);
         }
     }
