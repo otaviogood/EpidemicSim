@@ -1,3 +1,4 @@
+import moment from "moment";
 import * as util from "./util";
 
 export class TimeStep {
@@ -14,6 +15,13 @@ export class TimeStep {
     static fromDays(days: number): TimeStep {
         let t: TimeStep = new TimeStep();
         t.time = (days * 24) | 0;
+        return t;
+    }
+
+    static fromMoment(dateTime: moment.Moment, startDate: moment.Moment): TimeStep {
+        let t: TimeStep = new TimeStep();
+        let duration = moment.duration(moment(dateTime).diff(startDate));
+        t.time = duration.asHours() | 0;
         return t;
     }
 
@@ -47,15 +55,21 @@ export class TimeStep {
     getStepModDay(): number {
         return this.time % TimeStep.stepsInDay;
     }
+    toMoment(startDate: moment.Moment) {
+        return moment(startDate).add(this.time, "hours");
+    }
 }
 
 class Intervention {
-    constructor(public time: TimeStep, public action: any) {}
+    constructor(public time: TimeStep, public action: any, public description: string = "") {}
 }
 
 // Default parameters all wrapped up into this class that you can inherit from to make custom experiments
 export class Base {
     randomSeed = 1234567890;
+
+    readonly startDate = moment("2020-02-01"); // year-mm-dd
+
     // // for doubling time and r number, https://arxiv.org/ftp/arxiv/papers/2003/2003.09320.pdf page 9
     // r = 2.5; // virus reproductive number
     // r_time_interval = 4 * 24; // number of time steps (minutes) to do the r
@@ -163,8 +177,14 @@ export class Base {
     // ========================================================================
     interventions: Intervention[] = [];
     currentInterventionIndex = 0;
-    makeIntervention(time: TimeStep, action: any) {
-        this.interventions.push(new Intervention(time, action));
+    makeIntervention(time: TimeStep, action: any, description: string = "") {
+        this.interventions.push(new Intervention(time, action, description));
+        this.interventions.sort((a, b) => a.time.raw - b.time.raw); // This is slow to do every time. I couldn't find a sorted list in Typescript.
+    }
+    // date should be yyyy-mm-dd format exactly
+    makeInterventionDate(date: moment.Moment, action: any, description: string = "") {
+        let time = TimeStep.fromMoment(date, this.startDate);
+        this.interventions.push(new Intervention(time, action, description));
         this.interventions.sort((a, b) => a.time.raw - b.time.raw); // This is slow to do every time. I couldn't find a sorted list in Typescript.
     }
     doInterventionsForThisTimestep(time_steps_since_start: TimeStep) {
@@ -183,7 +203,21 @@ export class DeadlyModel extends Base {
     // infection_fatality_rate = 0.5;
     constructor() {
         super();
-        this.makeIntervention(TimeStep.fromDays(5), () => (this.prob_baseline_timestep = 0.0));
-        this.makeIntervention(TimeStep.fromDays(8), () => (this.prob_baseline_timestep = 0.01));
+        // These are just do-nothing examples for now...
+        this.makeIntervention(
+            TimeStep.fromDays(5),
+            () => (this.environmental_transmission_fraction = 0.0),
+            "90% office capacity"
+        );
+        this.makeInterventionDate(
+            moment("2020-02-11"),
+            () => (this.environmental_transmission_fraction = 0.0),
+            "50% transit level"
+        );
+        this.makeInterventionDate(
+            moment("2020-02-14"),
+            () => (this.environmental_transmission_fraction = 0.0),
+            "20% transit level"
+        );
     }
 }

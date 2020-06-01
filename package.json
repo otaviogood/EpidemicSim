@@ -17,6 +17,7 @@
         "@types/node": "^13.11.0",
         "mathjs": "^7.0.0",
         "mersenne-twister": "^1.1.0",
+        "moment": "^2.26.0",
         "shx": "^0.3.2",
         "vue": "^2.6.11",
         "vue-hot-reload-api": "^2.3.4"

@@ -1,4 +1,5 @@
 import "@babel/polyfill"; // This is for using ES2017 features, like async/await.
+import moment from 'moment';
 import { Person, ActivityType } from "./person";
 import { Spatial, Grid } from "./spatial";
 import { CountyStats, GraphType } from "./county-stats";
@@ -61,7 +62,7 @@ export class Sim {
     latAdjust: number;
     countyPolygons: number[][] = [];
 
-    time_steps_since_start: Params.TimeStep = new Params.TimeStep();
+    time_steps_since_start: Params.TimeStep;
 
     selectedHouseholdIndex = -1;
     selectedPersonIndex = 0;
@@ -89,6 +90,7 @@ export class Sim {
         console.log("sim.minlon: " + this.lonMin);
         console.log("sim.maxlon: " + this.lonMax);
         console.log("aspect ratio: " + (this.latMax - this.latMin) / (this.lonMax - this.lonMin));
+        this.time_steps_since_start = new Params.TimeStep();
     }
     // Normalizes positions so they are in the [0..1] range on x and y.
     // Returns [x, y] tuple.
@@ -349,7 +351,8 @@ export class Sim {
             this.scalex = maxCanvas;
             this.scaley = maxCanvas;
 
-            ctx.globalAlpha = 0.4;
+            ctx.globalAlpha = 0.5;
+            if (this.visualsFlag > 0) ctx.globalAlpha = 0.25;
             ctx.drawImage(img, 0, 0, imgWidth * ratio, imgHeight * ratio);
             ctx.globalAlpha = 1.0;
 
@@ -523,10 +526,10 @@ export class Sim {
 
             // Animate infection circles and delete things from the list that are old.
             let tempIV: number[][] = [];
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 1.5;
             for (let i = 0; i < this.infectedVisuals.length; i++) {
                 let t = (this.time_steps_since_start.hours - this.infectedVisuals[i][2].hours) / 2;
-                let alpha = Math.max(0, 100 - t) / 100.0;
+                let alpha = Math.max(0, 60 - t) / 60.0;
                 if (alpha > 0.0) tempIV.push(this.infectedVisuals[i]);
 
                 const maxDraws = 32; // Limit the number of circles that can be drawn for performance.

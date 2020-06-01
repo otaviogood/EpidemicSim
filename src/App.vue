@@ -87,8 +87,9 @@
                     height="256px"
                     id="graph-canvas"
                 ></canvas>
-                <span style="width:180px;display:inline-block">Hours: {{ hoursElapsed }}</span>
-                Days: {{ Math.floor(hoursElapsed / 24) }}<br />
+                <span class="stats" style="width:128px;display:inline-block">Hours: {{ hoursElapsed }}</span>
+                <span class="stats" style="width:128px;display:inline-block">Days: {{ Math.floor(hoursElapsed / 24) }}</span>
+                <span class="stats" style="display:inline-block">{{ date }}</span>
             </div>
             <div class="card" style="margin-top:16px">
                 <div style="width:365px;text-align:center;font-size:28px;">
@@ -127,7 +128,7 @@
 
                 <div class="scrolly" style="width:365px;height:124px;overflow:hidden; overflow-y:scroll;">
                     <div v-for="i in interventions" v-bind:key="i.time">
-                        <div class="stats">T <span v-html="i"></span></div>
+                        <div class="stats"><span v-html="i"></span></div>
                     </div>
                 </div>
             </div>
@@ -168,6 +169,7 @@
 <script>
 // <script lang="js">
 import Vue from "vue";
+import moment from "moment";
 import { Spatial, Grid } from "./spatial";
 import { Person, ActivityType } from "./person";
 import { Sim } from "./sim";
@@ -185,6 +187,7 @@ export default Vue.extend({
         return {
             animId: -1,
             hoursElapsed: 0,
+            date: null,
             milliseconds: 0,
             timerAccum: 0,
             county: Vue.prototype.$mapBounds.info[Vue.prototype.$mapBounds.defaultPlace].includedCounties[0],
@@ -287,14 +290,17 @@ export default Vue.extend({
             this.interventions = [];
             for (let i = 0; i < params.interventions.length; i++) {
                 let temp = params.interventions[i];
-                let expired =
-                    temp.time.raw < sim.time_steps_since_start.raw
-                        ? "<span class='pulse-block' style='background-color:#dddddd;text-decoration: line-through;'>"
-                        : "<span>";
+                let expired = temp.time.raw < sim.time_steps_since_start.raw ? "<span class='pulse-block'>✔️" : "<span>";
                 let actionStr = temp.action.toString();
                 actionStr = actionStr.replace("function () {\n      return _this.", "").replace(";\n    }", ""); // A little hacky... :P
+                if (temp.description) actionStr = temp.description;
                 this.interventions.push(
-                    expired + "<strong>" + temp.time.hours.toString() + "</strong> &nbsp;&nbsp;&nbsp;" + actionStr + "</span>"
+                    expired +
+                        "<strong>" +
+                        temp.time.toMoment(params.startDate).format("MMM D") +
+                        "</strong> &nbsp;&nbsp;&nbsp;" +
+                        actionStr +
+                        "</span>"
                 );
             }
         },
@@ -304,6 +310,9 @@ export default Vue.extend({
 
             sim.run_simulation(1);
             self.hoursElapsed = sim.time_steps_since_start.hours;
+            self.date = moment(params.startDate)
+                .add(sim.time_steps_since_start.hours, "h")
+                .format("MMM D, HH:mm");
 
             if (sim.time_steps_since_start.raw > 0) {
                 self.updatePerson();
@@ -342,7 +351,9 @@ export default Vue.extend({
         changeCounty: function(e) {
             sim.selectedCountyIndex = parseInt(e.target.value);
             this.county =
-                Vue.prototype.$mapBounds.info[Vue.prototype.$mapBounds.defaultPlace].includedCounties[sim.selectedCountyIndex];
+                Vue.prototype.$mapBounds.info[Vue.prototype.$mapBounds.defaultPlace].includedCounties[
+                    Math.max(0, sim.selectedCountyIndex)
+                ];
             sim.draw();
         },
         changePersonIndex: function(e) {
@@ -493,12 +504,12 @@ body {
     animation-name: pulse-anim;
     animation-duration: 4s;
     animation-fill-mode: forwards;
-    border: 2px solid #ff0000ff;
+    border: 2px solid #00ff00ff;
 }
 
 @keyframes pulse-anim {
     from {
-        border-color: #ff0000ff;
+        border-color: #00ff00ff;
     }
     to {
         border-color: #ffffff00;
