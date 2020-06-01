@@ -322,12 +322,12 @@ export class Person {
         return total;
     }
 
-    spreadInAPlace(occupants: number[], density: number, pop: Spatial, rand: MersenneTwister, sim: Sim, seed: number) {
+    spreadInAPlace(occupants: number[], density: number, pop: Person[], rand: MersenneTwister, sim: Sim, seed: number) {
         let prob = sim.params.prob_baseline_timestep * this.probabilityMultiplierFromDensity(density);
         let numSpread = this.howManyCatchItInThisTimeStep(rand, prob, occupants.length);
         for (let i = 0; i < numSpread; i++) {
             let targetIndex = occupants[RandomFast.HashIntApprox(seed, 0, occupants.length)];
-            if (pop.index(targetIndex).isVulnerable) pop.index(targetIndex).becomeSick(sim);
+            if (pop[targetIndex].isVulnerable) pop[targetIndex].becomeSick(sim);
         }
     }
 
@@ -335,7 +335,7 @@ export class Person {
         return this.currentActivity[currentHour] as ActivityType;
     }
 
-    spread(time_steps_since_start: Params.TimeStep, index: number, pop: Spatial, rand: MersenneTwister, sim: Sim) {
+    spread(time_steps_since_start: Params.TimeStep, index: number, pop: Person[], rand: MersenneTwister, sim: Sim) {
         if (this.isContagious) {
             let currentStep = sim.time_steps_since_start.getStepModDay();
             let activity = this.getCurrentActivity(currentStep);

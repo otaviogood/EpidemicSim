@@ -246,7 +246,7 @@ export default Vue.extend({
         updatePerson: function() {
             let self = this;
             let currentStep = sim.time_steps_since_start.getStepModDay(); // % 24;
-            let p = sim.pop.index(sim.selectedPersonIndex);
+            let p = sim.pop[sim.selectedPersonIndex];
             self.person.timeSinceInfected = p.time_since_infected;
             self.person.asymptomaticOverall = !p.symptomaticOverall;
             self.person.isolating = p.isolating ? "<strong>YES</strong>" : "No";

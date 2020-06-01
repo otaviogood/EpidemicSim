@@ -1,5 +1,5 @@
 import "@babel/polyfill"; // This is for using ES2017 features, like async/await.
-import moment from 'moment';
+import moment from "moment";
 import { Person, ActivityType } from "./person";
 import { Spatial, Grid } from "./spatial";
 import { CountyStats, GraphType } from "./county-stats";
@@ -49,7 +49,7 @@ export class Sim {
     params: Params.Base;
     rfast: RandomFast;
     rand: MersenneTwister;
-    pop: Spatial = new Spatial();
+    pop: Person[] = [];
 
     allHouseholds: Place[] = [];
     allOffices: Place[] = [];
@@ -219,7 +219,7 @@ export class Sim {
                 randHospital = this.rfast.RandIntApprox(0, this.allHospitals.length);
             }
 
-            this.pop.add(person);
+            this.pop.push(person);
             i++;
         }
         console.log("total people: " + this.pop.length);
@@ -233,10 +233,10 @@ export class Sim {
         // }
         // this.pop.index(near).occupation = 2;
         for (let i = 0; i < 31; i++) {
-            this.pop.index(i).becomeSick(this);
+            this.pop[i].becomeSick(this);
         }
 
-        this.pop.index(this.selectedPersonIndex).drawTimeline(<HTMLCanvasElement>document.getElementById("timeline-canvas"));
+        this.pop[this.selectedPersonIndex].drawTimeline(<HTMLCanvasElement>document.getElementById("timeline-canvas"));
         window.requestAnimationFrame(() => this.draw());
     }
     clearOccupants() {
@@ -249,7 +249,7 @@ export class Sim {
         this.clearOccupants();
         let currentStep = this.time_steps_since_start.getStepModDay();
         for (let i = 0; i < this.pop.length; i++) {
-            let person = this.pop.index(i);
+            let person = this.pop[i];
             let activity = person.getCurrentActivity(currentStep);
             if (activity == ActivityType.home) {
                 this.allHouseholds[person.homeIndex].currentOccupants.push(i);
@@ -265,7 +265,7 @@ export class Sim {
             this.params.doInterventionsForThisTimestep(this.time_steps_since_start);
             this.occupyPlaces();
             for (let i = 0; i < this.pop.length; i++) {
-                let person = this.pop.index(i);
+                let person = this.pop[i];
                 person.stepTime(this, this.rand);
                 person.spread(this.time_steps_since_start, i, this.pop, this.rand, this);
             }
@@ -381,7 +381,7 @@ export class Sim {
                 this.drawText(ctx, hh.xpos + 0.02, hh.ypos, hh.residents.length.toString());
                 for (let i = 0; i < hh.residents.length; i++) {
                     let popIndex = hh.residents[i];
-                    let person: Person = this.pop.index(popIndex);
+                    let person: Person = this.pop[popIndex];
                     let office = this.allOffices[person.officeIndex];
                     let market = this.allSuperMarkets[person.marketIndex];
                     this.drawLine(
@@ -396,7 +396,7 @@ export class Sim {
             }
             // ---- Draw selected *person*'s places ----
             if (this.selectedPersonIndex >= 0) {
-                let p: Person = this.pop.index(this.selectedPersonIndex);
+                let p: Person = this.pop[this.selectedPersonIndex];
                 let market = this.allSuperMarkets[p.marketIndex];
                 let house = this.allHouseholds[p.homeIndex];
                 let office = this.allOffices[p.officeIndex];
@@ -430,7 +430,7 @@ export class Sim {
                 // Rendering is by far the bottleneck, so target this many rendered points and skip the rest.
                 let skip = 10;
                 for (let i = 0; i < this.pop.length; i += skip) {
-                    let person = this.pop.index(i);
+                    let person = this.pop[i];
                     let pos = [person.xpos, person.ypos];
                     let currentStep = this.time_steps_since_start.getStepModDay();
                     let activity = person.getCurrentActivity(currentStep);
@@ -484,19 +484,19 @@ export class Sim {
             }
             if ((this.visualsFlag & util.VizFlags.susceptible) != 0) {
                 for (let i = 0; i < this.pop.length; i++) {
-                    let person = this.pop.index(i);
+                    let person = this.pop[i];
                     if (person.isVulnerable) ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 1, 1);
                 }
             }
             if ((this.visualsFlag & util.VizFlags.infected) != 0) {
                 for (let i = 0; i < this.pop.length; i++) {
-                    let person = this.pop.index(i);
+                    let person = this.pop[i];
                     if (person.isSick) ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 2, 2);
                 }
             }
             if ((this.visualsFlag & util.VizFlags.recovered) != 0) {
                 for (let i = 0; i < this.pop.length; i++) {
-                    let person = this.pop.index(i);
+                    let person = this.pop[i];
                     if (person.isRecovered) ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 2, 2);
                 }
             }

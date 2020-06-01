@@ -8,6 +8,7 @@ export class Place {
     ypos: number = 0;
 }
 
+// ******** These spatial data structures are incomplete ********
 export class Spatial {
     protected population: Person[] = [];
     constructor() {}
