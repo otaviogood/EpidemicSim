@@ -100,7 +100,7 @@ export class Sim {
     async setup() {
         console.log("-------- SETUP --------");
         // TODO: use promise.all() on all these awaits???
-        img = await loadImage(mapBounds.info[mapBounds.defaultPlace].mapImage);
+        img = await loadImage("datafiles/" + mapBounds.info[mapBounds.defaultPlace].mapImage);
 
         // -------- Load county polygon info --------
         let jsonTemp0 = await fetch("datafiles/" + mapBounds.defaultPlace + "_CountyPolygons.json");
