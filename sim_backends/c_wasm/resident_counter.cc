@@ -1,5 +1,6 @@
 
 #include <vector>
+#include <map>
 #include <cstdlib>
 #include <emscripten/bind.h>
 
@@ -10,19 +11,21 @@ std::vector<std::string> activitiesWhileSick;
 
 namespace EpidemicSimCore {
 
+    #define PERSON_MAX_PLACE_TYPES 5
     // This could be embedded inside the javascript person object, to avoid duplication of code and data. 
     // Just essential topology data, like this person's places indices.
     struct PersonCore {
         unsigned int id = 0; // TODO: uint enough?
-        int householdIndex = 0;
-        int hospitalIndex = 0;
-        int marketIndex = 0;
-        int officeIndex = 0;
+        int placeIndex[PERSON_MAX_PLACE_TYPES];
         int activityIndex = 0;
         bool isolating = false;
 
-        PersonCore(unsigned int id, int householdIndex, int officeIndex, int marketIndex, int hospitalIndex, int activityIndex)
-            : id(id), householdIndex(householdIndex), hospitalIndex(hospitalIndex), marketIndex(marketIndex), officeIndex(officeIndex), activityIndex(activityIndex) {
+        PersonCore(unsigned int id, const std::vector<int>& placeIndexes, int activityIndex)
+            : id(id), activityIndex(activityIndex) {
+            memset(placeIndex, 0, sizeof(placeIndex));
+            for (size_t i = 0; i < placeIndexes.size(); i++) {
+                placeIndex[i] = placeIndexes[i];
+            }
         }
 
         char getActivity(int hour) const {
@@ -34,19 +37,40 @@ namespace EpidemicSimCore {
         }
     };
 
-    struct ResidentCounter {
+    struct OccupantCounter {
         std::vector<PersonCore> persons;
-        std::vector<int> householdResidentCount;
-        std::vector<int> hospitalResidentCount;
-        std::vector<int> marketResidentCount;
-        std::vector<int> officeResidentCount;
-        
-        ResidentCounter(int nHouseHolds, int nOffices, int nMarkets, int nHospitals) { 
-            householdResidentCount.resize(nHouseHolds);
-            hospitalResidentCount.resize(nHospitals);
-            marketResidentCount.resize(nMarkets);
-            officeResidentCount.resize(nOffices);
-            persons.reserve(nHouseHolds);
+
+        // all hospitals, etc
+        struct PlaceSet {
+            char activityType = 'h';
+            std::vector<int> occupantCount;
+            std::vector<std::vector<unsigned int>> occupantList;
+        };
+
+        std::vector<PlaceSet> placesByType;
+        std::map<char, int> activityToPlaceSetIndex;
+        unsigned int rand_r_seed = 1993;
+
+        OccupantCounter(int nPersons) {
+            persons.reserve(nPersons); // helps perf a bit: single allocation
+        }
+
+        // sets the number of places, per type (homes, hospitals, etc)
+        void setNumberOfPlacesForActivity(const std::string& activityType_s, int count) {
+            char activityType = activityType_s[0];
+            if (activityToPlaceSetIndex.count(activityType)) {
+                throw std::runtime_error("setNumberOfPlacesForActivity can only be called once per place type at initialization");
+            }            
+            if (placesByType.size() >= PERSON_MAX_PLACE_TYPES) {
+                throw std::runtime_error("maximum number of place types reached. plase change the macro PERSON_MAX_PLACE_TYPE." + std::to_string(placesByType.size()));
+            }
+            
+            activityToPlaceSetIndex[activityType] = placesByType.size();
+
+            PlaceSet ps;
+            ps.activityType = activityType;
+            ps.occupantCount.resize(count);
+            placesByType.emplace_back(std::move(ps));
         }
 
         static void registerNormalActivitySchedule(const std::string& activityScheduleString) {
@@ -61,83 +85,108 @@ namespace EpidemicSimCore {
             persons.push_back(p);
         }
 
+        // call whenever person changes isolating mode, and hence activity schedule
         void updatePersonIsolating(int personId, bool sickMode) {
             persons[personId].isolating = sickMode;
         }
 
-        void count(int hour) {
-            printf("ResidentCounter::count persons.size=%zu\n", persons.size());
-            std::fill(householdResidentCount.begin(), householdResidentCount.end(), 0);
-            std::fill(officeResidentCount.begin(), officeResidentCount.end(), 0);
-            std::fill(marketResidentCount.begin(), marketResidentCount.end(), 0);
-            std::fill(hospitalResidentCount.begin(), hospitalResidentCount.end(), 0);
+        // counts and fills lists
+        void countAndFillLists(int hour) {
+            printf("OccupantCounter::countAndFillLists persons.size=%zu\n", persons.size());
+            countOnly(hour);
+
+            for (size_t index = 0; index < placesByType.size(); index++) {
+                PlaceSet& ps = placesByType[index];
+
+                size_t nPlaces = ps.occupantCount.size();
+                if (ps.occupantList.empty()) ps.occupantList.resize(nPlaces);
+                
+                // preallocates the vector memory with the expected count of people
+                for (size_t iPlace = 0; iPlace < nPlaces; iPlace++) {
+                    ps.occupantList[iPlace].clear();
+                    ps.occupantList[iPlace].reserve(ps.occupantCount[iPlace]);
+                }
+            }
 
             for (size_t i = 0; i < persons.size(); i++) {
                 const PersonCore& p = persons[i];
-                const char a = p.getActivity(hour);
+                const char personActivity = p.getActivity(hour);
 
-                if (a == 'h') {
-                    //if (p.householdIndex >= householdResidentCount.size()) printf("home %d %zu\n", p.householdIndex, householdResidentCount.size());
-                    householdResidentCount[p.householdIndex]++;
+                for (size_t index = 0; index < placesByType.size(); index++) {
+                    PlaceSet& ps = placesByType[index];
+                    if (personActivity == ps.activityType) {
+                        int personPlaceIndex = p.placeIndex[index];
+                        ps.occupantList[personPlaceIndex].push_back((unsigned int)i);
+                    }
                 }
-                else if (a == 'w') {
-                    //if (p.officeIndex >= officeResidentCount.size()) printf("off %d %zu\n", p.officeIndex, officeResidentCount.size());
-                    officeResidentCount[p.officeIndex]++;
-                }
-                else if (a == 's') {
-                    //if (p.marketIndex >= marketResidentCount.size()) printf("off %d %zu\n", p.marketIndex, marketResidentCount.size());
-                    marketResidentCount[p.marketIndex]++;
-                }
-                else if (a == 'o') {
-                    //if (p.hospitalIndex >= hospitalResidentCount.size()) printf("off %d %zu\n", p.hospitalIndex, hospitalResidentCount.size());
-                    hospitalResidentCount[p.hospitalIndex]++;
+            }
+        }
+
+        // only counts occupants
+        void countOnly(int hour) {
+            printf("OccupantCounter::countOnly persons.size=%zu\n", persons.size());
+            for (PlaceSet& ps : placesByType) {
+                std::fill(ps.occupantCount.begin(), ps.occupantCount.end(), 0);
+            }
+
+            for (size_t i = 0; i < persons.size(); i++) {
+                const PersonCore& p = persons[i];
+                const char personActivity = p.getActivity(hour);
+
+                for (size_t index = 0; index < placesByType.size(); index++) {
+                    PlaceSet& ps = placesByType[index];
+                    if (personActivity == ps.activityType) {
+                        int personPlaceIndex = p.placeIndex[index];
+                        ps.occupantCount[personPlaceIndex]++;
+                    }
                 }
             }
         }
 
         // passing the C++ objects like std::vector is risky: need to delete them or they leak
-        int getHouseholdResidentCount(int index) const {
-            return householdResidentCount[index];
+        int getOccupantCount(const std::string& activityType, int index) const {
+            return placesByType[activityToPlaceSetIndex.at(activityType[0])].occupantCount[index];
         }
 
-        int getHospitalResidentCount(int index) const {
-            return hospitalResidentCount[index];
+        // returns the occupant lists. quite expensive.
+        std::vector<unsigned int> getOccupants(const std::string& activityType, int index) {
+            return placesByType[activityToPlaceSetIndex.at(activityType[0])].occupantList[index];
         }
 
-        int getMarketResidentCount(int index) const {
-            return marketResidentCount[index];
-        }
-
-        int getOfficeResidentCount(int index) const {
-            return officeResidentCount[index];
+        // this minimizes copies
+        std::vector<unsigned int> getNRandomOccupants(const std::string& activityType, int index, int count) {
+            std::vector<unsigned int> ret;
+            const auto& wholeList = placesByType[activityToPlaceSetIndex.at(activityType[0])].occupantList[index];
+            for (int i = 0; i < count; i++) {
+                // TODO this is deterministic but better use the official RNG
+                ret.push_back(wholeList[rand_r(&rand_r_seed)%wholeList.size()]);
+            }
+            return ret;
         }
 
     };
 
 };
 
-EMSCRIPTEN_BINDINGS(ResidentCounterModule) {
-    emscripten::register_vector<int>("vector<int>");
+EMSCRIPTEN_BINDINGS(OccupantCounterModule) {
+    emscripten::register_vector<int>("int_vector");
+    emscripten::register_vector<unsigned int>("uint_vector");
     emscripten::class_<EpidemicSimCore::PersonCore>("PersonCore")
-        .constructor<unsigned int, int, int, int, int, int>()
+        .constructor<unsigned int, std::vector<int>, int>()
         .property("id", &EpidemicSimCore::PersonCore::id)
-        .property("householdIndex", &EpidemicSimCore::PersonCore::householdIndex)
-        .property("hospitalIndex", &EpidemicSimCore::PersonCore::hospitalIndex)
-        .property("marketIndex", &EpidemicSimCore::PersonCore::marketIndex)
-        .property("officeIndex", &EpidemicSimCore::PersonCore::officeIndex)
-        .property("activityIndex", &EpidemicSimCore::PersonCore::activityIndex)
         .function("getActivity", &EpidemicSimCore::PersonCore::getActivity)
         ;
-    emscripten::class_<EpidemicSimCore::ResidentCounter>("ResidentCounter")
-        .constructor<int, int, int, int>()
-        .function("count", &EpidemicSimCore::ResidentCounter::count)
-        .function("addPerson", &EpidemicSimCore::ResidentCounter::addPerson)
-        .function("updatePersonIsolating", &EpidemicSimCore::ResidentCounter::updatePersonIsolating)
-        .class_function("registerNormalActivitySchedule", &EpidemicSimCore::ResidentCounter::registerNormalActivitySchedule)
-        .class_function("registerSickActivitySchedule", &EpidemicSimCore::ResidentCounter::registerSickActivitySchedule)
-        .function("getHouseholdResidentCount", &EpidemicSimCore::ResidentCounter::getHouseholdResidentCount)
-        .function("getHospitalResidentCount", &EpidemicSimCore::ResidentCounter::getHospitalResidentCount)
-        .function("getMarketResidentCount", &EpidemicSimCore::ResidentCounter::getMarketResidentCount)
-        .function("getOfficeResidentCount", &EpidemicSimCore::ResidentCounter::getOfficeResidentCount)
+    emscripten::class_<EpidemicSimCore::OccupantCounter>("OccupantCounter")
+        .constructor<int>()
+        .function("countOnly", &EpidemicSimCore::OccupantCounter::countOnly)
+        .function("countAndFillLists", &EpidemicSimCore::OccupantCounter::countAndFillLists)
+        .function("addPerson", &EpidemicSimCore::OccupantCounter::addPerson)
+        .function("updatePersonIsolating", &EpidemicSimCore::OccupantCounter::updatePersonIsolating)
+        .class_function("registerNormalActivitySchedule", &EpidemicSimCore::OccupantCounter::registerNormalActivitySchedule)
+        .class_function("registerSickActivitySchedule", &EpidemicSimCore::OccupantCounter::registerSickActivitySchedule)
+        .function("setNumberOfPlacesForActivity", &EpidemicSimCore::OccupantCounter::setNumberOfPlacesForActivity)
+        .function("getOccupantCount", &EpidemicSimCore::OccupantCounter::getOccupantCount)
+        .function("getOccupants", &EpidemicSimCore::OccupantCounter::getOccupants)
+        .function("getNRandomOccupants", &EpidemicSimCore::OccupantCounter::getNRandomOccupants)
         ;
 }

@@ -72,7 +72,7 @@ export class Sim {
     lastMouseY = -1;
     selectedCountyIndex = -1;
 
-    residentCounter: any = null;
+    occupantCounter: any = null;
 
     // ---- visuals ----
     canvasWidth = 0;
@@ -83,6 +83,9 @@ export class Sim {
     infectedVisuals: any[][] = [];
     visualsFlag = 0;
     countyStats: CountyStats = new CountyStats();
+
+    tot_js_dt = 0;
+    tot_wasm_dt = 0;
 
     constructor(params: Params.Base) {
         this.params = params;
@@ -254,17 +257,27 @@ export class Sim {
 
         // sets up the activities
         for (var j = 0; j < Person.activitiesNormal.length; j++) {
-            moduleInstance.ResidentCounter.registerNormalActivitySchedule(Person.activitiesNormal[j]);
+            moduleInstance.OccupantCounter.registerNormalActivitySchedule(Person.activitiesNormal[j]);
         }
         for (var j = 0; j < Person.activitiesWhileSick.length; j++) {
-            moduleInstance.ResidentCounter.registerSickActivitySchedule(Person.activitiesWhileSick[j]);
+            moduleInstance.OccupantCounter.registerSickActivitySchedule(Person.activitiesWhileSick[j]);
         }
 
-        this.residentCounter = new moduleInstance.ResidentCounter(this.allHouseholds.length, this.allOffices.length, this.allSuperMarkets.length, this.allHospitals.length);
+        this.occupantCounter = new moduleInstance.OccupantCounter(this.pop.length);
+        this.occupantCounter.setNumberOfPlacesForActivity('h', this.allHouseholds.length);
+        this.occupantCounter.setNumberOfPlacesForActivity('w', this.allOffices.length);
+        this.occupantCounter.setNumberOfPlacesForActivity('s', this.allSuperMarkets.length);
+        // not used in reference js yet: this.occupantCounter.setNumberOfPlacesForActivity('o', this.allHospitals.length);
 
         for (var j = 0; j < this.pop.length; j++) {
             let person: Person = this.pop[j];
-            this.residentCounter.addPerson(new moduleInstance.PersonCore(person.id, person.homeIndex, person.officeIndex, person.marketIndex, person.hospitalIndex, person.getPersonDefaultActivityIndex()));
+            var placeIndexArray = new moduleInstance.int_vector();
+            placeIndexArray.push_back(person.homeIndex);
+            placeIndexArray.push_back(person.officeIndex);
+            placeIndexArray.push_back(person.marketIndex);
+            placeIndexArray.push_back(person.hospitalIndex);
+            this.occupantCounter.addPerson(new moduleInstance.PersonCore(person.id, placeIndexArray, person.getPersonDefaultActivityIndex()));
+            placeIndexArray.delete(); // annoying!
         }
 
     }
@@ -278,6 +291,7 @@ export class Sim {
         this.clearOccupants();
         let currentStep = this.time_steps_since_start.getStepModDay();
 
+        let t0 = performance.now()
         for (let i = 0; i < this.pop.length; i++) {
             let person = this.pop[i];
             let activity = person.getCurrentActivity(currentStep);
@@ -289,48 +303,55 @@ export class Sim {
                 this.allSuperMarkets[person.marketIndex].currentOccupants.push(i);
             }
         }
+        let t1 = performance.now()
+        this.tot_js_dt += t1 - t0;
 
         // TODO: this should be event based or extremely perf-wasteful
         for (let i = 0; i < this.pop.length; i++) {
             let person = this.pop[i];
-            this.residentCounter.updatePersonIsolating(person.id, person.isolating);
+            this.occupantCounter.updatePersonIsolating(person.id, person.isolating);
         }
-        this.residentCounter.count(currentStep);
 
+        let wasm_t0 = performance.now()
+        this.occupantCounter.countAndFillLists(currentStep);
+        let wasm_t1 = performance.now()
+        this.tot_wasm_dt += wasm_t1 - wasm_t0;
+
+
+        console.log("dt(js)=" + this.tot_js_dt);
+        console.log("dt(wasm)=" + this.tot_wasm_dt);
+        console.log("speedup=" + this.tot_js_dt / this.tot_wasm_dt);
+
+        this.check_wasm_occupancy("h", "allHouseholds");
+        this.check_wasm_occupancy("w", "allOffices");
+        this.check_wasm_occupancy("s", "allSuperMarkets");
+
+    }
+    check_wasm_occupancy(activity: string, referenceVarName: keyof Sim) {
         // Work in progress!!
         // checks the result against the javascript impl for testing purposes
         // Since we don't call updatePersonSickMode, it will diverge after a few iters.
-        for (var i = 0; i < this.allOffices.length; i++) {
-            let a = this.residentCounter.getOfficeResidentCount(i);
-            let b = this.allOffices[i].currentOccupants.length;
+        for (var i = 0; i < this[referenceVarName].length; i++) {
+            let a = this.occupantCounter.getOccupantCount(activity, i);
+            let b = this[referenceVarName][i].currentOccupants.length;
 
             if (a != b) {
-                console.log("Office Error at" + i + " n_c=" + a + "n_js" + b);
+                console.log(referenceVarName + " Error at" + i + " n_c=" + a + "n_js" + b);
                 break;
             }
         }
+        for (var i = 0; i < this[referenceVarName].length; i++) {
+            let a = this.occupantCounter.getOccupants(activity, i);
+            let b = this[referenceVarName][i].currentOccupants;
 
-        for (var i = 0; i < this.allHouseholds.length; i++) {
-            let a = this.residentCounter.getHouseholdResidentCount(i);
-            let b = this.allHouseholds[i].currentOccupants.length;
-
-            if (a != b) {
-                console.log("Household count Error at" + i + " n_c=" + a + "n_js" + b);
-                break;
+            for (var j = 0; j < b.length; j++) {
+                if (a.get(j) != b[j]) {
+                    console.log(referenceVarName + " Error at" + i + " n_c=" + a + "n_js" + b);
+                    return;
+                }
             }
+            a.delete();
         }
-
-        for (var i = 0; i < this.allSuperMarkets.length; i++) {
-            let a = this.residentCounter.getMarketResidentCount(i);
-            let b = this.allSuperMarkets[i].currentOccupants.length;
-
-            if (a != b) {
-                console.log("Supermarket count Error at" + i + " n_c=" + a + "n_js" + b);
-                break;
-            }
-        }
-
-
     }
     run_simulation(num_time_steps: number) {
         for (let ts = 0; ts < num_time_steps; ts++) {
