@@ -237,6 +237,7 @@ export class Person {
         this.symptomsCurrent = 0;
         this.contagious = false;
         this.isolating = false;
+        if (sim) sim.occupantCounter.updatePersonIsolating(this.id, false);
         this.currentActivity = this.getPersonDefaultActivity();
         if (sim && this.county >= 0) sim.countyStats.counters[this.county][GraphType.currentInfected]--;
     }
@@ -265,8 +266,9 @@ export class Person {
         }
     }
 
-    becomeIsolated() {
+    becomeIsolated(sim: Sim | null) {
         this.isolating = true;
+        if(sim) sim.occupantCounter.updatePersonIsolating(this.id, true);
         this.currentActivity =
             Person.activitiesWhileSick[RandomFast.HashIntApprox(this.id, 0, Person.activitiesWhileSick.length)];
     }
@@ -292,7 +294,7 @@ export class Person {
                 // if (this.symptomsCurrent < SymptomsLevels.severe && this.time_since_infected >= this.severeTrigger)
                 this.becomeSevereOrCritical();
             if (this.contagious && this.time_since_infected >= this.deadTrigger) this.becomeDead(sim);
-            if (this.symptomsCurrent && this.time_since_infected >= this.isolationTrigger) this.becomeIsolated();
+            if (this.symptomsCurrent && this.time_since_infected >= this.isolationTrigger) this.becomeIsolated(sim);
 
             this.time_since_infected = this.time_since_infected + 1;
         }
@@ -326,13 +328,16 @@ export class Person {
         return total;
     }
 
-    spreadInAPlace(occupants: number[], density: number, pop: Person[], rand: MersenneTwister, sim: Sim, seed: number) {
+    spreadInAPlace(activityType: string, placeIndex: number, density: number, pop: Person[], rand: MersenneTwister, sim: Sim, seed: number) {
         let prob = sim.params.prob_baseline_timestep * this.probabilityMultiplierFromDensity(density);
-        let numSpread = this.howManyCatchItInThisTimeStep(rand, prob, occupants.length);
+        let nOccupants = sim.occupantCounter.getOccupantCount(activityType, placeIndex);
+        let numSpread = this.howManyCatchItInThisTimeStep(rand, prob, nOccupants);
+        var spreatToList = sim.occupantCounter.getNRandomOccupants(activityType, placeIndex, numSpread); // selects n random occupants
         for (let i = 0; i < numSpread; i++) {
-            let targetIndex = occupants[RandomFast.HashIntApprox(seed, 0, occupants.length)];
+            let targetIndex = spreatToList.get(i);
             if (pop[targetIndex].isVulnerable) pop[targetIndex].becomeSick(sim);
         }
+        spreatToList.delete();
     }
 
     getCurrentActivity(currentHour: number): ActivityType {
@@ -346,7 +351,7 @@ export class Person {
             let seed = Math.trunc(time_steps_since_start.raw * 4096 + index); // Unique for time step and each person
             if (activity == ActivityType.home) {
                 this.spreadInAPlace(
-                    sim.allHouseholds[this.homeIndex].currentOccupants,
+                    "h", this.homeIndex,
                     sim.params.home_density,
                     pop,
                     rand,
@@ -355,7 +360,7 @@ export class Person {
                 );
             } else if (activity == ActivityType.work) {
                 this.spreadInAPlace(
-                    sim.allOffices[this.officeIndex].currentOccupants,
+                    "w", this.officeIndex,
                     sim.params.office_density,
                     pop,
                     rand,
@@ -364,7 +369,7 @@ export class Person {
                 );
             } else if (activity == ActivityType.shopping) {
                 this.spreadInAPlace(
-                    sim.allSuperMarkets[this.marketIndex].currentOccupants,
+                    "s", this.marketIndex,
                     sim.params.shopping_density,
                     pop,
                     rand,

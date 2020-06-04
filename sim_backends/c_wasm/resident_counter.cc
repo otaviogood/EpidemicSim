@@ -1,5 +1,6 @@
 
 #include <vector>
+#include <list>
 #include <map>
 #include <cstdlib>
 #include <emscripten/bind.h>
@@ -45,6 +46,7 @@ namespace EpidemicSimCore {
             char activityType = 'h';
             std::vector<int> occupantCount;
             std::vector<std::vector<unsigned int>> occupantList;
+            std::vector<std::vector<unsigned int>> residentsList;
         };
 
         std::vector<PlaceSet> placesByType;
@@ -85,26 +87,50 @@ namespace EpidemicSimCore {
             persons.push_back(p);
         }
 
+        void prepare() {
+            for (size_t index = 0; index < placesByType.size(); index++) {
+                PlaceSet& ps = placesByType[index];
+
+                size_t nPlaces = ps.occupantCount.size();
+                ps.occupantList.resize(nPlaces);
+                ps.residentsList.resize(nPlaces);
+
+                for (size_t iPlace = 0; iPlace < nPlaces; iPlace++) {
+                    ps.residentsList[iPlace].clear();
+                    ps.occupantList[iPlace].clear();
+                }
+
+                for (size_t i = 0; i < persons.size(); i++) {
+                    const PersonCore& p = persons[i];
+                    int personPlaceIndex = p.placeIndex[index];
+                    ps.residentsList[personPlaceIndex].push_back(i);
+                }
+
+                for (size_t iPlace = 0; iPlace < nPlaces; iPlace++) {
+                    // this avoids later allocations, at the cost of memory
+                    ps.occupantList[iPlace].reserve(ps.residentsList[iPlace].size());
+                }
+            }
+
+        }
+
         // call whenever person changes isolating mode, and hence activity schedule
         void updatePersonIsolating(int personId, bool sickMode) {
             persons[personId].isolating = sickMode;
         }
 
-        // counts and fills lists
-        void countAndFillLists(int hour) {
-            printf("OccupantCounter::countAndFillLists persons.size=%zu\n", persons.size());
-            countOnly(hour);
+        // counts and optionally fills lists
+        template<bool fillLists>
+        void doCount(int hour) {
+            printf("OccupantCounter::doCount persons.size=%zu\n", persons.size());
 
             for (size_t index = 0; index < placesByType.size(); index++) {
                 PlaceSet& ps = placesByType[index];
-
-                size_t nPlaces = ps.occupantCount.size();
-                if (ps.occupantList.empty()) ps.occupantList.resize(nPlaces);
-                
-                // preallocates the vector memory with the expected count of people
-                for (size_t iPlace = 0; iPlace < nPlaces; iPlace++) {
-                    ps.occupantList[iPlace].clear();
-                    ps.occupantList[iPlace].reserve(ps.occupantCount[iPlace]);
+                std::fill(ps.occupantCount.begin(), ps.occupantCount.end(), 0);
+                if (fillLists) {
+                    for (size_t iPlace = 0; iPlace < ps.occupantCount.size(); iPlace++) {
+                        ps.occupantList[iPlace].clear();
+                    }
                 }
             }
 
@@ -116,31 +142,24 @@ namespace EpidemicSimCore {
                     PlaceSet& ps = placesByType[index];
                     if (personActivity == ps.activityType) {
                         int personPlaceIndex = p.placeIndex[index];
-                        ps.occupantList[personPlaceIndex].push_back((unsigned int)i);
+                        if (fillLists) {
+                            ps.occupantList[personPlaceIndex].push_back((unsigned int)i);
+                        }
+                        ps.occupantCount[personPlaceIndex]++;
                     }
                 }
-            }
+            }        
+        }
+
+
+        // counts and fills lists
+        void countAndFillLists(int hour) {
+            doCount<true>(hour);
         }
 
         // only counts occupants
         void countOnly(int hour) {
-            printf("OccupantCounter::countOnly persons.size=%zu\n", persons.size());
-            for (PlaceSet& ps : placesByType) {
-                std::fill(ps.occupantCount.begin(), ps.occupantCount.end(), 0);
-            }
-
-            for (size_t i = 0; i < persons.size(); i++) {
-                const PersonCore& p = persons[i];
-                const char personActivity = p.getActivity(hour);
-
-                for (size_t index = 0; index < placesByType.size(); index++) {
-                    PlaceSet& ps = placesByType[index];
-                    if (personActivity == ps.activityType) {
-                        int personPlaceIndex = p.placeIndex[index];
-                        ps.occupantCount[personPlaceIndex]++;
-                    }
-                }
-            }
+            doCount<false>(hour);
         }
 
         // passing the C++ objects like std::vector is risky: need to delete them or they leak
@@ -181,6 +200,7 @@ EMSCRIPTEN_BINDINGS(OccupantCounterModule) {
         .function("countOnly", &EpidemicSimCore::OccupantCounter::countOnly)
         .function("countAndFillLists", &EpidemicSimCore::OccupantCounter::countAndFillLists)
         .function("addPerson", &EpidemicSimCore::OccupantCounter::addPerson)
+        .function("prepare", &EpidemicSimCore::OccupantCounter::prepare)
         .function("updatePersonIsolating", &EpidemicSimCore::OccupantCounter::updatePersonIsolating)
         .class_function("registerNormalActivitySchedule", &EpidemicSimCore::OccupantCounter::registerNormalActivitySchedule)
         .class_function("registerSickActivitySchedule", &EpidemicSimCore::OccupantCounter::registerSickActivitySchedule)

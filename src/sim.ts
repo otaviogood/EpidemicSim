@@ -280,78 +280,13 @@ export class Sim {
             placeIndexArray.delete(); // annoying!
         }
 
-    }
-    clearOccupants() {
-        for (let i = 0; i < this.allHouseholds.length; i++) this.allHouseholds[i].currentOccupants = [];
-        for (let i = 0; i < this.allOffices.length; i++) this.allOffices[i].currentOccupants = [];
-        for (let i = 0; i < this.allSuperMarkets.length; i++) this.allSuperMarkets[i].currentOccupants = [];
+        this.occupantCounter.prepare();
+
     }
     // Allocate all the people to the places they will occupy for this timestep.
     occupyPlaces() {
-        this.clearOccupants();
         let currentStep = this.time_steps_since_start.getStepModDay();
-
-        let t0 = performance.now()
-        for (let i = 0; i < this.pop.length; i++) {
-            let person = this.pop[i];
-            let activity = person.getCurrentActivity(currentStep);
-            if (activity == ActivityType.home) {
-                this.allHouseholds[person.homeIndex].currentOccupants.push(i);
-            } else if (activity == ActivityType.work) {
-                this.allOffices[person.officeIndex].currentOccupants.push(i);
-            } else if (activity == ActivityType.shopping) {
-                this.allSuperMarkets[person.marketIndex].currentOccupants.push(i);
-            }
-        }
-        let t1 = performance.now()
-        this.tot_js_dt += t1 - t0;
-
-        // TODO: this should be event based or extremely perf-wasteful
-        for (let i = 0; i < this.pop.length; i++) {
-            let person = this.pop[i];
-            this.occupantCounter.updatePersonIsolating(person.id, person.isolating);
-        }
-
-        let wasm_t0 = performance.now()
         this.occupantCounter.countAndFillLists(currentStep);
-        let wasm_t1 = performance.now()
-        this.tot_wasm_dt += wasm_t1 - wasm_t0;
-
-
-        console.log("dt(js)=" + this.tot_js_dt);
-        console.log("dt(wasm)=" + this.tot_wasm_dt);
-        console.log("speedup=" + this.tot_js_dt / this.tot_wasm_dt);
-
-        this.check_wasm_occupancy("h", "allHouseholds");
-        this.check_wasm_occupancy("w", "allOffices");
-        this.check_wasm_occupancy("s", "allSuperMarkets");
-
-    }
-    check_wasm_occupancy(activity: string, referenceVarName: keyof Sim) {
-        // Work in progress!!
-        // checks the result against the javascript impl for testing purposes
-        // Since we don't call updatePersonSickMode, it will diverge after a few iters.
-        for (var i = 0; i < this[referenceVarName].length; i++) {
-            let a = this.occupantCounter.getOccupantCount(activity, i);
-            let b = this[referenceVarName][i].currentOccupants.length;
-
-            if (a != b) {
-                console.log(referenceVarName + " Error at" + i + " n_c=" + a + "n_js" + b);
-                break;
-            }
-        }
-        for (var i = 0; i < this[referenceVarName].length; i++) {
-            let a = this.occupantCounter.getOccupants(activity, i);
-            let b = this[referenceVarName][i].currentOccupants;
-
-            for (var j = 0; j < b.length; j++) {
-                if (a.get(j) != b[j]) {
-                    console.log(referenceVarName + " Error at" + i + " n_c=" + a + "n_js" + b);
-                    return;
-                }
-            }
-            a.delete();
-        }
     }
     run_simulation(num_time_steps: number) {
         for (let ts = 0; ts < num_time_steps; ts++) {
