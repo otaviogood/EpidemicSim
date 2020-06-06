@@ -26,10 +26,10 @@
                             <option :value="null" hidden>Select County</option>
                             <option value="-1">None</option>
                             <option
-                                v-for="(countyName, id) in $mapBounds.info[$mapBounds.defaultPlace].includedCounties"
-                                v-bind:key="id"
-                                :value="id"
-                                >{{ countyName }}</option
+                                v-for="(countyName, index) in $mapBounds.info[$mapBounds.defaultPlace].includedCounties"
+                                v-bind:key="index"
+                                :value="index"
+                                >{{ countyName[0] + ", " + countyName[1] }}</option
                             >
                         </select>
                     </label>
@@ -190,7 +190,7 @@ export default Vue.extend({
             date: null,
             milliseconds: 0,
             timerAccum: 0,
-            county: Vue.prototype.$mapBounds.info[Vue.prototype.$mapBounds.defaultPlace].includedCounties[0],
+            county: Vue.prototype.$mapBounds.info[Vue.prototype.$mapBounds.defaultPlace].includedCounties[0][0],
             person: {
                 age: -1,
                 id: -1,
@@ -350,10 +350,11 @@ export default Vue.extend({
         },
         changeCounty: function(e) {
             sim.selectedCountyIndex = parseInt(e.target.value);
-            this.county =
+            let countyInfo =
                 Vue.prototype.$mapBounds.info[Vue.prototype.$mapBounds.defaultPlace].includedCounties[
                     Math.max(0, sim.selectedCountyIndex)
                 ];
+            this.county = countyInfo[0];
             sim.draw();
         },
         changePersonIndex: function(e) {

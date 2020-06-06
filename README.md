@@ -35,10 +35,17 @@ County data from here: https://public.opendatasoft.com/explore/dataset/us-county
 Download geojson, whole dataset.  
 It will be used by processBuildings.js to put each house in a county.  
 
-Define map boundaries in utils/mapBounds.js
+Define counties to include in utils/mapBounds.js
+
+Download census CSV files here: https://www.census.gov/quickfacts/fact/table/sanfranciscocountycalifornia/HCN010212  
+Get whatever counties are relevant and put the CSVs in sourceData/  
+Name them like this... 'QuickFacts_santaclaracountycalifornia.csv'  
+
+For maps, I take a screenshot from openstreetmap.org by going to 'Export', then putting in the lat/lon, then go to 'share' icon and set custom dimensions and export an image. There's probably a much better way to do this. :)  
 
 inside utils, run:
 ```sh
+node findMapBounds.js
 node openstreetmapFilter.js
 node geotiff.js
 node processBuildings.js

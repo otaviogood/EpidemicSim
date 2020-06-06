@@ -5,12 +5,15 @@ const fs = require("fs");
 const GeoTIFF = require("geotiff");
 var MersenneTwister = require("mersenne-twister");
 var rand = new MersenneTwister(1234567890);
-
+const misc = require("./misc");
 const mapBounds = require("./mapBounds");
-const boundsLatMin = mapBounds.info[mapBounds.defaultPlace].latMin;
-const boundsLatMax = mapBounds.info[mapBounds.defaultPlace].latMax;
-const boundsLonMin = mapBounds.info[mapBounds.defaultPlace].lonMin;
-const boundsLonMax = mapBounds.info[mapBounds.defaultPlace].lonMax;
+
+let countyBoundsFile = "processedData/" + mapBounds.defaultPlace + "_AllCountyBounds.json";
+let allBounds = misc.loadJSONMap(countyBoundsFile);
+const boundsLatMin = allBounds.get("-1")["min"][0];
+const boundsLatMax = allBounds.get("-1")["max"][0];
+const boundsLonMin = allBounds.get("-1")["min"][1];
+const boundsLonMax = allBounds.get("-1")["max"][1];
 
 // From https://dataforgood.fb.com/docs/high-resolution-population-density-maps-demographic-estimates-documentation/
 // Data here: https://data.humdata.org/dataset/united-states-high-resolution-population-density-maps-demographic-estimates
@@ -23,12 +26,6 @@ const boundsLonMax = mapBounds.info[mapBounds.defaultPlace].lonMax;
 // I used QGIS software to export a layer inside of the lat/lon bounds.
 // let fileName = "../sourceData/sf_raster.tif";  // This is faster so I can iterate on ideas. Should be same output as original file.
 let fileName = "../sourceData/population_usa28_-130_2019-07-01.tif";
-
-// San Francisco limits -122.526, -122.354, 37.708, 37.815
-// let latMin = 37.708;
-// let latMax = 37.815;
-// let lonMin = -122.526;
-// let lonMax = -122.354;
 
 function toDegrees(angle) {
     return angle * (180 / Math.PI);

@@ -5,8 +5,17 @@ const fs = require("fs");
 var osmread = require("osm-read/osm-read-pbf");
 let sleep = require("util").promisify(setTimeout);
 
+const misc = require("./misc");
+const countyInfo = require("./countyUtils");
 // San Francisco limits -122.526, -122.354, 37.708, 37.815
 const mapBounds = require("./mapBounds");
+
+let countyBoundsFile = "processedData/" + mapBounds.defaultPlace + "_AllCountyBounds.json";
+let allBounds = misc.loadJSONMap(countyBoundsFile);
+const boundsLatMin = allBounds.get("-1")["min"][0];
+const boundsLatMax = allBounds.get("-1")["max"][0];
+const boundsLonMin = allBounds.get("-1")["min"][1];
+const boundsLonMax = allBounds.get("-1")["max"][1];
 
 const noCacheHack = false; // Use this for very large files... It can be fixed better, but this is placeholder.
 
@@ -37,10 +46,10 @@ async function localFilterNodes() {
         node: function(node) {
             let lat = parseFloat(node.lat);
             let lon = parseFloat(node.lon);
-            if (lat < mapBounds.info[mapBounds.defaultPlace].latMin) return;
-            if (lat > mapBounds.info[mapBounds.defaultPlace].latMax) return;
-            if (lon < mapBounds.info[mapBounds.defaultPlace].lonMin) return;
-            if (lon > mapBounds.info[mapBounds.defaultPlace].lonMax) return;
+            if (lat < boundsLatMin) return;
+            if (lat > boundsLatMax) return;
+            if (lon < boundsLonMin) return;
+            if (lon > boundsLonMax) return;
             //  let s = JSON.stringify(node);
             let s = JSON.stringify({ "lat": node.lat, "lon": node.lon, "tags": node.tags });
             nodeMap.set(node.id, node);
@@ -106,7 +115,7 @@ function hasWordFromList(bigString, wordList) {
 // Find all OSM "nodes" and "ways" that have certain strings in them, excluding other strings.
 // Write out the filtered list to a json file.
 // nodeMap and wayMap have to already be loaded.
-function extractPlaces(keywords, badWords, targetFile) {
+async function extractPlaces(keywords, badWords, targetFile) {
     console.log("searching nodes for: " + keywords);
     console.log("excluding: " + badWords);
     let allPlaces = [];
@@ -137,6 +146,11 @@ function extractPlaces(keywords, badWords, targetFile) {
             // console.log(val);
         }
     }
+
+    // Append the county ID onto each location in the list.
+    let countyStuff = new countyInfo.CountyInfo();
+    allPlaces = await countyStuff.tagListWithCountyIndexAndFilter(allPlaces);
+
     fs.writeFileSync("processedData/" + targetFile, JSON.stringify(allPlaces, null, "\t"));
     console.log("Wrote file: " + "processedData/" + targetFile);
 }
@@ -159,14 +173,14 @@ async function doStuff() {
     if (wayMap.size <= 0) wayMap = loadJSONMap(localWaysFileName);
     // prettier-ignore
     // Extract business locations
-    extractPlaces(["department","office","business","parking","pharmacy","coffee","sandwich","deli","cafe","bank","shop","site","center","plaza","hotel","industr","store","auto","garage","museum","square","tower"],
+    await extractPlaces(["department","office","business","parking","pharmacy","coffee","sandwich","deli","cafe","bank","shop","site","center","plaza","hotel","industr","store","auto","garage","museum","square","tower"],
                   ["garden"], mapBounds.defaultPlace + "_Businesses.json")
-    extractPlaces(
+    await extractPlaces(
         ["hospital", "medical center"],
         ["pet", "veterinary", "animal", "hospitality", "marijuana"],
         mapBounds.defaultPlace + "_Hospitals.json"
     );
-    extractPlaces(["supermarket"], [], mapBounds.defaultPlace + "_Supermarkets.json");
+    await extractPlaces(["supermarket"], [], mapBounds.defaultPlace + "_Supermarkets.json");
 }
 doStuff();
 

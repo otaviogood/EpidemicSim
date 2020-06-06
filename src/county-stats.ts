@@ -90,7 +90,7 @@ export class CountyStats {
             ctx.fillRect(31 + 29 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30, 0, 31, cHeight); // nov-dec
             // Draw the first letter of each month in the correct x-position
             const months = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
-            ctx.fillStyle = "#386082";
+            ctx.fillStyle = "#456789";
             for (let i = 0; i < months.length; i++) {
                 ctx.fillText(months[i], i * 30.4 + 10, cHeight - 4);
             }

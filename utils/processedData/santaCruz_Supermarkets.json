@@ -2,186 +2,271 @@
 	[
 		36.9805889,
 		-122.0082911,
-		"Staff of Life"
+		"Staff of Life",
+		0
 	],
 	[
 		36.9728586,
 		-122.0255911,
-		"New Leaf Community Market"
+		"New Leaf Community Market",
+		0
 	],
 	[
 		36.9685655,
 		-122.0287856,
-		"Hernandez Market"
+		"Hernandez Market",
+		0
 	],
 	[
 		36.9653543,
 		-122.0178469,
-		"Beach Market"
+		"Beach Market",
+		0
 	],
 	[
 		36.975642,
 		-121.983443,
-		"Live Oak Super"
+		"Live Oak Super",
+		0
 	],
 	[
 		36.9371467,
 		-121.8627937,
-		"El Patio"
+		"El Patio",
+		0
 	],
 	[
 		37.1204485,
 		-121.9287522,
-		"Summit Store"
+		"Summit Store",
+		0
 	],
 	[
 		36.9785814,
 		-121.9086088,
-		"Safeway"
+		"Safeway",
+		0
 	],
 	[
 		37.0472454,
 		-122.0271583,
-		"Nob Hill"
+		"Nob Hill",
+		0
 	],
 	[
 		37.0607155,
 		-122.0065764,
-		"Scotts Valley Market"
+		"Scotts Valley Market",
+		0
 	],
 	[
 		36.9742625,
 		-121.9635827,
-		"Whole Foods Market"
+		"Whole Foods Market",
+		0
+	],
+	[
+		36.9712258,
+		-121.8196011,
+		"Cactus Corner Grocery",
+		0
+	],
+	[
+		36.9360488,
+		-121.7443663,
+		"Farm Fresh Produce",
+		0
+	],
+	[
+		36.9069407,
+		-121.7542756,
+		"Don Rafa's",
+		0
 	],
 	[
 		36.9727459,
 		-122.0261985,
-		"True Olive Connection"
+		"True Olive Connection",
+		0
 	],
 	[
 		36.9807559,
 		-121.956046,
-		"Nob Hill"
+		"Nob Hill",
+		0
 	],
 	[
 		36.9778385,
 		-121.9705159,
-		"Trader Joe's"
+		"Trader Joe's",
+		0
 	],
 	[
 		36.976468,
 		-121.8865145,
-		"Palm Deli"
+		"Palm Deli",
+		0
 	],
 	[
 		37.0892813,
 		-122.0892781,
-		"Ben Lomond Market"
+		"Ben Lomond Market",
+		0
+	],
+	[
+		36.9168953,
+		-121.7706066,
+		"La Princesa Market",
+		0
 	],
 	[
 		36.9692871,
 		-121.9635974,
-		"New Leaf Community Market"
+		"New Leaf Community Market",
+		0
 	],
 	[
 		36.9717761,
 		-121.9658793,
-		"Save-Mart"
+		"Save-Mart",
+		0
 	],
 	[
 		36.9818334,
 		-122.0058536,
-		"Grocery Outlet"
+		"Grocery Outlet",
+		0
 	],
 	[
 		36.9817188,
 		-121.9106418,
-		"Aptos Natural Foods"
+		"Aptos Natural Foods",
+		0
+	],
+	[
+		36.9192993,
+		-121.7805847,
+		"Nob Hill Foods",
+		0
 	],
 	[
 		36.978451,
 		-121.9004238,
-		"New Leaf Market"
+		"New Leaf Market",
+		0
 	],
 	[
 		36.9742657,
 		-122.0244444,
-		"Trader Joe's"
+		"Trader Joe's",
+		0
 	],
 	[
 		36.9618038,
 		-122.0455832,
-		"Safeway"
+		"Safeway",
+		0
 	],
 	[
 		36.9729334,
 		-122.0256849,
-		"New Leaf Community Markets"
+		"New Leaf Community Markets",
+		0
 	],
 	[
 		36.9787475,
 		-122.0149922,
-		"Whole Foods Market"
+		"Whole Foods Market",
+		0
 	],
 	[
 		36.9818251,
 		-122.0073403,
-		"Safeway"
+		"Safeway",
+		0
+	],
+	[
+		36.9395975,
+		-121.7753517,
+		"Safeway",
+		0
 	],
 	[
 		36.9763715,
 		-122.0160258,
-		"Shopper's Corner"
+		"Shopper's Corner",
+		0
 	],
 	[
 		36.9591916,
 		-122.0467588,
-		"New Leaf Community Market"
+		"New Leaf Community Market",
+		0
 	],
 	[
 		37.0518427,
 		-122.0730264,
-		"Wild Roots Market"
+		"Wild Roots Market",
+		0
+	],
+	[
+		37.1550263,
+		-122.133155,
+		"Mountain Store",
+		0
 	],
 	[
 		37.0327736,
 		-121.9467879,
-		"Casalegno's"
+		"Casalegno's",
+		0
 	],
 	[
 		36.9721863,
 		-122.0178951,
-		"La Plaza Market"
+		"La Plaza Market",
+		0
+	],
+	[
+		36.9885971,
+		-121.8073501,
+		"Corralitos Market & Sausage Company",
+		0
 	],
 	[
 		36.9741645,
 		-121.8897822,
-		"Deluxe Foods"
+		"Deluxe Foods",
+		0
 	],
 	[
 		37.1255881,
 		-122.123002,
-		"Johnnie's Supermarket"
+		"Johnnie's Supermarket",
+		0
 	],
 	[
 		37.1248781,
 		-122.1222915,
-		"New Leaf Community Market"
+		"New Leaf Community Market",
+		0
 	],
 	[
 		37.046542,
 		-122.0312332,
-		"Safeway"
+		"Safeway",
+		0
 	],
 	[
 		36.9856719,
 		-121.9628784,
-		"Safeway"
+		"Safeway",
+		0
 	],
 	[
 		37.0531069,
 		-122.0683555,
-		"Safeway 0786"
+		"Safeway 0786",
+		0
 	]
 ]

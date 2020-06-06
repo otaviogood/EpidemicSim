@@ -55,14 +55,15 @@ export class Sim {
     allOffices: Place[] = [];
     allSuperMarkets: Place[] = [];
     allHospitals: Place[] = [];
-    latMin: number = mapBounds.info[mapBounds.defaultPlace].latMin;
-    latMax: number = mapBounds.info[mapBounds.defaultPlace].latMax;
-    lonMin: number = mapBounds.info[mapBounds.defaultPlace].lonMin;
-    lonMax: number = mapBounds.info[mapBounds.defaultPlace].lonMax;
-    latAdjust: number;
+    latMin: number = 0;
+    latMax: number = 0;
+    lonMin: number = 0;
+    lonMax: number = 0;
+    latAdjust: number = 0;
     countyPolygons: number[][] = [];
+    allCountyBounds: any = [];
 
-    time_steps_since_start: Params.TimeStep;
+    time_steps_since_start: Params.TimeStep = new Params.TimeStep();
 
     selectedHouseholdIndex = -1;
     selectedPersonIndex = 0;
@@ -84,8 +85,6 @@ export class Sim {
         this.params = params;
         this.rand = new MersenneTwister(params.randomSeed);
         this.rfast = new RandomFast(params.randomSeed);
-        this.latAdjust = Math.cos(util.toRadians((this.latMin + this.latMax) * 0.5)); // Adjust for curved earth (approximately with a point)
-        this.time_steps_since_start = new Params.TimeStep();
     }
     // Normalizes positions so they are in the [0..1] range on x and y.
     // Returns [x, y] tuple.
@@ -99,6 +98,16 @@ export class Sim {
 
     async setup() {
         console.log("-------- SETUP --------");
+        // Load lat/lon bounds
+        let jsonTemp1 = await fetch("datafiles/" + mapBounds.defaultPlace + "_AllCountyBounds.json");
+        this.allCountyBounds = await jsonTemp1.json();
+        // -1 indexes the bounds for all the counties, not just one.
+        this.latMin = this.allCountyBounds["-1"]["min"][0];
+        this.latMax = this.allCountyBounds["-1"]["max"][0];
+        this.lonMin = this.allCountyBounds["-1"]["min"][1];
+        this.lonMax = this.allCountyBounds["-1"]["max"][1];
+        this.latAdjust = Math.cos(util.toRadians((this.latMin + this.latMax) * 0.5)); // Adjust for curved earth (approximately with a point)
+
         // TODO: use promise.all() on all these awaits???
         img = await loadImage("datafiles/" + mapBounds.info[mapBounds.defaultPlace].mapImage);
 
@@ -147,7 +156,7 @@ export class Sim {
         util.shuffleArrayInPlace(this.allOffices, this.rand);
         for (let i = 0; i < this.allOffices.length; i++) this.allOffices[i].latLonToPos(this);
 
-        this.countyStats.init(Object.keys(mapBounds.info[mapBounds.defaultPlace].includedCounties).length);
+        this.countyStats.init(mapBounds.info[mapBounds.defaultPlace].includedCounties.length);
 
         // Allocate people to their houses and offices.
         console.log("Generating people data...");
@@ -627,13 +636,14 @@ export class Sim {
             let cx = storedTransform.e;
             let cy = storedTransform.f;
             let cscale = storedTransform.a; // assume aspect ratio 1
+            let amount = 1.03125;
             if (scale > 0) {
                 ctx.translate(canvas.width * 0.5, canvas.height * 0.5);
-                ctx.scale(1 / 1.125, 1 / 1.125);
+                ctx.scale(1 / amount, 1 / amount);
                 ctx.translate(-canvas.width * 0.5, -canvas.height * 0.5);
             } else {
                 ctx.translate(canvas.width * 0.5, canvas.height * 0.5);
-                ctx.scale(1.125, 1.125);
+                ctx.scale(amount, amount);
                 ctx.translate(-canvas.width * 0.5, -canvas.height * 0.5);
             }
         }
