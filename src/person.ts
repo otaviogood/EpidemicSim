@@ -65,26 +65,76 @@ export class Person {
     county = -1;
 
     // flags
-    infected = false;
-    contagious = false;
-    symptomsCurrent = SymptomsLevels.none; // 0 undefined, 1 is mild to moderate (80%), 2 is severe (14%), 3 is critical (6%)
-    symptomaticOverall = true;
-    dead = false;
-    recovered = false;
-    criticalIfSevere = false;
-    isolating = false;
+    //infected = false;
+    //contagious = false;
+    //symptomsCurrent = SymptomsLevels.none; // 0 undefined, 1 is mild to moderate (80%), 2 is severe (14%), 3 is critical (6%)
+    //symptomaticOverall = true;
+    //dead = false;
+    //recovered = false;
+    //criticalIfSevere = false;
+    //isolating = false;
 
     // These are times of onset of various things
-    contagiousTrigger = Number.MAX_SAFE_INTEGER;
+    /*contagiousTrigger = Number.MAX_SAFE_INTEGER;
     endContagiousTrigger = Number.MAX_SAFE_INTEGER;
     symptomsTrigger = Number.MAX_SAFE_INTEGER;
     endSymptomsTrigger = Number.MAX_SAFE_INTEGER;
     deadTrigger = Number.MAX_SAFE_INTEGER;
     severeTrigger = Number.MAX_SAFE_INTEGER;
     isolationTrigger = Number.MAX_SAFE_INTEGER; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
+    */
 
-    constructor(params: Params.Base, rand: MersenneTwister, id: number) {
-        this.id = id;
+    get infected(): boolean { return <boolean>this.wasmPerson.infected }
+    set infected(x: boolean) { this.wasmPerson.infected = x; }
+
+    get contagious(): boolean { return <boolean>this.wasmPerson.contagious }
+    set contagious(x: boolean) { this.wasmPerson.contagious = x; }
+
+    get symptomsCurrent(): number { return <number>this.wasmPerson.symptomsCurrent }
+    set symptomsCurrent(x: number) { this.wasmPerson.symptomsCurrent = x; }
+
+    get symptomaticOverall(): boolean { return <boolean>this.wasmPerson.symptomaticOverall }
+    set symptomaticOverall(x: boolean) { this.wasmPerson.symptomaticOverall = x; }
+
+    get dead(): boolean { return <boolean>this.wasmPerson.dead }
+    set dead(x: boolean) { this.wasmPerson.dead = x; }
+
+    get recovered(): boolean { return <boolean>this.wasmPerson.recovered }
+    set recovered(x: boolean) { this.wasmPerson.recovered = x; }
+
+    get criticalIfSevere(): boolean { return <boolean>this.wasmPerson.criticalIfSevere }
+    set criticalIfSevere(x: boolean) { this.wasmPerson.criticalIfSevere = x; }
+
+    get isolating(): boolean { return <boolean>this.wasmPerson.isolating }
+    set isolating(x: boolean) { this.wasmPerson.isolating = x; }
+
+    get contagiousTrigger(): number { return <number>this.wasmPerson.contagiousTrigger }
+    set contagiousTrigger(x: number) { this.wasmPerson.contagiousTrigger = x; }
+
+    get endContagiousTrigger(): number { return <number>this.wasmPerson.endContagiousTrigger }
+    set endContagiousTrigger(x: number) {
+        this.wasmPerson.endContagiousTrigger = x; if(this.id < 4) console.log("set endContagiousTrigger in=" + x + " == " + this.wasmPerson.endContagiousTrigger ); }
+
+    get symptomsTrigger(): number { return <number>this.wasmPerson.symptomsTrigger }
+    set symptomsTrigger(x: number) { this.wasmPerson.symptomsTrigger = x; }
+
+    get endSymptomsTrigger(): number { return <number>this.wasmPerson.endSymptomsTrigger }
+    set endSymptomsTrigger(x: number) { this.wasmPerson.endSymptomsTrigger = x; }
+
+    get deadTrigger(): number { return <number>this.wasmPerson.deadTrigger }
+    set deadTrigger(x: number) { this.wasmPerson.deadTrigger = x; }
+
+    get severeTrigger(): number { return <number>this.wasmPerson.severeTrigger }
+    set severeTrigger(x: number) { this.wasmPerson.severeTrigger = x; }
+
+    get isolationTrigger(): number { return <number>this.wasmPerson.isolationTrigger }
+    set isolationTrigger(x: number) { this.wasmPerson.isolationTrigger = x; }
+
+    wasmPerson: any = null;
+
+    associateWasmSimAndInit(wasmSim: any, params: Params.Base, rand: MersenneTwister) {
+        this.wasmPerson = wasmSim.getPerson(this.id);
+        // sync all vars!
 
         // Find person's main activity (what they do during the day)
         this.currentActivity = this.getPersonDefaultActivity();
@@ -153,6 +203,11 @@ export class Person {
             let [temp] = util.RandGaussian(rand, this.symptomsTrigger + util.fromDays(2), util.fromDays(1));
             this.isolationTrigger = util.clamp(temp, this.symptomsTrigger, this.endSymptomsTrigger);
         }
+    }
+
+
+    constructor(params: Params.Base, rand: MersenneTwister, id: number) {
+        this.id = id;
     }
 
     getPersonDefaultActivityIndex(): number {

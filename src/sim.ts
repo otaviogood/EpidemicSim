@@ -242,9 +242,6 @@ export class Sim {
         // this.pop.index(near).occupation = 2;
 
 
-        this.pop[this.selectedPersonIndex].drawTimeline(<HTMLCanvasElement>document.getElementById("timeline-canvas"));
-        window.requestAnimationFrame(() => this.draw());
-
         this.paused = true; // locks the sim while loading
         console.log("Loading wasm module");
         await Module().then(function (loadedModule: any) {
@@ -280,25 +277,66 @@ export class Sim {
 
         this.wasmSim.prepare();
 
+        console.log("associateWasmSimAndInit start");
+
+        for (var j = 0; j < this.pop.length; j++) {
+            this.pop[j].associateWasmSimAndInit(this.wasmSim, this.params, this.rand);
+        }
+
+        console.log("associateWasmSimAndInit finish");
+
+        // sick
+
+        this.pop[this.selectedPersonIndex].drawTimeline(<HTMLCanvasElement>document.getElementById("timeline-canvas"));
+        window.requestAnimationFrame(() => this.draw());
+
         for (let i = 0; i < 31; i++) {
+            this.wasmSim.becomeSick(i);
             this.pop[i].becomeSick(this);
         }
+
+        this.run_simulation(1);
     }
     // Allocate all the people to the places they will occupy for this timestep.
     occupyPlaces() {
         let currentStep = this.time_steps_since_start.getStepModDay();
-        this.wasmSim.occupantCounter.countAndFillLists(currentStep);
+        this.wasmSim.getOccupantCounter().countAndFillLists(currentStep);
     }
     run_simulation(num_time_steps: number) {
         for (let ts = 0; ts < num_time_steps; ts++) {
             this.params.doInterventionsForThisTimestep(this.time_steps_since_start);
             this.occupyPlaces();
-            for (let i = 0; i < this.pop.length; i++) {
-                let person = this.pop[i];
-                person.stepTime(this, this.rand);
-                person.spread(this.time_steps_since_start, i, this.pop, this.rand, this);
-            }
+
+            //for (let i = 0; i < this.pop.length; i++) {
+                //let person = this.pop[i];
+                //person.stepTime(this, this.rand);
+                //person.spread(this.time_steps_since_start, i, this.pop, this.rand, this);
+            //}
             this.wasmSim.runPopulationStep(this.time_steps_since_start.raw);
+
+            var arr = this.wasmSim.lastStepInfected;
+            for (let i = 0; i < arr.size(); i++) {
+                let p = this.pop[arr.get(i)];
+                this.countyStats.counters[p.county][GraphType.totalInfected]++;
+                this.countyStats.counters[p.county][GraphType.currentInfected]++;
+            }
+            arr.delete();
+
+            arr = this.wasmSim.lastStepRecovered;
+            for (let i = 0; i < arr.size(); i++) {
+                let p = this.pop[arr.get(i)];
+                this.countyStats.counters[p.county][GraphType.currentInfected]--;
+            }
+            arr.delete();
+
+            arr = this.wasmSim.lastStepDead;
+            for (let i = 0; i < arr.size(); i++) {
+                let p = this.pop[arr.get(i)];
+                this.countyStats.counters[p.county][GraphType.totalDead]++;
+                this.countyStats.counters[p.county][GraphType.currentInfected]--;
+            }
+            arr.delete();
+
             this.time_steps_since_start.increment();
         }
 

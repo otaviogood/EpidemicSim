@@ -121,6 +121,7 @@ export class TestPerson {
         );
     }
     runTests(params: Params.Base) {
+        return;
         // ------------------ test Person virus model --------------------------
         console.log("-------- RUNNING " + TestPerson.numSamples + " TESTS... --------");
         let timer = performance.now();
