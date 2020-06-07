@@ -72,7 +72,7 @@ export class Sim {
     lastMouseY = -1;
     selectedCountyIndex = -1;
 
-    occupantCounter: any = null;
+    wasmSim: any = null;
 
     // ---- visuals ----
     canvasWidth = 0;
@@ -240,9 +240,7 @@ export class Sim {
         //     this.pop.index(near[i]).occupation = 2;
         // }
         // this.pop.index(near).occupation = 2;
-        for (let i = 0; i < 31; i++) {
-            this.pop[i].becomeSick(this);
-        }
+
 
         this.pop[this.selectedPersonIndex].drawTimeline(<HTMLCanvasElement>document.getElementById("timeline-canvas"));
         window.requestAnimationFrame(() => this.draw());
@@ -257,16 +255,16 @@ export class Sim {
 
         // sets up the activities
         for (var j = 0; j < Person.activitiesNormal.length; j++) {
-            moduleInstance.OccupantCounter.registerNormalActivitySchedule(Person.activitiesNormal[j]);
+            moduleInstance.Sim.registerNormalActivitySchedule(Person.activitiesNormal[j]);
         }
         for (var j = 0; j < Person.activitiesWhileSick.length; j++) {
-            moduleInstance.OccupantCounter.registerSickActivitySchedule(Person.activitiesWhileSick[j]);
+            moduleInstance.Sim.registerSickActivitySchedule(Person.activitiesWhileSick[j]);
         }
 
-        this.occupantCounter = new moduleInstance.OccupantCounter(this.pop.length);
-        this.occupantCounter.setNumberOfPlacesForActivity('h', this.allHouseholds.length);
-        this.occupantCounter.setNumberOfPlacesForActivity('w', this.allOffices.length);
-        this.occupantCounter.setNumberOfPlacesForActivity('s', this.allSuperMarkets.length);
+        this.wasmSim = new moduleInstance.Sim(this.pop.length);
+        this.wasmSim.setNumberOfPlacesForActivity('h', this.allHouseholds.length, this.params.home_density);
+        this.wasmSim.setNumberOfPlacesForActivity('w', this.allOffices.length, this.params.office_density);
+        this.wasmSim.setNumberOfPlacesForActivity('s', this.allSuperMarkets.length, this.params.shopping_density);
         // not used in reference js yet: this.occupantCounter.setNumberOfPlacesForActivity('o', this.allHospitals.length);
 
         for (var j = 0; j < this.pop.length; j++) {
@@ -276,17 +274,20 @@ export class Sim {
             placeIndexArray.push_back(person.officeIndex);
             placeIndexArray.push_back(person.marketIndex);
             placeIndexArray.push_back(person.hospitalIndex);
-            this.occupantCounter.addPerson(new moduleInstance.PersonCore(person.id, placeIndexArray, person.getPersonDefaultActivityIndex()));
+            this.wasmSim.addPerson(new moduleInstance.PersonCore(person.id, placeIndexArray, person.getPersonDefaultActivityIndex()));
             placeIndexArray.delete(); // annoying!
         }
 
-        this.occupantCounter.prepare();
+        this.wasmSim.prepare();
 
+        for (let i = 0; i < 31; i++) {
+            this.pop[i].becomeSick(this);
+        }
     }
     // Allocate all the people to the places they will occupy for this timestep.
     occupyPlaces() {
         let currentStep = this.time_steps_since_start.getStepModDay();
-        this.occupantCounter.countAndFillLists(currentStep);
+        this.wasmSim.occupantCounter.countAndFillLists(currentStep);
     }
     run_simulation(num_time_steps: number) {
         for (let ts = 0; ts < num_time_steps; ts++) {
@@ -297,6 +298,7 @@ export class Sim {
                 person.stepTime(this, this.rand);
                 person.spread(this.time_steps_since_start, i, this.pop, this.rand, this);
             }
+            this.wasmSim.runPopulationStep(this.time_steps_since_start.raw);
             this.time_steps_since_start.increment();
         }
 

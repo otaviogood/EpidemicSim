@@ -237,7 +237,7 @@ export class Person {
         this.symptomsCurrent = 0;
         this.contagious = false;
         this.isolating = false;
-        if (sim) sim.occupantCounter.updatePersonIsolating(this.id, false);
+        if (sim) sim.wasmSim.updatePersonIsolating(this.id, false);
         this.currentActivity = this.getPersonDefaultActivity();
         if (sim && this.county >= 0) sim.countyStats.counters[this.county][GraphType.currentInfected]--;
     }
@@ -268,7 +268,7 @@ export class Person {
 
     becomeIsolated(sim: Sim | null) {
         this.isolating = true;
-        if(sim) sim.occupantCounter.updatePersonIsolating(this.id, true);
+        if(sim) sim.wasmSim.updatePersonIsolating(this.id, true);
         this.currentActivity =
             Person.activitiesWhileSick[RandomFast.HashIntApprox(this.id, 0, Person.activitiesWhileSick.length)];
     }
@@ -330,9 +330,9 @@ export class Person {
 
     spreadInAPlace(activityType: string, placeIndex: number, density: number, pop: Person[], rand: MersenneTwister, sim: Sim, seed: number) {
         let prob = sim.params.prob_baseline_timestep * this.probabilityMultiplierFromDensity(density);
-        let nOccupants = sim.occupantCounter.getOccupantCount(activityType, placeIndex);
+        let nOccupants = sim.wasmSim.occupantCounter.getOccupantCount(activityType, placeIndex);
         let numSpread = this.howManyCatchItInThisTimeStep(rand, prob, nOccupants);
-        var spreatToList = sim.occupantCounter.getNRandomOccupants(activityType, placeIndex, numSpread); // selects n random occupants
+        var spreatToList = sim.wasmSim.occupantCounter.getNRandomOccupants(activityType, placeIndex, numSpread); // selects n random occupants
         for (let i = 0; i < numSpread; i++) {
             let targetIndex = spreatToList.get(i);
             if (pop[targetIndex].isVulnerable) pop[targetIndex].becomeSick(sim);
