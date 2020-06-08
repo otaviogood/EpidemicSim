@@ -14,6 +14,10 @@
 
 #if __has_include(<emscripten/bind.h>)
 #include <emscripten/bind.h>
+#include <emscripten/val.h>
+#define HAS_EMSCRIPTEN 1
+#else
+#define HAS_EMSCRIPTEN 0
 #endif
 
 // constructor in global namespace. 
@@ -62,6 +66,11 @@ namespace EpidemicSimCore {
         // 0..1
         float random() {
             return m_distribution(m_generator);
+        }
+
+        int random_int(int a, int b) {
+            std::uniform_int_distribution<int> distribution(a, b-1);
+            return distribution(m_generator);
         }
 
         std::random_device rd;
@@ -195,13 +204,13 @@ namespace EpidemicSimCore {
         unsigned int id = 0; // TODO: uint enough?
         double time_since_infected = 0;
         // These are times of onset of various things
-        double contagiousTrigger = INT32_MAX;
-        double endContagiousTrigger = INT32_MAX;
-        double symptomsTrigger = INT32_MAX;
-        double endSymptomsTrigger = INT32_MAX;
-        double deadTrigger = INT32_MAX;
-        double severeTrigger = INT32_MAX;
-        double isolationTrigger = INT32_MAX; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
+        float contagiousTrigger = (float)INT32_MAX;
+        float endContagiousTrigger = (float)INT32_MAX;
+        float symptomsTrigger = (float)INT32_MAX;
+        float endSymptomsTrigger = (float)INT32_MAX;
+        float deadTrigger = (float)INT32_MAX;
+        float severeTrigger = (float)INT32_MAX;
+        float isolationTrigger = (float)INT32_MAX; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
         int symptomsCurrent = SymptomsLevels::none;
         
         bool recovered = false;
@@ -250,8 +259,8 @@ namespace EpidemicSimCore {
         void endSymptoms();
         void endContagious();
         void becomeSevereOrCritical();
-        void becomeIsolated();
-        bool inRange(bool condition, int start, int end) {
+        void becomeIsolated(Sim* sim);
+        bool inRange(bool condition, float start, float end) {
             return condition && time_since_infected >= start && time_since_infected < end;
         }
 
@@ -265,7 +274,7 @@ namespace EpidemicSimCore {
 
     template<bool fillLists>
     void OccupantCounter::doCount(int hour) {
-        printf("OccupantCounter::doCount personPlaceInfo.size=%zu\n", personPlaceInfo.size());
+        if(verbose > 0) printf("OccupantCounter::doCount personPlaceInfo.size=%zu\n", personPlaceInfo.size());
 
         for (size_t index = 0; index < sim->placesByType.size(); index++) {
             Sim::PlaceSet& ps = sim->placesByType[index];
@@ -303,9 +312,10 @@ namespace EpidemicSimCore {
     }
 
     PersonPlaceOnly::PersonPlaceOnly(const PersonCore& p) {
+        isolating = p.isolating;
+        activityIndex = p.activityIndex;
         for (int i = 0; i < PERSON_MAX_PLACE_TYPES; i++) {
             placeIndex[i] = p.placeIndex[i];
-            activityIndex = p.activityIndex;
         }
     }
 
@@ -328,7 +338,6 @@ namespace EpidemicSimCore {
 
     bool PersonCore::stepTime(Sim* sim, RNG& rand) {
         if (isSick()) {
-            //printf("id=%u stepTime !cont=%d dt=%d tr=%f tr_end=%f\n", id, !contagious, time_since_infected, contagiousTrigger, endContagiousTrigger);
             if (inRange(!contagious, contagiousTrigger, endContagiousTrigger)) becomeContagious();
             if (inRange(symptomsCurrent == SymptomsLevels::none, symptomsTrigger, endSymptomsTrigger)) becomeSymptomy();
             if (symptomsCurrent != SymptomsLevels::none && symptomaticOverall && time_since_infected >= endSymptomsTrigger)
@@ -345,7 +354,7 @@ namespace EpidemicSimCore {
                 becomeDead(sim);
                 if (sim) sim->totalDead++;
             }
-            if (symptomsCurrent == SymptomsLevels::none && time_since_infected >= isolationTrigger) becomeIsolated();
+            if (symptomsCurrent == SymptomsLevels::none && time_since_infected >= isolationTrigger) becomeIsolated(sim);
 
             time_since_infected = time_since_infected + 1;
             return true;
@@ -379,7 +388,6 @@ namespace EpidemicSimCore {
         time_since_infected = 0.0;
         infected = true;
         if (sim) {
-            // TODO VIZ
             //let info : [number, number, number] = [xpos, ypos, sim.time_steps_since_start];
             //sim.infectedVisuals.push(info);
             sim->totalInfected++;
@@ -392,6 +400,10 @@ namespace EpidemicSimCore {
     }
 
     void PersonCore::becomeContagious() {
+        if (symptomsCurrent != SymptomsLevels::none) {
+            printf("becomeSymptomy %f %f - %f %f\n", contagiousTrigger, endContagiousTrigger, endContagiousTrigger, endSymptomsTrigger);
+        }
+
         util_assert(infected, "ERROR: contagious without being infected." + std::to_string(id));
         util_assert(symptomsCurrent == SymptomsLevels::none, "ERROR: contagious after having symptoms - maybe not worst thing?" + std::to_string(id));
         util_assert(!dead, "ERROR: already dead!" + std::to_string(id));
@@ -430,12 +442,14 @@ namespace EpidemicSimCore {
         symptomsCurrent = SymptomsLevels::none;
         contagious = false;
         isolating = false;
+        sim->occupantCounter->personPlaceInfo[id].isolating = false;
         sim->lastStepRecovered.push_back(id);
-
-        // TODO(not needed?) currentActivity = getPersonDefaultActivity();
     }
 
     void PersonCore::becomeSevereOrCritical() {
+        if (symptomsCurrent == SymptomsLevels::none) {
+            printf("becomeSevereOrCritical severe %f - symptomsTrigger %f %f\n", severeTrigger, symptomsTrigger, endSymptomsTrigger);
+        }
         util_assert(infected, "ERROR: severe without being infected." + std::to_string(id));
         util_assert(symptomsCurrent != SymptomsLevels::none, "ERROR: must have symptoms to be severe." + std::to_string(id));
         util_assert(!dead, "ERROR: already dead!" + std::to_string(id));
@@ -457,8 +471,9 @@ namespace EpidemicSimCore {
 
     }
 
-    void PersonCore::becomeIsolated() {
+    void PersonCore::becomeIsolated(Sim* sim) {
         isolating = true;
+        sim->occupantCounter->personPlaceInfo[id].isolating = true;
     }
 
     // sets the number of places, per type (homes, hospitals, etc)
@@ -564,9 +579,8 @@ namespace EpidemicSimCore {
         std::vector<unsigned int> ret;
         const auto& wholeList = sim->placesByType[sim->activityToPlaceSetIndex.at(activityType[0])].occupantList[index];
         for (int i = 0; i < count; i++) {
-            // TODO this is deterministic but better use the official RNG
-            //ret.push_back(wholeList[rand_r(&rand_r_seed) % wholeList.size()]);
-            ret.push_back(wholeList[rand() % wholeList.size()]);
+            int j = sim->rng.random_int(0, wholeList.size());
+            ret.push_back(wholeList[j]);
         }
         return ret;
     }
@@ -641,7 +655,7 @@ namespace EpidemicSimCore {
 
 };
 
-#if __has_include(<emscripten/bind.h>)
+#if HAS_EMSCRIPTEN
 EMSCRIPTEN_BINDINGS(OccupantCounterModule) {
     emscripten::register_vector<int>("int_vector");
     emscripten::register_vector<unsigned int>("uint_vector");

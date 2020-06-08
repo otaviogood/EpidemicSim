@@ -74,7 +74,7 @@
                         ⤵️
                     </button>
                     <span style="float:right"
-                        >Sim Time (Milliseconds): {{ Math.round(milliseconds) }}, total 20 days: {{ timerAccum.toFixed(0) }}</span
+                        >Sim Time (Milliseconds): {{ Math.round(milliseconds) }}, total 40 days: {{ timerAccum.toFixed(0) }}</span
                     >
                 </p></span
             ></span
@@ -321,7 +321,7 @@ export default Vue.extend({
 
             let t2 = performance.now();
             self.milliseconds = t2 - timer;
-            if (sim.time_steps_since_start.days < 20) this.timerAccum += t2 - timer;
+            if (sim.time_steps_since_start.days < 40) this.timerAccum += t2 - timer;
             sim.draw();
         },
         tickAnim: function() {

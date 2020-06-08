@@ -112,8 +112,7 @@ export class Person {
     set contagiousTrigger(x: number) { this.wasmPerson.contagiousTrigger = x; }
 
     get endContagiousTrigger(): number { return <number>this.wasmPerson.endContagiousTrigger }
-    set endContagiousTrigger(x: number) {
-        this.wasmPerson.endContagiousTrigger = x; if(this.id < 4) console.log("set endContagiousTrigger in=" + x + " == " + this.wasmPerson.endContagiousTrigger ); }
+    set endContagiousTrigger(x: number) { this.wasmPerson.endContagiousTrigger = x; }
 
     get symptomsTrigger(): number { return <number>this.wasmPerson.symptomsTrigger }
     set symptomsTrigger(x: number) { this.wasmPerson.symptomsTrigger = x; }

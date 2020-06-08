@@ -275,13 +275,13 @@ export class Sim {
             placeIndexArray.delete(); // annoying!
         }
 
-        this.wasmSim.prepare();
-
         console.log("associateWasmSimAndInit start");
 
         for (var j = 0; j < this.pop.length; j++) {
             this.pop[j].associateWasmSimAndInit(this.wasmSim, this.params, this.rand);
         }
+
+        this.wasmSim.prepare();
 
         console.log("associateWasmSimAndInit finish");
 
@@ -307,11 +307,6 @@ export class Sim {
             this.params.doInterventionsForThisTimestep(this.time_steps_since_start);
             this.occupyPlaces();
 
-            //for (let i = 0; i < this.pop.length; i++) {
-                //let person = this.pop[i];
-                //person.stepTime(this, this.rand);
-                //person.spread(this.time_steps_since_start, i, this.pop, this.rand, this);
-            //}
             this.wasmSim.runPopulationStep(this.time_steps_since_start.raw);
 
             var arr = this.wasmSim.lastStepInfected;
