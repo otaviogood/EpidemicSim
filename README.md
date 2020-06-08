@@ -53,10 +53,11 @@ node processBuildings.js
 
 -----------------------
 
-For large map areas, like major metro areas, you might run out of memory. In openstreetmapFilter.js, turn on noCacheHack. Then use this cmd-line for extra memory.
+For large map areas, like major metro areas, you might run out of memory. In openstreetmapFilter.js, turn on noCacheHack. Then use this cmd-line for extra memory. I'm not sure 16 gigs is actually needed, so that might be able to be trimmed down.
 
 ```sh
 node --max-old-space-size=16384 openstreetmapFilter.js
+node --max-old-space-size=16384 processBuildings.js
 ```
 
 ## Credits

@@ -21,17 +21,9 @@ function roundRandom(x) {
     else return Math.floor(x);
 }
 
-function loadJSONMap(fname) {
-    const fileContents = fs.readFileSync(fname, "utf8");
-    try {
-        return new Map(Object.entries(JSON.parse(fileContents)));
-    } catch (err) {
-        console.error(err);
-    }
-}
-
 async function doEverything() {
     let countyStuff = new countyInfo.CountyInfo();
+    await countyStuff.readAllCountiesCensus();
     // -------------------- Households --------------------
     let buildingPositionsJSON = JSON.parse(
         fs.readFileSync("processedData/" + mapBounds.defaultPlace + "_BuildingPositions.json", "utf8")

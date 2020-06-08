@@ -2,6 +2,15 @@
 var assert = require("assert");
 const fs = require("fs");
 
+function loadJSONObject(fname) {
+    const fileContents = fs.readFileSync(fname, "utf8");
+    try {
+        return JSON.parse(fileContents);
+    } catch (err) {
+        console.error(err);
+    }
+}
+
 function loadJSONMap(fname) {
     const fileContents = fs.readFileSync(fname, "utf8");
     try {
@@ -116,4 +125,19 @@ class Box2 {
     // }
 }
 
-module.exports = { loadJSONMap, saveJSONMap, Box2 };
+// Get dimensions of a multi-dimensional array
+function getDim(a) {
+    var dim = [];
+    for (;;) {
+        dim.push(a.length);
+
+        if (Array.isArray(a[0])) {
+            a = a[0];
+        } else {
+            break;
+        }
+    }
+    return dim;
+}
+
+module.exports = { loadJSONObject, loadJSONMap, saveJSONMap, Box2, getDim };

@@ -11,6 +11,7 @@
   "dependencies": {
     "@turf/turf": "^5.1.6",
     "geotiff": "^1.0.0-beta.11",
+    "json-stable-stringify-without-jsonify": "^1.0.1",
     "mersenne-twister": "^1.1.0",
     "osm-read": "^0.7.0",
     "papaparse": "^5.2.0"

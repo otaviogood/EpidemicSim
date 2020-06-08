@@ -104,21 +104,23 @@ class CountyInfo {
         // if (!fs.existsSync("tempCache/")) fs.mkdirSync("tempCache/");
         // let mashedName = (countyName + stateName).toLowerCase().replace(/ /g, "");
         // let censusFileName = "tempCache/QuickFacts_" + mashedName + ".csv"; // lower case and remove spaces
-        // let url = "http://www.census.gov/quickfacts/fact/csv/" + mashedName + "/HCN010212";
+        // let url = "https://www.census.gov/quickfacts/fact/csv/" + mashedName + "/HCN010212";
         // console.log(url);
         // if (!fs.existsSync(censusFileName)) {
         //     try {
-        //         // Do some wacky stuff from here: https://github.com/JCMais/node-libcurl/blob/HEAD/COMMON_ISSUES.md
-        //         const certFilePath = path.join(__dirname, "cert.pem");
-        //         const tlsData = tls.rootCertificates.join("\n");
-        //         fs.writeFileSync(certFilePath, tlsData);
+        //         var content = downloadFileSync(url);
+        //         console.log(content);
+        //         // // Do some wacky stuff from here: https://github.com/JCMais/node-libcurl/blob/HEAD/COMMON_ISSUES.md
+        //         // const certFilePath = path.join(__dirname, "cert.pem");
+        //         // const tlsData = tls.rootCertificates.join("\n");
+        //         // fs.writeFileSync(certFilePath, tlsData);
 
-        //         const { statusCode, data, headers } = await curly.get(url, {
-        //             caInfo: certFilePath,
-        //             // verbose: true,
-        //             httpHeader: ['Content-type: text/csv; charset=utf-8'],
-        //             acceptEncoding: 'gzip, deflate, br',
-        //         });
+        //         // const { statusCode, data, headers } = await curly.get(url, {
+        //         //     caInfo: certFilePath,
+        //         //     // verbose: true,
+        //         //     httpHeader: ['Content-type: text/csv; charset=utf-8'],
+        //         //     acceptEncoding: 'gzip, deflate, br',
+        //         // });
         //         console.log(data);
         //     } catch (err) {
         //         console.error(err);
@@ -142,6 +144,17 @@ class CountyInfo {
                 let floatValue = parseFloat(csvResult[i][valueIndex]);
                 this.censusInfo.get(countyIndex).set("personsPerHousehold", floatValue);
             }
+        }
+    }
+
+    async readAllCountiesCensus() {
+        let ourCounties = mapBounds.info[mapBounds.defaultPlace].includedCounties.map(x => x[0]);
+        let ourStates = mapBounds.info[mapBounds.defaultPlace].includedCounties.map(x => x[1]);
+        for (let j = 0; j < ourCounties.length; j++) {
+            let ourCounty = ourCounties[j];
+            let ourState = ourStates[j];
+            let ourCountyId = j;
+            await this.readCensusCSV(ourCounty, ourState, ourCountyId);
         }
     }
 
@@ -169,27 +182,44 @@ class CountyInfo {
                     county.properties.stusab == ourState
                 ) {
                     console.log("Found: " + county.properties.namelsad);
-                    await this.readCensusCSV(ourCounty, ourState, j);
                     // Use the "turf" library to find which points are in a polygon that defines a county.
                     // http://turfjs.org/docs/#pointsWithinPolygon
-                    let searchWithin = turf.polygon(county.geometry.coordinates);
-                    let points = turf.points(pointList);
-                    let ptsWithin = turf.pointsWithinPolygon(points, searchWithin);
-                    // Loop through resulting points that are int the county and make a map of point to county ID.
-                    for (let k = 0; k < ptsWithin.features.length; k++) {
-                        let point = ptsWithin.features[k];
-                        pointToCounty.set(
-                            point.geometry.coordinates[0].toString() + "_" + point.geometry.coordinates[1].toString(),
-                            ourCountyId
-                        );
+                    let coords = county.geometry.coordinates;
+                    // This is weird. Most counties have a single polygon as their boundaries. But San francisco has 2 because the Farallon Islands belong to SF.
+                    // So for SF, the array dimension is 1 bigger! - [2, 1, 425, 2] which represents [islands, ?, vertices, lat + lon]
+                    // For most counties, the array dimension in 3 - [1, 2332, 2] which represents [?, vertices, lat + lon]
+                    // This code unifies them to both be 4d, like San Francisco, and it loops through the islands dimension.
+                    let dims = misc.getDim(coords);
+                    if (dims.length == 3) coords = [coords];
+                    dims = misc.getDim(coords);
+                    console.log(misc.getDim(coords));
+                    for (let poly = 0; poly < dims[0]; poly++) {
+                        let searchWithin = turf.polygon(coords[poly]);
+                        let points = turf.points(pointList);
+                        let ptsWithin = turf.pointsWithinPolygon(points, searchWithin);
+                        // Loop through resulting points that are int the county and make a map of point to county ID.
+                        for (let k = 0; k < ptsWithin.features.length; k++) {
+                            let point = ptsWithin.features[k];
+                            pointToCounty.set(
+                                point.geometry.coordinates[0].toString() + "_" + point.geometry.coordinates[1].toString(),
+                                ourCountyId
+                            );
+                        }
+                        // Save off the polygon for any counties that have people in them.
+                        if (ptsWithin.features.length > 0) {
+                            let orig = coords[poly][0];
+                            orig = orig.map(a => [a[1], a[0]]); // Get back to lat, lon order.
+                            // This is not perfect... append polygon array if it already exists.
+                            // TODO: Does this append actually work for San Francisco???
+                            if (this.relevantCountyPolygons.has(ourCountyId))
+                                this.relevantCountyPolygons.set(
+                                    ourCountyId,
+                                    this.relevantCountyPolygons.get(ourCountyId).concat(orig)
+                                );
+                            else this.relevantCountyPolygons.set(ourCountyId, orig);
+                        }
+                        console.log("Points inside county: " + ptsWithin.features.length);
                     }
-                    // Save off the polygon for any counties that have people in them.
-                    if (ptsWithin.features.length > 0) {
-                        let orig = county.geometry.coordinates[0];
-                        orig = orig.map(a => [a[1], a[0]]); // Get back to lat, lon order.
-                        this.relevantCountyPolygons.set(ourCountyId, orig);
-                    }
-                    console.log("Points inside county: " + ptsWithin.features.length);
                 }
             }
         }
@@ -208,6 +238,7 @@ class CountyInfo {
         // Downloaded geojson, whole dataset.
         let counties = fs.readFileSync("../sourceData/us-county-boundaries.geojson", "utf8"); // lon,lat order!!!
         counties = JSON.parse(counties);
+        assert(counties);
         counties = counties["features"];
         for (let i = 0; i < counties.length; i++) {
             let county = counties[i];
@@ -221,10 +252,20 @@ class CountyInfo {
                 ) {
                     console.log("Found: " + county.properties.namelsad);
                     let bbox = new misc.Box2();
-                    let orig = county.geometry.coordinates[0];
-                    for (let k = 0; k < orig.length; k++) {
-                        let p = orig[k];
-                        bbox.mergePoint([p[1], p[0]]); // Get back to lat, lon order.
+                    let coords = county.geometry.coordinates;
+                    // This is weird. Most counties have a single polygon as their boundaries. But San francisco has 2 because the Farallon Islands belong to SF.
+                    // So for SF, the array dimension is 1 bigger! - [2, 1, 425, 2] which represents [islands, ?, vertices, lat + lon]
+                    // For most counties, the array dimension in 3 - [1, 2332, 2] which represents [?, vertices, lat + lon]
+                    // This code unifies them to both be 4d, like San Francisco, and it loops through the islands dimension.
+                    let dims = misc.getDim(coords);
+                    if (dims.length == 3) coords = [coords];
+                    dims = misc.getDim(coords);
+                    console.log(misc.getDim(coords));
+                    for (let poly = 0; poly < dims[0]; poly++) {
+                        for (let k = 0; k < coords[poly][0].length; k++) {
+                            let p = coords[poly][0][k];
+                            bbox.mergePoint([p[1], p[0]]); // Get back to lat, lon order.
+                        }
                     }
                     countyBounds.set(ourCountyId, bbox);
                     console.log(bbox);
