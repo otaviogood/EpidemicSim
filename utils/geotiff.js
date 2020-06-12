@@ -27,23 +27,9 @@ const boundsLonMax = allBounds.get("-1")["max"][1];
 // let fileName = "../sourceData/sf_raster.tif";  // This is faster so I can iterate on ideas. Should be same output as original file.
 let fileName = "../sourceData/population_usa28_-130_2019-07-01.tif";
 
-function toDegrees(angle) {
-    return angle * (180 / Math.PI);
-}
-function toRadians(angle) {
-    return angle * (Math.PI / 180);
-}
 // Area of one pixel of the geotiff data
 function calcCellArea(lat) {
-    return 30.87 * 30.87 * Math.cos(toRadians(lat));
-}
-
-// Round a number up or down randomly, weighted by the fractional component
-function roundRandom(x) {
-    let frac = x % 1;
-    let r = rand.random();
-    if (r < frac) return Math.floor(x) + 1;
-    else return Math.floor(x);
+    return 30.87 * 30.87 * Math.cos(misc.toRadians(lat));
 }
 
 async function doStuff() {
@@ -97,7 +83,7 @@ async function doStuff() {
             if (lon < boundsLonMin) continue;
             if (lat > boundsLatMax) continue;
             if (lon > boundsLonMax) continue;
-            let numPeopleInCell = roundRandom(pixel); // Randomly sample the fractional component
+            let numPeopleInCell = misc.roundRandom(rand, pixel); // Randomly sample the fractional component
             if (numPeopleInCell > 0) {
                 allBuildings.push([lat, lon, numPeopleInCell]);
                 for (let i = 0; i < numPeopleInCell; i++) {

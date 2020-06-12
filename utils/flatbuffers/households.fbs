@@ -1,0 +1,15 @@
+namespace Flatbuf;
+table SimplePlace {
+    lat:float;  // float is probably ok... eventually change to x/y pos [0..1]
+    lon:float;
+    capacity:int16;  // This can be int16 along with next one???
+    countyIndex:int16;
+    name:string;
+}
+
+table PlaceArray {
+    place:[SimplePlace];
+    totalHomeCapacity:int32;
+}
+
+root_type PlaceArray;

@@ -2,6 +2,28 @@
 var assert = require("assert");
 const fs = require("fs");
 
+class SimplePlace {
+    xpos = 0;
+    ypos = 0;
+    name;
+
+    constructor(lat, lon, capacity, countyIndex = -1) {
+        assert(lat < 85.0 && lat > -85.0);  // realistically, we won't be doing antarctica or the north pole.
+        assert(lon <= 180.0 && lon >= -180.0);
+    }
+
+    // latLonToPos(sim: Sim) {
+    //     [this.xpos, this.ypos] = sim.latLonToPos(this.lat, this.lon);
+    // }
+    // static genPlace(sim: Sim, lat: any, lon: any, capacity: number): Place {
+    //     let lat2: any = lat!;
+    //     let lon2: any = lon!;
+    //     let hh = new Place(parseFloat(lat2), parseFloat(lon2), capacity);
+    //     hh.latLonToPos(sim);
+    //     return hh;
+    // }
+}
+
 function loadJSONObject(fname) {
     const fileContents = fs.readFileSync(fname, "utf8");
     try {
@@ -140,4 +162,26 @@ function getDim(a) {
     return dim;
 }
 
-module.exports = { loadJSONObject, loadJSONMap, saveJSONMap, Box2, getDim };
+// Round a number up or down randomly, weighted by the fractional component
+function roundRandom(rand, x) {
+    let frac = x % 1;
+    let r = rand.random();
+    if (r < frac) return Math.floor(x) + 1;
+    else return Math.floor(x);
+}
+
+function shuffleArrayInPlace(array, rand) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(rand.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+function toDegrees(angle) {
+    return angle * (180 / Math.PI);
+}
+function toRadians(angle) {
+    return angle * (Math.PI / 180);
+}
+
+module.exports = { SimplePlace, loadJSONObject, loadJSONMap, saveJSONMap, Box2, getDim, roundRandom, shuffleArrayInPlace, toDegrees, toRadians };

@@ -123,7 +123,7 @@
             </div>
             <div class="card" style="margin-top:16px">
                 <div style="width:365px;text-align:center;font-size:28px;">
-                    <span style="display:inline-block;">Policy Timeline</span>
+                    <span style="display:inline-block;">Events &amp; Policy Timeline</span>
                 </div>
 
                 <div class="scrolly" style="width:365px;height:124px;overflow:hidden; overflow-y:scroll;">
@@ -229,7 +229,7 @@ export default Vue.extend({
     },
     mounted: async function() {
         let self = this;
-        params = new Params.DeadlyModel();
+        params = new Params.SantaCruzModel();
         this.statsFields = StatsRecord.fields;
         tests = new TestPerson();
         tests.runTests(params);
@@ -326,7 +326,7 @@ export default Vue.extend({
         },
         tickAnim: function() {
             let self = this;
-            if (sim && sim.countyStats.numInfected() > 0 && !sim.paused) {
+            if (sim && (sim.pop.length > 0) && (sim.countyStats.currentInfected() > 0 || sim.countyStats.totalInfected() == 0) && !sim.paused) {
                 self.singleStepSim();
             }
 

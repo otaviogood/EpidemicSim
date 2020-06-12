@@ -56,11 +56,19 @@ export class CountyStats {
             }
         }
     }
-    numInfected() {
+    currentInfected() {
         let total: number = 0;
         for (let i = 0; i < this.counters.length; i++) {
             let county = this.counters[i];
             total += county[GraphType.currentInfected];
+        }
+        return total;
+    }
+    totalInfected() {
+        let total: number = 0;
+        for (let i = 0; i < this.counters.length; i++) {
+            let county = this.counters[i];
+            total += county[GraphType.totalInfected];
         }
         return total;
     }
