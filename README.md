@@ -60,6 +60,13 @@ node --max-old-space-size=16384 openstreetmapFilter.js
 node --max-old-space-size=16384 processBuildings.js
 ```
 
+-----------------------
+
+Flatbuffers are now being used instead of json for some things. They are binary, maybe faster, smaller files, and should let me do big files. They are not as easy to use as json. :/ They require flatbuffer schema files to define the file format. To get the flatbuffer compiler the easy way, go here:  
+https://github.com/google/flatbuffers/releases  
+Documentation here:  
+https://google.github.io/flatbuffers/flatbuffers_guide_tutorial.html  
+
 ## Credits
 
 Made with [createapp.dev](https://createapp.dev/)
