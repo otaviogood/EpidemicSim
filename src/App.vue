@@ -61,6 +61,12 @@
                         type="button"
                         class=""
                         style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
+                        @click="fastForward"
+                    >⏩</button>
+                    <button
+                        type="button"
+                        class=""
+                        style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
                         @click="playPause"
                     >
                         ⏯️
@@ -93,7 +99,7 @@
             </div>
             <div class="card" style="margin-top:16px">
                 <div style="width:365px;text-align:center;font-size:28px;">
-                    <span style="display:inline-block;">Person info</span>
+                    <span style="display:inline-block;">👤 Person info</span>
                     <label for="ticketNum">#</label>
                     <input
                         id="personIndex"
@@ -123,7 +129,7 @@
             </div>
             <div class="card" style="margin-top:16px">
                 <div style="width:365px;text-align:center;font-size:28px;">
-                    <span style="display:inline-block;">Events &amp; Policy Timeline</span>
+                    <span style="display:inline-block;">📅 Events &amp; Policy Timeline</span>
                 </div>
 
                 <div class="scrolly" style="width:365px;height:124px;overflow:hidden; overflow-y:scroll;">
@@ -217,6 +223,7 @@ export default Vue.extend({
                 down: false,
                 mode: -1,
             },
+            stepSize: 1,
         };
     },
     created: function() {
@@ -308,7 +315,7 @@ export default Vue.extend({
             let self = this;
             let timer = performance.now();
 
-            sim.run_simulation(1);
+            sim.run_simulation(this.stepSize);
             self.hoursElapsed = sim.time_steps_since_start.hours;
             self.date = moment(params.startDate)
                 .add(sim.time_steps_since_start.hours, "h")
@@ -380,9 +387,15 @@ export default Vue.extend({
             sim.changeZoom(Math.sign(event.deltaY));
         },
         playPause: function(event) {
+            this.stepSize = 1;
+            sim.playPause();
+        },
+        fastForward: function(event) {
+            this.stepSize = 24;
             sim.playPause();
         },
         stepForward: function(event) {
+            this.stepSize = 1;
             this.singleStepSim();
         },
 
