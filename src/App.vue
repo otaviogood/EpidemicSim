@@ -303,9 +303,9 @@ export default Vue.extend({
                 if (temp.description) actionStr = temp.description;
                 this.interventions.push(
                     expired +
-                        "<strong>" +
+                        "<span style='display:inline-block;width:60px;padding-right:12px;border-right:1px solid #cccccc'><strong>" +
                         temp.time.toMoment(params.startDate).format("MMM D") +
-                        "</strong> &nbsp;&nbsp;&nbsp;" +
+                        "</strong></span> " +
                         actionStr +
                         "</span>"
                 );
