@@ -26,10 +26,10 @@
                             <option :value="null" hidden>Select County</option>
                             <option value="-1">None</option>
                             <option
-                                v-for="(countyName, id) in $mapBounds.info[$mapBounds.defaultPlace].includedCounties"
-                                v-bind:key="id"
-                                :value="id"
-                                >{{ countyName }}</option
+                                v-for="(countyName, index) in $mapBounds.info[$mapBounds.defaultPlace].includedCounties"
+                                v-bind:key="index"
+                                :value="index"
+                                >{{ countyName[0] + ", " + countyName[1] }}</option
                             >
                         </select>
                     </label>
@@ -57,6 +57,12 @@
                             ["🕛", "🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚"][hoursElapsed % 12 | 0]
                         }}</span
                     >
+                    <button
+                        type="button"
+                        class=""
+                        style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
+                        @click="fastForward"
+                    >⏩</button>
                     <button
                         type="button"
                         class=""
@@ -93,7 +99,7 @@
             </div>
             <div class="card" style="margin-top:16px">
                 <div style="width:365px;text-align:center;font-size:28px;">
-                    <span style="display:inline-block;">Person info</span>
+                    <span style="display:inline-block;">👤 Person info</span>
                     <label for="ticketNum">#</label>
                     <input
                         id="personIndex"
@@ -123,7 +129,7 @@
             </div>
             <div class="card" style="margin-top:16px">
                 <div style="width:365px;text-align:center;font-size:28px;">
-                    <span style="display:inline-block;">Policy Timeline</span>
+                    <span style="display:inline-block;">📅 Events &amp; Policy Timeline</span>
                 </div>
 
                 <div class="scrolly" style="width:365px;height:124px;overflow:hidden; overflow-y:scroll;">
@@ -190,7 +196,7 @@ export default Vue.extend({
             date: null,
             milliseconds: 0,
             timerAccum: 0,
-            county: Vue.prototype.$mapBounds.info[Vue.prototype.$mapBounds.defaultPlace].includedCounties[0],
+            county: Vue.prototype.$mapBounds.info[Vue.prototype.$mapBounds.defaultPlace].includedCounties[0][0],
             person: {
                 age: -1,
                 id: -1,
@@ -217,6 +223,7 @@ export default Vue.extend({
                 down: false,
                 mode: -1,
             },
+            stepSize: 1,
         };
     },
     created: function() {
@@ -229,7 +236,7 @@ export default Vue.extend({
     },
     mounted: async function() {
         let self = this;
-        params = new Params.DeadlyModel();
+        params = new Params.SantaCruzModel();
         this.statsFields = StatsRecord.fields;
         tests = new TestPerson();
         tests.runTests(params);
@@ -296,9 +303,9 @@ export default Vue.extend({
                 if (temp.description) actionStr = temp.description;
                 this.interventions.push(
                     expired +
-                        "<strong>" +
+                        "<span style='display:inline-block;width:60px;padding-right:12px;border-right:1px solid #cccccc'><strong>" +
                         temp.time.toMoment(params.startDate).format("MMM D") +
-                        "</strong> &nbsp;&nbsp;&nbsp;" +
+                        "</strong></span> " +
                         actionStr +
                         "</span>"
                 );
@@ -308,7 +315,7 @@ export default Vue.extend({
             let self = this;
             let timer = performance.now();
 
-            sim.run_simulation(1);
+            sim.run_simulation(this.stepSize);
             self.hoursElapsed = sim.time_steps_since_start.hours;
             self.date = moment(params.startDate)
                 .add(sim.time_steps_since_start.hours, "h")
@@ -326,7 +333,7 @@ export default Vue.extend({
         },
         tickAnim: function() {
             let self = this;
-            if (sim && sim.countyStats.numInfected() > 0 && !sim.paused) {
+            if (sim && (sim.pop.length > 0) && (sim.countyStats.currentInfected() > 0 || sim.countyStats.totalInfected() == 0) && !sim.paused) {
                 self.singleStepSim();
             }
 
@@ -350,10 +357,11 @@ export default Vue.extend({
         },
         changeCounty: function(e) {
             sim.selectedCountyIndex = parseInt(e.target.value);
-            this.county =
+            let countyInfo =
                 Vue.prototype.$mapBounds.info[Vue.prototype.$mapBounds.defaultPlace].includedCounties[
                     Math.max(0, sim.selectedCountyIndex)
                 ];
+            this.county = countyInfo[0];
             sim.draw();
         },
         changePersonIndex: function(e) {
@@ -379,9 +387,15 @@ export default Vue.extend({
             sim.changeZoom(Math.sign(event.deltaY));
         },
         playPause: function(event) {
+            this.stepSize = 1;
+            sim.playPause();
+        },
+        fastForward: function(event) {
+            this.stepSize = 24;
             sim.playPause();
         },
         stepForward: function(event) {
+            this.stepSize = 1;
             this.singleStepSim();
         },
 

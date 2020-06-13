@@ -15,6 +15,7 @@
         "@types/mathjs": "^6.0.5",
         "@types/mersenne-twister": "^1.1.2",
         "@types/node": "^13.11.0",
+        "flatbuffers": "^1.12.0",
         "mathjs": "^7.0.0",
         "mersenne-twister": "^1.1.0",
         "moment": "^2.26.0",

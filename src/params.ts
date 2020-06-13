@@ -1,4 +1,5 @@
 import moment from "moment";
+import { Sim } from "./sim";
 import * as util from "./util";
 
 export class TimeStep {
@@ -76,7 +77,7 @@ export class Base {
     // r_baseline_interval = Math.exp(Math.log(this.r) / this.r_time_interval);
 
     // This is like the "R" number, but as a probability of spreading in a timestep.
-    prob_baseline_timestep = 0.01; // .002
+    prob_baseline_timestep = 0.005; // .002
 
     // https://www.nature.com/articles/s41591-020-0869-5
     mean_time_till_contagious: TimeStep = TimeStep.fromDays(3);
@@ -177,21 +178,24 @@ export class Base {
     // ========================================================================
     interventions: Intervention[] = [];
     currentInterventionIndex = 0;
-    makeIntervention(time: TimeStep, action: any, description: string = "") {
+    makeEventFromStart(time: TimeStep, action: any, description: string = "") {
         this.interventions.push(new Intervention(time, action, description));
         this.interventions.sort((a, b) => a.time.raw - b.time.raw); // This is slow to do every time. I couldn't find a sorted list in Typescript.
     }
     // date should be yyyy-mm-dd format exactly
-    makeInterventionDate(date: moment.Moment, action: any, description: string = "") {
+    makeEvent(dateStr: string, action: any, description: string = "") {
+        let date = moment(dateStr);
+        util.assert(date.isValid(), "ERROR: Invalid date string");
+        util.assert(date.isAfter(this.startDate), "ERROR: Event date is before start date");
         let time = TimeStep.fromMoment(date, this.startDate);
         this.interventions.push(new Intervention(time, action, description));
         this.interventions.sort((a, b) => a.time.raw - b.time.raw); // This is slow to do every time. I couldn't find a sorted list in Typescript.
     }
-    doInterventionsForThisTimestep(time_steps_since_start: TimeStep) {
+    doInterventionsForThisTimestep(sim: Sim) {
         for (let i = this.currentInterventionIndex; i < this.interventions.length; i++) {
             let triggerTime = this.interventions[i].time;
-            if (triggerTime.equals(time_steps_since_start)) {
-                this.interventions[i].action();
+            if (triggerTime.equals(sim.time_steps_since_start)) {
+                this.interventions[i].action(sim);
                 this.currentInterventionIndex++;
             } else break;
         }
@@ -199,25 +203,17 @@ export class Base {
 }
 
 // Example subclass for running an experiment with different parameters
-export class DeadlyModel extends Base {
+export class SantaCruzModel extends Base {
+    startDate = moment("2020-03-09"); // year-mm-dd
     // infection_fatality_rate = 0.5;
     constructor() {
         super();
+        let index = 0;
+        this.makeEvent("2020-03-10", (sim: Sim) => sim.seedInfection(0), "1 become sick");
+        this.makeEvent("2020-03-10", (sim: Sim) => sim.seedInfection(0), "1 become sick");
+        this.makeEvent("2020-03-12", (sim: Sim) => sim.seedInfection(0), "1 become sick");
         // These are just do-nothing examples for now...
-        this.makeIntervention(
-            TimeStep.fromDays(5),
-            () => (this.environmental_transmission_fraction = 0.0),
-            "90% office capacity"
-        );
-        this.makeInterventionDate(
-            moment("2020-02-11"),
-            () => (this.environmental_transmission_fraction = 0.0),
-            "50% transit level"
-        );
-        this.makeInterventionDate(
-            moment("2020-02-14"),
-            () => (this.environmental_transmission_fraction = 0.0),
-            "20% transit level"
-        );
+        this.makeEvent("2020-03-11", () => (this.environmental_transmission_fraction = 0.0), "50% transit level");
+        this.makeEvent("2020-03-14", () => (this.environmental_transmission_fraction = 0.0), "20% transit level");
     }
 }

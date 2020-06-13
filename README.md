@@ -35,10 +35,17 @@ County data from here: https://public.opendatasoft.com/explore/dataset/us-county
 Download geojson, whole dataset.  
 It will be used by processBuildings.js to put each house in a county.  
 
-Define map boundaries in utils/mapBounds.js
+Define counties to include in utils/mapBounds.js
+
+Download census CSV files here: https://www.census.gov/quickfacts/fact/table/sanfranciscocountycalifornia/HCN010212  
+Get whatever counties are relevant and put the CSVs in sourceData/  
+Name them like this... 'QuickFacts_santaclaracountycalifornia.csv'  
+
+For maps, I take a screenshot from openstreetmap.org by going to 'Export', then putting in the lat/lon, then go to 'share' icon and set custom dimensions and export an image. There's probably a much better way to do this. :)  
 
 inside utils, run:
 ```sh
+node findMapBounds.js
 node openstreetmapFilter.js
 node geotiff.js
 node processBuildings.js
@@ -46,11 +53,19 @@ node processBuildings.js
 
 -----------------------
 
-For large map areas, like major metro areas, you might run out of memory. In openstreetmapFilter.js, turn on noCacheHack. Then use this cmd-line for extra memory.
+For large map areas, like major metro areas, you might run out of memory. In openstreetmapFilter.js, turn on noCacheHack. Then use this cmd-line for extra memory. I'm not sure 16 gigs is actually needed, so that might be able to be trimmed down.
 
 ```sh
 node --max-old-space-size=16384 openstreetmapFilter.js
+node --max-old-space-size=16384 processBuildings.js
 ```
+
+-----------------------
+
+Flatbuffers are now being used instead of json for some things. They are binary, maybe faster, smaller files, and should let me do big files. They are not as easy to use as json. :/ They require flatbuffer schema files to define the file format. To get the flatbuffer compiler the easy way, go here:  
+https://github.com/google/flatbuffers/releases  
+Documentation here:  
+https://google.github.io/flatbuffers/flatbuffers_guide_tutorial.html  
 
 ## Credits
 

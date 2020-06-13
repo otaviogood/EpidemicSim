@@ -11,8 +11,13 @@ export enum VizFlags {
     recovered = 128,
 }
 
+let alreadyAlerted = false;
 export function assert(condition: boolean, message: string) {
-    if (!condition) console.log(message);
+    if (!condition) {
+        console.log(message);
+        if (!alreadyAlerted) window.alert(message);
+        alreadyAlerted = true;
+    }
     // throw message || "Assertion failed";
 }
 

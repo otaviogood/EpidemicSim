@@ -56,11 +56,19 @@ export class CountyStats {
             }
         }
     }
-    numInfected() {
+    currentInfected() {
         let total: number = 0;
         for (let i = 0; i < this.counters.length; i++) {
             let county = this.counters[i];
             total += county[GraphType.currentInfected];
+        }
+        return total;
+    }
+    totalInfected() {
+        let total: number = 0;
+        for (let i = 0; i < this.counters.length; i++) {
+            let county = this.counters[i];
+            total += county[GraphType.totalInfected];
         }
         return total;
     }
@@ -90,7 +98,7 @@ export class CountyStats {
             ctx.fillRect(31 + 29 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30, 0, 31, cHeight); // nov-dec
             // Draw the first letter of each month in the correct x-position
             const months = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
-            ctx.fillStyle = "#386082";
+            ctx.fillStyle = "#456789";
             for (let i = 0; i < months.length; i++) {
                 ctx.fillText(months[i], i * 30.4 + 10, cHeight - 4);
             }

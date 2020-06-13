@@ -354,15 +354,21 @@ export class Person {
         }
     }
 
+    // TODO: This function can be pulled out of the inner loop.
     // For now, density can be thought of as your distance to the closest person.
     // Clamped at 0.5 minimum
     // This returns a [0..1] probability multiplier for probability of spreading the virus.
     probabilityMultiplierFromDensity(density: number): number {
-        density = Math.max(0.5, density);
-        return 0.5 / density;
+        const minimumDistance = 0.5;
+        density = Math.max(minimumDistance, density);
+        // TODO: 1.5 is a magic number. With a perfect point source of disease, the fall-off would be 1 / (distance squared).
+        // But we don't have a perfect point source, and we also have enclosed spaces. So this number adjusts
+        // the distance-squared fall-off arbitrarily. :/
+        return minimumDistance / Math.pow(density, 1.5);
     }
 
-    // This should be a function of density and how much you mix with people.
+    // TODO: how do we best solve that if you visit a stadium with 10,000 people you shouldn't infect less than in a stadium with 100,000 people?
+    // Should we consider how much you mix with people?
     // How much you mix can be measured as a fraction of all the people in the space that you will come in range of???
     // Density will affect the outcome based on distance to other people???
     // TODO: optimize me using "real math". :)

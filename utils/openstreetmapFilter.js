@@ -4,13 +4,27 @@ var assert = require("assert");
 const fs = require("fs");
 var osmread = require("osm-read/osm-read-pbf");
 let sleep = require("util").promisify(setTimeout);
+var stringify = require('json-stable-stringify-without-jsonify');
 
+// JS Map class limits you to 16 million keys. This is to go bigger.
+const bigmap = require("./bigmap");
+
+const misc = require("./misc");
+const countyInfo = require("./countyUtils");
 // San Francisco limits -122.526, -122.354, 37.708, 37.815
 const mapBounds = require("./mapBounds");
 
+let countyBoundsFile = "processedData/" + mapBounds.defaultPlace + "_AllCountyBounds.json";
+let allBounds = misc.loadJSONMap(countyBoundsFile);
+const boundsLatMin = allBounds.get("-1")["min"][0];
+const boundsLatMax = allBounds.get("-1")["max"][0];
+const boundsLonMin = allBounds.get("-1")["min"][1];
+const boundsLonMax = allBounds.get("-1")["max"][1];
+
 const noCacheHack = false; // Use this for very large files... It can be fixed better, but this is placeholder.
 
-let nodeMap = new Map();
+if (noCacheHack) var nodeMap = new bigmap.BigMap();
+else var nodeMap = new Map();
 let wayMap = new Map();
 if (!fs.existsSync("tempCache/")) fs.mkdirSync("tempCache/");
 const localNodesFileName = "tempCache/" + mapBounds.defaultPlace + "_localNodesCache.json";
@@ -29,42 +43,34 @@ async function localFilterNodes() {
             console.log("document end");
             console.log("nodes: " + nodeMap.size);
             if (!noCacheHack) {
-                const localNodes = JSON.stringify(Object.fromEntries(nodeMap));
+                const localNodes = stringify(Object.fromEntries(nodeMap));
                 fs.writeFileSync(localNodesFileName, localNodes);
             }
             wait++;
         },
         node: function(node) {
             let lat = parseFloat(node.lat);
+            if (lat < boundsLatMin) return;
+            if (lat > boundsLatMax) return;
             let lon = parseFloat(node.lon);
-            if (lat < mapBounds.info[mapBounds.defaultPlace].latMin) return;
-            if (lat > mapBounds.info[mapBounds.defaultPlace].latMax) return;
-            if (lon < mapBounds.info[mapBounds.defaultPlace].lonMin) return;
-            if (lon > mapBounds.info[mapBounds.defaultPlace].lonMax) return;
-            //  let s = JSON.stringify(node);
-            let s = JSON.stringify({ "lat": node.lat, "lon": node.lon, "tags": node.tags });
+            if (lon < boundsLonMin) return;
+            if (lon > boundsLonMax) return;
+            //  let s = stringify(node);
+            let s = stringify({ "lat": node.lat, "lon": node.lon, "tags": node.tags });
+            if ((nodeMap.size % 1000000) == 0) console.log(nodeMap.size);
             nodeMap.set(node.id, node);
         },
         // way: function(way){
-        //     console.log('way: ' + JSON.stringify(way));
+        //     console.log('way: ' + stringify(way));
         // },
         // relation: function(relation) {
-        //     console.log("relation: " + JSON.stringify(relation));
+        //     console.log("relation: " + stringify(relation));
         // },
         error: function(msg) {
             console.error("error: " + msg);
             throw msg;
         },
     });
-}
-
-function loadJSONMap(fname) {
-    const fileContents = fs.readFileSync(fname, "utf8");
-    try {
-        return new Map(Object.entries(JSON.parse(fileContents)));
-    } catch (err) {
-        console.error(err);
-    }
 }
 
 // Find all open street map *ways* that are within our bounds - needs nodes to be loaded first.
@@ -76,7 +82,7 @@ async function localFilterWays() {
             console.log("document end");
             console.log("ways: " + wayMap.size);
             if (!noCacheHack) {
-                const localWays = JSON.stringify(Object.fromEntries(wayMap));
+                const localWays = stringify(Object.fromEntries(wayMap));
                 fs.writeFileSync(localWaysFileName, localWays);
             }
             wait++;
@@ -88,7 +94,7 @@ async function localFilterWays() {
                 //if (!nodeMap.has(node)) inBounds = false;
                 if (!nodeMap.has(node)) return;
             }
-            //console.log("way: " + JSON.stringify(way));
+            //console.log("way: " + stringify(way));
             wayMap.set(way.id, way);
         },
         error: function(msg) {
@@ -106,14 +112,14 @@ function hasWordFromList(bigString, wordList) {
 // Find all OSM "nodes" and "ways" that have certain strings in them, excluding other strings.
 // Write out the filtered list to a json file.
 // nodeMap and wayMap have to already be loaded.
-function extractPlaces(keywords, badWords, targetFile) {
+async function extractPlaces(keywords, badWords, targetFile) {
     console.log("searching nodes for: " + keywords);
     console.log("excluding: " + badWords);
     let allPlaces = [];
     assert(nodeMap);
     assert(nodeMap.size > 0);
     for (const [id, val] of nodeMap) {
-        let tagStr = JSON.stringify(val.tags).toLowerCase();
+        let tagStr = stringify(val.tags).toLowerCase();
         if (hasWordFromList(tagStr, keywords)) {
             if (hasWordFromList(tagStr, badWords)) continue;
             let lat = parseFloat(val.lat);
@@ -125,7 +131,7 @@ function extractPlaces(keywords, badWords, targetFile) {
     assert(wayMap);
     assert(wayMap.size > 0);
     for (const [id, val] of wayMap) {
-        let tagStr = JSON.stringify(val.tags).toLowerCase();
+        let tagStr = stringify(val.tags).toLowerCase();
         if (hasWordFromList(tagStr, keywords)) {
             if (hasWordFromList(tagStr, badWords)) continue;
             // console.log(val.nodeRefs[0]);
@@ -137,7 +143,12 @@ function extractPlaces(keywords, badWords, targetFile) {
             // console.log(val);
         }
     }
-    fs.writeFileSync("processedData/" + targetFile, JSON.stringify(allPlaces, null, "\t"));
+
+    // Append the county ID onto each location in the list.
+    let countyStuff = new countyInfo.CountyInfo();
+    allPlaces = await countyStuff.tagListWithCountyIndexAndFilter(allPlaces);
+
+    fs.writeFileSync("processedData/" + targetFile, stringify(allPlaces, {space: '\t'}));
     console.log("Wrote file: " + "processedData/" + targetFile);
 }
 
@@ -155,18 +166,18 @@ async function doStuff() {
     console.log("");
 
     console.log("Loading local nodes and ways...");
-    if (nodeMap.size <= 0) nodeMap = loadJSONMap(localNodesFileName);
-    if (wayMap.size <= 0) wayMap = loadJSONMap(localWaysFileName);
+    if (nodeMap.size <= 0) nodeMap = misc.loadJSONMap(localNodesFileName);
+    if (wayMap.size <= 0) wayMap = misc.loadJSONMap(localWaysFileName);
     // prettier-ignore
     // Extract business locations
-    extractPlaces(["department","office","business","parking","pharmacy","coffee","sandwich","deli","cafe","bank","shop","site","center","plaza","hotel","industr","store","auto","garage","museum","square","tower"],
+    await extractPlaces(["department","office","business","parking","pharmacy","coffee","sandwich","deli","cafe","bank","shop","site","center","plaza","hotel","industr","store","auto","garage","museum","square","tower"],
                   ["garden"], mapBounds.defaultPlace + "_Businesses.json")
-    extractPlaces(
+    await extractPlaces(
         ["hospital", "medical center"],
         ["pet", "veterinary", "animal", "hospitality", "marijuana"],
         mapBounds.defaultPlace + "_Hospitals.json"
     );
-    extractPlaces(["supermarket"], [], mapBounds.defaultPlace + "_Supermarkets.json");
+    await extractPlaces(["supermarket"], [], mapBounds.defaultPlace + "_Supermarkets.json");
 }
 doStuff();
 
