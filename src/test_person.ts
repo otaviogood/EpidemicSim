@@ -121,7 +121,6 @@ export class TestPerson {
         );
     }
     runTests(params: Params.Base) {
-        return;
         // ------------------ test Person virus model --------------------------
         console.log("-------- RUNNING " + TestPerson.numSamples + " TESTS... --------");
         let timer = performance.now();
@@ -143,6 +142,7 @@ export class TestPerson {
 
         for (let i = 0; i < TestPerson.numSamples; i++) {
             let p = new Person(params, mtrand, i);
+            p.init(params, mtrand);
             p.becomeSick(null);
 
             for (const stats of this.allStats) stats.written = false;

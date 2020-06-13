@@ -28,6 +28,69 @@ export enum SymptomsLevels {
 }
 
 export class Person {
+
+    // flags
+    _infected = false;
+    _contagious = false;
+    _symptomsCurrent = SymptomsLevels.none; // 0 undefined, 1 is mild to moderate (80%), 2 is severe (14%), 3 is critical (6%)
+    _symptomaticOverall = true;
+    _dead = false;
+    _recovered = false;
+    _criticalIfSevere = false;
+    _isolating = false;
+
+    // These are times of onset of various things
+    _contagiousTrigger = Number.MAX_SAFE_INTEGER;
+    _endContagiousTrigger = Number.MAX_SAFE_INTEGER;
+    _symptomsTrigger = Number.MAX_SAFE_INTEGER;
+    _endSymptomsTrigger = Number.MAX_SAFE_INTEGER;
+    _deadTrigger = Number.MAX_SAFE_INTEGER;
+    _severeTrigger = Number.MAX_SAFE_INTEGER;
+    _isolationTrigger = Number.MAX_SAFE_INTEGER; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
+
+    get infected(): boolean { if (!this.useWasmSim) return this._infected; return <boolean>this.wasmPerson.infected; }
+    set infected(x: boolean) { if (!this.useWasmSim) { this._infected = x; return; } this.wasmPerson.infected = x; }
+
+    get contagious(): boolean { if (!this.useWasmSim) return this._contagious; return <boolean>this.wasmPerson.contagious; }
+    set contagious(x: boolean) { if (!this.useWasmSim) { this._contagious = x; return; } this.wasmPerson.contagious = x; }
+
+    get symptomaticOverall(): boolean { if (!this.useWasmSim) return this._symptomaticOverall; return <boolean>this.wasmPerson.symptomaticOverall; }
+    set symptomaticOverall(x: boolean) { if (!this.useWasmSim) { this._symptomaticOverall = x; return; } this.wasmPerson.symptomaticOverall = x; }
+
+    get recovered(): boolean { if (!this.useWasmSim) return this._recovered; return <boolean>this.wasmPerson.recovered; }
+    set recovered(x: boolean) { if (!this.useWasmSim) { this._recovered = x; return; } this.wasmPerson.recovered = x; }
+
+    get criticalIfSevere(): boolean { if (!this.useWasmSim) return this._criticalIfSevere; return <boolean>this.wasmPerson.criticalIfSevere; }
+    set criticalIfSevere(x: boolean) { if (!this.useWasmSim) { this._criticalIfSevere = x; return; } this.wasmPerson.criticalIfSevere = x; }
+
+    get isolating(): boolean { if (!this.useWasmSim) return this._isolating; return <boolean>this.wasmPerson.isolating; }
+    set isolating(x: boolean) { if (!this.useWasmSim) { this._isolating = x; return; } this.wasmPerson.isolating = x; }
+
+    get symptomsCurrent(): number { if (!this.useWasmSim) return this._symptomsCurrent; return <number>this.wasmPerson.symptomsCurrent; }
+    set symptomsCurrent(x: number) { if (!this.useWasmSim) { this._symptomsCurrent = x; return; } this.wasmPerson.symptomsCurrent = x; }
+
+    get contagiousTrigger(): number { if (!this.useWasmSim) return this._contagiousTrigger; return <number>this.wasmPerson.contagiousTrigger; }
+    set contagiousTrigger(x: number) { if (!this.useWasmSim) { this._contagiousTrigger = x; return; } this.wasmPerson.contagiousTrigger = x; }
+
+    get endContagiousTrigger(): number { if (!this.useWasmSim) return this._endContagiousTrigger; return <number>this.wasmPerson.endContagiousTrigger; }
+    set endContagiousTrigger(x: number) { if (!this.useWasmSim) { this._endContagiousTrigger = x; return; } this.wasmPerson.endContagiousTrigger = x; }
+
+    get symptomsTrigger(): number { if (!this.useWasmSim) return this._symptomsTrigger; return <number>this.wasmPerson.symptomsTrigger; }
+    set symptomsTrigger(x: number) { if (!this.useWasmSim) { this._symptomsTrigger = x; return; } this.wasmPerson.symptomsTrigger = x; }
+
+    get endSymptomsTrigger(): number { if (!this.useWasmSim) return this._endSymptomsTrigger; return <number>this.wasmPerson.endSymptomsTrigger; }
+    set endSymptomsTrigger(x: number) { if (!this.useWasmSim) { this._endSymptomsTrigger = x; return; } this.wasmPerson.endSymptomsTrigger = x; }
+
+    get deadTrigger(): number { if (!this.useWasmSim) return this._deadTrigger; return <number>this.wasmPerson.deadTrigger; }
+    set deadTrigger(x: number) { if (!this.useWasmSim) { this._deadTrigger = x; return; } this.wasmPerson.deadTrigger = x; }
+
+    get severeTrigger(): number { if (!this.useWasmSim) return this._severeTrigger; return <number>this.wasmPerson.severeTrigger; }
+    set severeTrigger(x: number) { if (!this.useWasmSim) { this._severeTrigger = x; return; } this.wasmPerson.severeTrigger = x; }
+
+    get isolationTrigger(): number { if (!this.useWasmSim) return this._isolationTrigger; return <number>this.wasmPerson.isolationTrigger; }
+    set isolationTrigger(x: number) { if (!this.useWasmSim) { this._isolationTrigger = x; return; } this.wasmPerson.isolationTrigger = x; }
+
+
     // lots of sets of 24-hour periods of different behaviors that represent different people's lifestyles
     // TODO: are weekends different? Does it matter?
     static readonly activitiesNormal = [
@@ -63,77 +126,23 @@ export class Person {
     hospitalIndex = -1;
     currentActivity: string = Person.activitiesNormal[0];
     county = -1;
-
-    // flags
-    //infected = false;
-    //contagious = false;
-    //symptomsCurrent = SymptomsLevels.none; // 0 undefined, 1 is mild to moderate (80%), 2 is severe (14%), 3 is critical (6%)
-    //symptomaticOverall = true;
-    //dead = false;
-    //recovered = false;
-    //criticalIfSevere = false;
-    //isolating = false;
-
-    // These are times of onset of various things
-    /*contagiousTrigger = Number.MAX_SAFE_INTEGER;
-    endContagiousTrigger = Number.MAX_SAFE_INTEGER;
-    symptomsTrigger = Number.MAX_SAFE_INTEGER;
-    endSymptomsTrigger = Number.MAX_SAFE_INTEGER;
-    deadTrigger = Number.MAX_SAFE_INTEGER;
-    severeTrigger = Number.MAX_SAFE_INTEGER;
-    isolationTrigger = Number.MAX_SAFE_INTEGER; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
-    */
-
-    get infected(): boolean { return <boolean>this.wasmPerson.infected }
-    set infected(x: boolean) { this.wasmPerson.infected = x; }
-
-    get contagious(): boolean { return <boolean>this.wasmPerson.contagious }
-    set contagious(x: boolean) { this.wasmPerson.contagious = x; }
-
-    get symptomsCurrent(): number { return <number>this.wasmPerson.symptomsCurrent }
-    set symptomsCurrent(x: number) { this.wasmPerson.symptomsCurrent = x; }
-
-    get symptomaticOverall(): boolean { return <boolean>this.wasmPerson.symptomaticOverall }
-    set symptomaticOverall(x: boolean) { this.wasmPerson.symptomaticOverall = x; }
-
-    get dead(): boolean { return <boolean>this.wasmPerson.dead }
-    set dead(x: boolean) { this.wasmPerson.dead = x; }
-
-    get recovered(): boolean { return <boolean>this.wasmPerson.recovered }
-    set recovered(x: boolean) { this.wasmPerson.recovered = x; }
-
-    get criticalIfSevere(): boolean { return <boolean>this.wasmPerson.criticalIfSevere }
-    set criticalIfSevere(x: boolean) { this.wasmPerson.criticalIfSevere = x; }
-
-    get isolating(): boolean { return <boolean>this.wasmPerson.isolating }
-    set isolating(x: boolean) { this.wasmPerson.isolating = x; }
-
-    get contagiousTrigger(): number { return <number>this.wasmPerson.contagiousTrigger }
-    set contagiousTrigger(x: number) { this.wasmPerson.contagiousTrigger = x; }
-
-    get endContagiousTrigger(): number { return <number>this.wasmPerson.endContagiousTrigger }
-    set endContagiousTrigger(x: number) { this.wasmPerson.endContagiousTrigger = x; }
-
-    get symptomsTrigger(): number { return <number>this.wasmPerson.symptomsTrigger }
-    set symptomsTrigger(x: number) { this.wasmPerson.symptomsTrigger = x; }
-
-    get endSymptomsTrigger(): number { return <number>this.wasmPerson.endSymptomsTrigger }
-    set endSymptomsTrigger(x: number) { this.wasmPerson.endSymptomsTrigger = x; }
-
-    get deadTrigger(): number { return <number>this.wasmPerson.deadTrigger }
-    set deadTrigger(x: number) { this.wasmPerson.deadTrigger = x; }
-
-    get severeTrigger(): number { return <number>this.wasmPerson.severeTrigger }
-    set severeTrigger(x: number) { this.wasmPerson.severeTrigger = x; }
-
-    get isolationTrigger(): number { return <number>this.wasmPerson.isolationTrigger }
-    set isolationTrigger(x: number) { this.wasmPerson.isolationTrigger = x; }
+    useWasmSim = false;
 
     wasmPerson: any = null;
 
     associateWasmSimAndInit(wasmSim: any, params: Params.Base, rand: MersenneTwister) {
+        // getter/setters will sync all vars during init()
         this.wasmPerson = wasmSim.getPerson(this.id);
-        // sync all vars!
+        this.useWasmSim = true;
+        this.init(params, rand);
+    }
+
+    constructor(params: Params.Base, rand: MersenneTwister, id: number) {
+        this.id = id;
+    }
+
+    init(params: Params.Base, rand: MersenneTwister) {
+        // Initialization needs to happen after we create the WASM sim, that needs to happen after we know how many persons there are, so initialization has been moved out of constuctor
 
         // Find person's main activity (what they do during the day)
         this.currentActivity = this.getPersonDefaultActivity();
@@ -202,11 +211,6 @@ export class Person {
             let [temp] = util.RandGaussian(rand, this.symptomsTrigger + util.fromDays(2), util.fromDays(1));
             this.isolationTrigger = util.clamp(temp, this.symptomsTrigger, this.endSymptomsTrigger);
         }
-    }
-
-
-    constructor(params: Params.Base, rand: MersenneTwister, id: number) {
-        this.id = id;
     }
 
     getPersonDefaultActivityIndex(): number {
@@ -291,7 +295,6 @@ export class Person {
         this.symptomsCurrent = 0;
         this.contagious = false;
         this.isolating = false;
-        if (sim) sim.wasmSim.updatePersonIsolating(this.id, false);
         this.currentActivity = this.getPersonDefaultActivity();
         if (sim && this.county >= 0) sim.countyStats.counters[this.county][GraphType.currentInfected]--;
     }
@@ -320,9 +323,8 @@ export class Person {
         }
     }
 
-    becomeIsolated(sim: Sim | null) {
+    becomeIsolated() {
         this.isolating = true;
-        if(sim) sim.wasmSim.updatePersonIsolating(this.id, true);
         this.currentActivity =
             Person.activitiesWhileSick[RandomFast.HashIntApprox(this.id, 0, Person.activitiesWhileSick.length)];
     }
@@ -348,7 +350,7 @@ export class Person {
                 // if (this.symptomsCurrent < SymptomsLevels.severe && this.time_since_infected >= this.severeTrigger)
                 this.becomeSevereOrCritical();
             if (this.contagious && this.time_since_infected >= this.deadTrigger) this.becomeDead(sim);
-            if (this.symptomsCurrent && this.time_since_infected >= this.isolationTrigger) this.becomeIsolated(sim);
+            if (this.symptomsCurrent && this.time_since_infected >= this.isolationTrigger) this.becomeIsolated();
 
             this.time_since_infected = this.time_since_infected + 1;
         }
@@ -388,16 +390,13 @@ export class Person {
         return total;
     }
 
-    spreadInAPlace(activityType: string, placeIndex: number, density: number, pop: Person[], rand: MersenneTwister, sim: Sim, seed: number) {
+    spreadInAPlace(occupants: number[], density: number, pop: Person[], rand: MersenneTwister, sim: Sim, seed: number) {
         let prob = sim.params.prob_baseline_timestep * this.probabilityMultiplierFromDensity(density);
-        let nOccupants = sim.wasmSim.occupantCounter.getOccupantCount(activityType, placeIndex);
-        let numSpread = this.howManyCatchItInThisTimeStep(rand, prob, nOccupants);
-        var spreatToList = sim.wasmSim.occupantCounter.getNRandomOccupants(activityType, placeIndex, numSpread); // selects n random occupants
+        let numSpread = this.howManyCatchItInThisTimeStep(rand, prob, occupants.length);
         for (let i = 0; i < numSpread; i++) {
-            let targetIndex = spreatToList.get(i);
+            let targetIndex = occupants[RandomFast.HashIntApprox(seed, 0, occupants.length)];
             if (pop[targetIndex].isVulnerable) pop[targetIndex].becomeSick(sim);
         }
-        spreatToList.delete();
     }
 
     getCurrentActivity(currentHour: number): ActivityType {
@@ -411,7 +410,7 @@ export class Person {
             let seed = Math.trunc(time_steps_since_start.raw * 4096 + index); // Unique for time step and each person
             if (activity == ActivityType.home) {
                 this.spreadInAPlace(
-                    "h", this.homeIndex,
+                    sim.allHouseholds[this.homeIndex].currentOccupants,
                     sim.params.home_density,
                     pop,
                     rand,
@@ -420,7 +419,7 @@ export class Person {
                 );
             } else if (activity == ActivityType.work) {
                 this.spreadInAPlace(
-                    "w", this.officeIndex,
+                    sim.allOffices[this.officeIndex].currentOccupants,
                     sim.params.office_density,
                     pop,
                     rand,
@@ -429,7 +428,7 @@ export class Person {
                 );
             } else if (activity == ActivityType.shopping) {
                 this.spreadInAPlace(
-                    "s", this.marketIndex,
+                    sim.allSuperMarkets[this.marketIndex].currentOccupants,
                     sim.params.shopping_density,
                     pop,
                     rand,

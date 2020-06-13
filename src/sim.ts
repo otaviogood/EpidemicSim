@@ -78,6 +78,7 @@ export class Sim {
     selectedCountyIndex = -1;
 
     wasmSim: any = null;
+    useWasmSim: boolean = false; // turn WASM sim backend on via this flag
 
     // ---- visuals ----
     canvasWidth = 0;
@@ -88,9 +89,6 @@ export class Sim {
     infectedVisuals: any[][] = [];
     visualsFlag = 0;
     countyStats: CountyStats = new CountyStats();
-
-    tot_js_dt = 0;
-    tot_wasm_dt = 0;
 
     constructor(params: Params.Base) {
         this.params = params;
@@ -197,7 +195,6 @@ export class Sim {
 
         while (!done) {
             let person = new Person(this.params, this.rand, this.pop.length);
-
             // Assign a random household, without overflowing the capacity
             let hh = this.allHouseholds[householdIndex];
             if (hh.residents.length >= hh.capacity) {
@@ -263,6 +260,13 @@ export class Sim {
         console.log("total people: " + this.pop.length);
         console.log("used homes: " + householdIndex);
 
+        if (this.useWasmSim) {
+            await this.initWasmSim();
+        } else {
+            for (var j = 0; j < this.pop.length; j++) {
+                this.pop[j].init(this.params, this.rand);
+            }
+        }
         // console.log("used offices: " + officeIndex);
 
         // this.pop.index(1).occupation = 1;
@@ -271,10 +275,19 @@ export class Sim {
         //     this.pop.index(near[i]).occupation = 2;
         // }
         // this.pop.index(near).occupation = 2;
+        // for (let i = 0; i < 31; i++) {
+        //     this.pop[i].becomeSick(this);
+        // }
+
+        this.pop[this.selectedPersonIndex].drawTimeline(<HTMLCanvasElement>document.getElementById("timeline-canvas"));
+        window.requestAnimationFrame(() => this.draw());
+    }
+
+    async initWasmSim() {
 
         this.paused = true; // locks the sim while loading
         console.log("Loading wasm module");
-        await Module().then(function(loadedModule: any) {
+        await Module().then(function (loadedModule: any) {
             moduleInstance = loadedModule;
         });
         console.log("Loaded wasm module");
@@ -316,21 +329,6 @@ export class Sim {
         this.wasmSim.prepare();
 
         console.log("associateWasmSimAndInit finish");
-
-        // sick
-
-        this.pop[this.selectedPersonIndex].drawTimeline(<HTMLCanvasElement>document.getElementById("timeline-canvas"));
-        window.requestAnimationFrame(() => this.draw());
-
-        for (let i = 0; i < 31; i++) {
-            this.wasmSim.becomeSick(i);
-            this.pop[i].becomeSick(this);
-        }
-
-        this.run_simulation(1);
-
-        this.pop[this.selectedPersonIndex].drawTimeline(<HTMLCanvasElement>document.getElementById("timeline-canvas"));
-        window.requestAnimationFrame(() => this.draw());
     }
 
     // Infect someone RANDOM in a certain county. This is just for getting things started.
@@ -340,18 +338,59 @@ export class Sim {
         this.pop[i].becomeSick(this);
     }
 
+    clearOccupants() {
+        for (let i = 0; i < this.allHouseholds.length; i++) this.allHouseholds[i].currentOccupants = [];
+        for (let i = 0; i < this.allOffices.length; i++) this.allOffices[i].currentOccupants = [];
+        for (let i = 0; i < this.allSuperMarkets.length; i++) this.allSuperMarkets[i].currentOccupants = [];
+    }
     // Allocate all the people to the places they will occupy for this timestep.
     occupyPlaces() {
+        this.clearOccupants();
         let currentStep = this.time_steps_since_start.getStepModDay();
-        this.wasmSim.getOccupantCounter().countAndFillLists(currentStep);
+        for (let i = 0; i < this.pop.length; i++) {
+            let person = this.pop[i];
+            let activity = person.getCurrentActivity(currentStep);
+            if (activity == ActivityType.home) {
+                this.allHouseholds[person.homeIndex].currentOccupants.push(i);
+            } else if (activity == ActivityType.work) {
+                this.allOffices[person.officeIndex].currentOccupants.push(i);
+            } else if (activity == ActivityType.shopping) {
+                this.allSuperMarkets[person.marketIndex].currentOccupants.push(i);
+            }
+        }
     }
     run_simulation(num_time_steps: number) {
+        if (this.useWasmSim) {
+            this.runWasmSimulation(num_time_steps);
+            return;
+        }
         for (let ts = 0; ts < num_time_steps; ts++) {
             this.params.doInterventionsForThisTimestep(this);
             this.occupyPlaces();
+            for (let i = 0; i < this.pop.length; i++) {
+                let person = this.pop[i];
+                person.stepTime(this, this.rand);
+                person.spread(this.time_steps_since_start, i, this.pop, this.rand, this);
+            }
+            this.time_steps_since_start.increment();
+        }
 
+        // Update graphs with latest stats
+        this.countyStats.updateTimeSeriesFromCounters();
+    }
+
+    runWasmSimulation(num_time_steps: number) {
+        for (let ts = 0; ts < num_time_steps; ts++) {
+            this.params.doInterventionsForThisTimestep(this);
+
+            // occupy places
+            let currentStep = this.time_steps_since_start.getStepModDay();
+            this.wasmSim.getOccupantCounter().countAndFillLists(currentStep);
+
+            // calls wasm sim backend
             this.wasmSim.runPopulationStep(this.time_steps_since_start.raw);
 
+            // update stats, given output of wasm sim
             var arr = this.wasmSim.lastStepInfected;
             for (let i = 0; i < arr.size(); i++) {
                 let p = this.pop[arr.get(i)];

@@ -2,7 +2,6 @@
 
 const defaultPlace = "santaCruz";
 
-
 const info = {
     "sfCityLimits": {
         "mapImage": "sf_map_osm_hi.jpg",
