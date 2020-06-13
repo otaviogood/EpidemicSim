@@ -8,8 +8,8 @@ import * as util from "./util";
 // https://github.com/boo1ean/mersenne-twister
 import MersenneTwister from "mersenne-twister";
 import RandomFast from "./random-fast";
-import Module from './generated_wasm/resident_counter'
-var moduleInstance : any = null;
+import Module from "./generated_wasm/resident_counter";
+var moduleInstance: any = null;
 // import latlons from "../../contact_tracing/devon_since_feb.json";
 // const allLocations = (<any>latlons).locations;
 // console.log(allLocations);
@@ -272,10 +272,9 @@ export class Sim {
         // }
         // this.pop.index(near).occupation = 2;
 
-
         this.paused = true; // locks the sim while loading
         console.log("Loading wasm module");
-        await Module().then(function (loadedModule: any) {
+        await Module().then(function(loadedModule: any) {
             moduleInstance = loadedModule;
         });
         console.log("Loaded wasm module");
@@ -290,9 +289,9 @@ export class Sim {
         }
 
         this.wasmSim = new moduleInstance.Sim(this.pop.length);
-        this.wasmSim.setNumberOfPlacesForActivity('h', this.allHouseholds.length, this.params.home_density);
-        this.wasmSim.setNumberOfPlacesForActivity('w', this.allOffices.length, this.params.office_density);
-        this.wasmSim.setNumberOfPlacesForActivity('s', this.allSuperMarkets.length, this.params.shopping_density);
+        this.wasmSim.setNumberOfPlacesForActivity("h", this.allHouseholds.length, this.params.home_density);
+        this.wasmSim.setNumberOfPlacesForActivity("w", this.allOffices.length, this.params.office_density);
+        this.wasmSim.setNumberOfPlacesForActivity("s", this.allSuperMarkets.length, this.params.shopping_density);
         // not used in reference js yet: this.occupantCounter.setNumberOfPlacesForActivity('o', this.allHospitals.length);
 
         for (var j = 0; j < this.pop.length; j++) {
@@ -302,7 +301,9 @@ export class Sim {
             placeIndexArray.push_back(person.officeIndex);
             placeIndexArray.push_back(person.marketIndex);
             placeIndexArray.push_back(person.hospitalIndex);
-            this.wasmSim.addPerson(new moduleInstance.PersonCore(person.id, placeIndexArray, person.getPersonDefaultActivityIndex()));
+            this.wasmSim.addPerson(
+                new moduleInstance.PersonCore(person.id, placeIndexArray, person.getPersonDefaultActivityIndex())
+            );
             placeIndexArray.delete(); // annoying!
         }
 
@@ -339,11 +340,6 @@ export class Sim {
         this.pop[i].becomeSick(this);
     }
 
-//     clearOccupants() {
-//         for (let i = 0; i < this.allHouseholds.length; i++) this.allHouseholds[i].currentOccupants = [];
-//         for (let i = 0; i < this.allOffices.length; i++) this.allOffices[i].currentOccupants = [];
-//         for (let i = 0; i < this.allSuperMarkets.length; i++) this.allSuperMarkets[i].currentOccupants = [];
-//     }
     // Allocate all the people to the places they will occupy for this timestep.
     occupyPlaces() {
         let currentStep = this.time_steps_since_start.getStepModDay();
@@ -380,10 +376,10 @@ export class Sim {
             arr.delete();
 
             this.time_steps_since_start.increment();
-        }
 
-        // Update graphs with latest stats
-        this.countyStats.updateTimeSeriesFromCounters();
+            // Update graphs with latest stats
+            this.countyStats.updateTimeSeriesFromCounters();
+        }
     }
 
     drawLine(ctx: any, x0: number, y0: number, x1: number, y1: number, color: string) {
