@@ -202,7 +202,7 @@ namespace EpidemicSimCore {
         int activityIndex = 0;
 
         unsigned int id = 0; // TODO: uint enough?
-        double time_since_infected = 0;
+        float time_since_infected = 0;
         // These are times of onset of various things
         float contagiousTrigger = (float)INT32_MAX;
         float endContagiousTrigger = (float)INT32_MAX;
@@ -223,6 +223,7 @@ namespace EpidemicSimCore {
 
         PersonCore(unsigned int id, const std::vector<int>& placeIndexes, int activityIndex)
             : id(id), activityIndex(activityIndex) {
+            if (placeIndexes.size() > PERSON_MAX_PLACE_TYPES) throw std::runtime_error("overflow: placeIndexes larger than PERSON_MAX_PLACE_TYPES");
             memset(placeIndex, 0, sizeof(placeIndex));
             for (size_t i = 0; i < placeIndexes.size(); i++) {
                 placeIndex[i] = placeIndexes[i];

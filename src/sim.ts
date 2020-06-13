@@ -300,7 +300,7 @@ export class Sim {
             placeIndexArray.push_back(person.homeIndex);
             placeIndexArray.push_back(person.officeIndex);
             placeIndexArray.push_back(person.marketIndex);
-            placeIndexArray.push_back(person.hospitalIndex);
+            //placeIndexArray.push_back(person.hospitalIndex);
             this.wasmSim.addPerson(
                 new moduleInstance.PersonCore(person.id, placeIndexArray, person.getPersonDefaultActivityIndex())
             );
