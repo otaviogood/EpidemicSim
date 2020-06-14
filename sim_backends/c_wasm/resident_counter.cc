@@ -146,7 +146,7 @@ namespace EpidemicSimCore {
         };
 
         struct params_t {
-            float prob_baseline_timestep = 0.01f;
+            float prob_baseline_timestep = 0.005f;
         };
 
         RNG rng;
@@ -355,7 +355,7 @@ namespace EpidemicSimCore {
                 becomeDead(sim);
                 if (sim) sim->totalDead++;
             }
-            if (symptomsCurrent == SymptomsLevels::none && time_since_infected >= isolationTrigger) becomeIsolated(sim);
+            if (symptomsCurrent != SymptomsLevels::none && time_since_infected >= isolationTrigger) becomeIsolated(sim);
 
             time_since_infected = time_since_infected + 1;
             return true;
@@ -594,7 +594,7 @@ namespace EpidemicSimCore {
     // This returns a [0..1] probability multiplier for probability of spreading the virus.
     float PersonCore::probabilityMultiplierFromDensity(float density) {
         if (density < 0.5f) density = 0.5f;
-        return 0.5f / density;
+        return 0.5f / powf(density, 1.5f);
     }
 
     // This should be a function of density and how much you mix with people.
