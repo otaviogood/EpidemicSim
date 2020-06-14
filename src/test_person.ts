@@ -125,7 +125,7 @@ export class TestPerson {
         console.log("-------- RUNNING " + TestPerson.numSamples + " TESTS... --------");
         let timer = performance.now();
 
-        let mtrand = new MersenneTwister(1234567890);
+        let rand = new RandomFast(1234567890);
         this.allStats.push(new StatsRecord("Time till contagious", (p: Person) => p.isContagious));
         this.allStats.push(new StatsRecord("Time till symptoms", (p: Person) => p.isShowingSymptoms));
         this.allStats.push(new StatsRecord("Time till recovered", (p: Person) => p.isRecovered));
@@ -141,15 +141,15 @@ export class TestPerson {
         );
 
         for (let i = 0; i < TestPerson.numSamples; i++) {
-            let p = new Person(params, mtrand, i);
-            p.init(params, mtrand);
+            let p = new Person(params, rand, i);
+            p.init(params, rand);
             p.becomeSick(null);
 
             for (const stats of this.allStats) stats.written = false;
 
             for (let hour = 0; hour < 24 * 45; hour++) {
                 for (let i = 0; i < this.allStats.length; i++) this.allStats[i].checkStatsEventHappened(p);
-                p.stepTime(null, mtrand);
+                p.stepTime(null, rand);
             }
         }
         for (const stats of this.allStats) stats.makeMetricsObject();

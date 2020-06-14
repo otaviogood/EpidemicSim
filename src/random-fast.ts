@@ -22,7 +22,6 @@ export default class RandomFast {
     // Hash the random state to get a random float ranged [0..1]
     RandFloat(): number {
         this.randomState = RandomFast.SmallHashA(this.randomState);
-        // Add these 2 lines for extra randomness. And change last line to tempState.
         let tempState = (this.randomState << 13) | (this.randomState >> 19);
         tempState = RandomFast.SmallHashB(tempState);
         return Number((tempState >> 8) & 0xffffff) * RandomFast.invMax24Bit;
@@ -32,7 +31,6 @@ export default class RandomFast {
     RandIntApprox(a:number, b:number) {
         if (b-a > 2000000) alert("random range too big");
         this.randomState = RandomFast.SmallHashA(this.randomState);
-        // Add these 2 lines for extra randomness. And change last line to tempState.
         let tempState = (this.randomState << 13) | (this.randomState >> 19);
         tempState = RandomFast.SmallHashB(tempState) | 0;
         b |= 0;
@@ -42,7 +40,6 @@ export default class RandomFast {
 
     static HashInt32(seed:number) {
         seed = RandomFast.SmallHashA(seed);
-        // Add these 2 lines for extra randomness. And change last line to tempState.
         let tempState = (seed << 13) | (seed >> 19);
         tempState = RandomFast.SmallHashB(tempState) | 0;
         return tempState;
@@ -53,7 +50,6 @@ export default class RandomFast {
     static HashIntApprox(seed:number, fromInclusive:number, toExclusive:number) {
         if (toExclusive-fromInclusive > 2000000) alert("has range too big");
         seed = RandomFast.SmallHashA(seed);
-        // Add these 2 lines for extra randomness. And change last line to tempState.
         let tempState = (seed << 13) | (seed >> 19);
         tempState = RandomFast.SmallHashB(tempState) | 0;
         toExclusive |= 0;

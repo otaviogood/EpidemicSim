@@ -1,5 +1,5 @@
 import RandomFast from "./random-fast";
-import MersenneTwister from "mersenne-twister";
+// import MersenneTwister from "mersenne-twister";
 // https://github.com/boo1ean/mersenne-twister
 // var MersenneTwister = require("mersenne-twister");
 
@@ -133,18 +133,18 @@ export class Person {
 
     wasmPerson: any = null;
 
-    associateWasmSimAndInit(wasmSim: any, params: Params.Base, rand: MersenneTwister) {
+    associateWasmSimAndInit(wasmSim: any, params: Params.Base, rand: RandomFast) {
         // getter/setters will sync all vars during init()
         this.wasmPerson = wasmSim.getPerson(this.id);
         this.useWasmSim = true;
         this.init(params, rand);
     }
 
-    constructor(params: Params.Base, rand: MersenneTwister, id: number) {
+    constructor(params: Params.Base, rand: RandomFast, id: number) {
         this.id = id;
     }
 
-    init(params: Params.Base, rand: MersenneTwister) {
+    init(params: Params.Base, rand: RandomFast) {
         // Initialization needs to happen after we create the WASM sim, that needs to happen after we know how many persons there are, so initialization has been moved out of constuctor
 
         // Find person's main activity (what they do during the day)
@@ -337,7 +337,7 @@ export class Person {
     }
 
     // Returns true if this person is sick.
-    stepTime(sim: Sim | null, rand: MersenneTwister) {
+    stepTime(sim: Sim | null, rand: RandomFast) {
         if (this.isSick) {
             // if (util.evenDistributionInTimeRange(2*24, 7*24, this.time_since_infected, rand)) this.becomeContagious();
             if (this.inRange(!this.contagious, this.contagiousTrigger, this.endContagiousTrigger)) this.becomeContagious();
@@ -379,7 +379,7 @@ export class Person {
     // TODO: optimize me using "real math". :)
     // TODO: maxPeopleYouCanSpreadItToInYourRadius is totally arbitrary
     howManyCatchItInThisTimeStep(
-        rand: MersenneTwister,
+        rand: RandomFast,
         prob: number,
         popSize: number,
         maxPeopleYouCanSpreadItToInYourRadius: number = 30
@@ -387,13 +387,13 @@ export class Person {
         popSize = Math.min(popSize, maxPeopleYouCanSpreadItToInYourRadius);
         let total = 0;
         for (let i = 0; i < popSize; i++) {
-            if (rand.random() < prob /*- 1.0*/) total++;
+            if (rand.RandFloat() < prob /*- 1.0*/) total++;
             // if (rtemp.RandFloat() < prob /*- 1.0*/) total++;
         }
         return total;
     }
 
-    spreadInAPlace(occupants: number[], density: number, pop: Person[], rand: MersenneTwister, sim: Sim, seed: number) {
+    spreadInAPlace(occupants: number[], density: number, pop: Person[], rand: RandomFast, sim: Sim, seed: number) {
         let prob = sim.params.prob_baseline_timestep * this.probabilityMultiplierFromDensity(density);
         let numSpread = this.howManyCatchItInThisTimeStep(rand, prob, occupants.length);
         for (let i = 0; i < numSpread; i++) {
@@ -406,7 +406,7 @@ export class Person {
         return this.currentActivity[currentHour] as ActivityType;
     }
 
-    spread(time_steps_since_start: Params.TimeStep, index: number, pop: Person[], rand: MersenneTwister, sim: Sim) {
+    spread(time_steps_since_start: Params.TimeStep, index: number, pop: Person[], rand: RandomFast, sim: Sim) {
         if (this.isContagious) {
             let currentStep = sim.time_steps_since_start.getStepModDay();
             let activity = this.getCurrentActivity(currentStep);

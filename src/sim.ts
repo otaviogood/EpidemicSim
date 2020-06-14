@@ -53,8 +53,7 @@ export function loadImage(url: string) {
 
 export class Sim {
     params: Params.Base;
-    rfast: RandomFast;
-    rand: MersenneTwister;
+    rand: RandomFast;
     pop: Person[] = [];
 
     allHouseholds: Place[] = [];
@@ -92,8 +91,8 @@ export class Sim {
 
     constructor(params: Params.Base) {
         this.params = params;
-        this.rand = new MersenneTwister(params.randomSeed);
-        this.rfast = new RandomFast(params.randomSeed);
+        // this.rand = new MersenneTwister(params.randomSeed);
+        this.rand = new RandomFast(params.randomSeed);
     }
     // Normalizes positions so they are in the [0..1] range on x and y.
     // Returns [x, y] tuple.
@@ -222,7 +221,7 @@ export class Sim {
             person.officeIndex = randOff;
 
             // Assign a semi-random, but close-to-your-house supermarket as your favorite place to go
-            let randMarket = this.rfast.RandIntApprox(0, this.allSuperMarkets.length);
+            let randMarket = this.rand.RandIntApprox(0, this.allSuperMarkets.length);
             let marketDist = Number.MAX_VALUE;
             // Gotta get spatial data structure to work so i can query for nearest things. This is a hacky patchy job for now...
             for (let j = 0; j < 20; j++) {
@@ -234,12 +233,12 @@ export class Sim {
                     marketDist = distSq;
                     person.marketIndex = randMarket;
                 }
-                randMarket = this.rfast.RandIntApprox(0, this.allSuperMarkets.length);
+                randMarket = this.rand.RandIntApprox(0, this.allSuperMarkets.length);
             }
             this.allSuperMarkets[randMarket].residents.push(this.pop.length);
 
             // Assign a semi-random, but close-to-your-house hospital as your favorite place to go
-            let randHospital = this.rfast.RandIntApprox(0, this.allHospitals.length);
+            let randHospital = this.rand.RandIntApprox(0, this.allHospitals.length);
             let hospitalDist = Number.MAX_VALUE;
             // Gotta get spatial data structure to work so i can query for nearest things. This is a hacky patchy job for now...
             for (let j = 0; j < 5; j++) {
@@ -251,7 +250,7 @@ export class Sim {
                     hospitalDist = distSq;
                     person.hospitalIndex = randHospital;
                 }
-                randHospital = this.rfast.RandIntApprox(0, this.allHospitals.length);
+                randHospital = this.rand.RandIntApprox(0, this.allHospitals.length);
             }
 
             this.pop.push(person);
