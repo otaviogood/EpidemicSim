@@ -216,7 +216,7 @@ namespace EpidemicSimCore {
         bool recovered = false;
         bool dead = false;
         bool contagious = false;
-        bool symptomaticOverall = false;
+        bool symptomaticOverall = true;
         bool isolating = false;
         bool criticalIfSevere = false;
         bool infected = false;
