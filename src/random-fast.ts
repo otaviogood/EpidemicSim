@@ -1,3 +1,14 @@
+// OMG, JS can't properly do a uint32 multiply. Instead of overflowing, it loses precision in the low bits because doubles only have 52 bit mantissa. :/
+// https://stackoverflow.com/questions/6232939/is-there-a-way-to-correctly-multiply-two-32-bit-integers-in-javascript/6422061
+function multiply_uint32(a: number, b: number): number {
+    let ah = (a >> 16) & 0xffff,
+        al = a & 0xffff;
+    let bh = (b >> 16) & 0xffff,
+        bl = b & 0xffff;
+    let high = (ah * bl + al * bh) & 0xffff;
+    return (((high << 16) >>> 0) + al * bl) & 0xffffffff;
+}
+
 // Fast random number and hashing algorithms from https://www.shadertoy.com/view/wljXDz
 export default class RandomFast {
     randomState = 4056649889;
@@ -12,11 +23,11 @@ export default class RandomFast {
     // This is the main hash function that should produce a non-repeating
     // pseudo-random sequence for 2^31 iterations.
     static SmallHashA(seed: number): number {
-        return ((seed ^ 1057926937) * 3812423987) ^ (seed * seed * 4000000007);
+        return multiply_uint32(seed ^ 1057926937, 3812423987) ^ multiply_uint32(seed, multiply_uint32(seed, 4000000007));
     }
     // This is an extra hash function to clean things up a little.
     static SmallHashB(seed: number): number {
-        return (seed ^ 2156034509) * 3699529241;
+        return multiply_uint32(seed ^ 2156034509, 3699529241);
     }
 
     // Hash the random state to get a random float ranged [0..1]
@@ -28,8 +39,8 @@ export default class RandomFast {
     }
 
     // This will be biased...
-    RandIntApprox(a:number, b:number) {
-        if (b-a > 2000000) alert("random range too big");
+    RandIntApprox(a: number, b: number) {
+        if (b - a > 2000000) alert("random range too big");
         this.randomState = RandomFast.SmallHashA(this.randomState);
         let tempState = (this.randomState << 13) | (this.randomState >> 19);
         tempState = RandomFast.SmallHashB(tempState) | 0;
@@ -38,7 +49,7 @@ export default class RandomFast {
         return (Math.abs(tempState >> 10) % (b - a)) + a;
     }
 
-    static HashInt32(seed:number) {
+    static HashInt32(seed: number) {
         seed = RandomFast.SmallHashA(seed);
         let tempState = (seed << 13) | (seed >> 19);
         tempState = RandomFast.SmallHashB(tempState) | 0;
@@ -47,8 +58,8 @@ export default class RandomFast {
 
     // This will be biased...
     // range is from [a..b) --> b is not included
-    static HashIntApprox(seed:number, fromInclusive:number, toExclusive:number) {
-        if (toExclusive-fromInclusive > 2000000) alert("has range too big");
+    static HashIntApprox(seed: number, fromInclusive: number, toExclusive: number) {
+        if (toExclusive - fromInclusive > 2000000) alert("has range too big");
         seed = RandomFast.SmallHashA(seed);
         let tempState = (seed << 13) | (seed >> 19);
         tempState = RandomFast.SmallHashB(tempState) | 0;
@@ -57,7 +68,7 @@ export default class RandomFast {
         return (Math.abs(tempState >> 10) % (toExclusive - fromInclusive)) + fromInclusive;
     }
 
-    static HashI2(seedx:number, seedy:number) {
+    static HashI2(seedx: number, seedy: number) {
         let seed = RandomFast.SmallHashA((seedx | 0) ^ ((seedy | 0) * 65537));
         let tempState = (seed << 13) | (seed >> 19);
         return RandomFast.SmallHashB(tempState) | 0;
@@ -81,13 +92,28 @@ export default class RandomFast {
         return hash;
     }
 
-    static ToRGB(seed:number) {
+    static ToRGB(seed: number) {
         let a = seed | 0;
-        return "rgb(" + (Math.max(a & 0xff, 190)|0).toFixed(0) + "," + ((a >> 8) & 0xff).toFixed(0) + "," + ((a >> 16) & 0xff).toFixed(0) +")";
+        return (
+            "rgb(" +
+            (Math.max(a & 0xff, 190) | 0).toFixed(0) +
+            "," +
+            ((a >> 8) & 0xff).toFixed(0) +
+            "," +
+            ((a >> 16) & 0xff).toFixed(0) +
+            ")"
+        );
     }
-    static HashRGB(seed:number) {
+    static HashRGB(seed: number) {
         let a = RandomFast.SmallHashA(seed);
-        return "rgb(" + (Math.max(a & 0xff, 190)|0).toFixed(0) + "," + ((a >> 8) & 0xff).toFixed(0) + "," + ((a >> 16) & 0xff).toFixed(0) +")";
+        return (
+            "rgb(" +
+            (Math.max(a & 0xff, 190) | 0).toFixed(0) +
+            "," +
+            ((a >> 8) & 0xff).toFixed(0) +
+            "," +
+            ((a >> 16) & 0xff).toFixed(0) +
+            ")"
+        );
     }
 }
-
