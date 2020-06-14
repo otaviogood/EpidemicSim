@@ -228,15 +228,15 @@ namespace EpidemicSimCore {
         int activityIndex = 0;
 
         unsigned int id = 0; // TODO: uint enough?
-        float time_since_infected = 0;
+        int time_since_infected = 0;
         // These are times of onset of various things
-        float contagiousTrigger = (float)INT32_MAX;
-        float endContagiousTrigger = (float)INT32_MAX;
-        float symptomsTrigger = (float)INT32_MAX;
-        float endSymptomsTrigger = (float)INT32_MAX;
-        float deadTrigger = (float)INT32_MAX;
-        float severeTrigger = (float)INT32_MAX;
-        float isolationTrigger = (float)INT32_MAX; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
+        int contagiousTrigger = INT32_MAX;
+        int endContagiousTrigger = INT32_MAX;
+        int symptomsTrigger = INT32_MAX;
+        int endSymptomsTrigger = INT32_MAX;
+        int deadTrigger = INT32_MAX;
+        int severeTrigger = INT32_MAX;
+        int isolationTrigger = INT32_MAX; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
         int symptomsCurrent = SymptomsLevels::none;
         
         bool recovered = false;
@@ -287,7 +287,7 @@ namespace EpidemicSimCore {
         void endContagious();
         void becomeSevereOrCritical();
         void becomeIsolated(Sim* sim);
-        bool inRange(bool condition, float start, float end) {
+        bool inRange(bool condition, int start, int end) {
             return condition && time_since_infected >= start && time_since_infected < end;
         }
 
@@ -428,7 +428,7 @@ namespace EpidemicSimCore {
 
     void PersonCore::becomeContagious() {
         if (symptomsCurrent != SymptomsLevels::none) {
-            printf("becomeSymptomy %f %f - %f %f\n", contagiousTrigger, endContagiousTrigger, endContagiousTrigger, endSymptomsTrigger);
+            printf("becomeSymptomy %d %d - %d %d\n", contagiousTrigger, endContagiousTrigger, endContagiousTrigger, endSymptomsTrigger);
         }
 
         util_assert(infected, "ERROR: contagious without being infected." + std::to_string(id));
@@ -475,7 +475,7 @@ namespace EpidemicSimCore {
 
     void PersonCore::becomeSevereOrCritical() {
         if (symptomsCurrent == SymptomsLevels::none) {
-            printf("becomeSevereOrCritical severe %f - symptomsTrigger %f %f\n", severeTrigger, symptomsTrigger, endSymptomsTrigger);
+            printf("becomeSevereOrCritical severe %d - symptomsTrigger %d %d\n", severeTrigger, symptomsTrigger, endSymptomsTrigger);
         }
         util_assert(infected, "ERROR: severe without being infected." + std::to_string(id));
         util_assert(symptomsCurrent != SymptomsLevels::none, "ERROR: must have symptoms to be severe." + std::to_string(id));

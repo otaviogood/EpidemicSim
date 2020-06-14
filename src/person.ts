@@ -40,13 +40,13 @@ export class Person {
     _isolating = false;
 
     // These are times of onset of various things
-    _contagiousTrigger = Number.MAX_SAFE_INTEGER;
-    _endContagiousTrigger = Number.MAX_SAFE_INTEGER;
-    _symptomsTrigger = Number.MAX_SAFE_INTEGER;
-    _endSymptomsTrigger = Number.MAX_SAFE_INTEGER;
-    _deadTrigger = Number.MAX_SAFE_INTEGER;
-    _severeTrigger = Number.MAX_SAFE_INTEGER;
-    _isolationTrigger = Number.MAX_SAFE_INTEGER; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
+    _contagiousTrigger = util.MAX_32BIT_INTEGER;
+    _endContagiousTrigger = util.MAX_32BIT_INTEGER;
+    _symptomsTrigger = util.MAX_32BIT_INTEGER;
+    _endSymptomsTrigger = util.MAX_32BIT_INTEGER;
+    _deadTrigger = util.MAX_32BIT_INTEGER;
+    _severeTrigger = util.MAX_32BIT_INTEGER;
+    _isolationTrigger = util.MAX_32BIT_INTEGER; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
 
     get infected(): boolean { if (!this.useWasmSim) return this._infected; return <boolean>this.wasmPerson.infected; }
     set infected(x: boolean) { if (!this.useWasmSim) { this._infected = x; return; } this.wasmPerson.infected = x; }
@@ -177,7 +177,7 @@ export class Person {
 
         // See if this person is overall asymptomatic and if so, backtrack the symptom onset.
         this.symptomaticOverall = util.Bernoulli(rand, 1.0 - params.prob_fully_asymptomatic);
-        if (!this.symptomaticOverall) this.symptomsTrigger = Number.MAX_SAFE_INTEGER; // Never trigger symptoms for asymptomatic people
+        if (!this.symptomaticOverall) this.symptomsTrigger = util.MAX_32BIT_INTEGER; // Never trigger symptoms for asymptomatic people
 
         // TODO: When do symptoms end? I couldn't find numbers for this so I made something up.
         if (this.symptomaticOverall)
@@ -197,7 +197,7 @@ export class Person {
             // console.log(this.deadTrigger);
 
             util.assert(this.symptomsTrigger >= 0, "just double checking");
-            util.assert(this.symptomsTrigger < Number.MAX_SAFE_INTEGER, "just double checking");
+            util.assert(this.symptomsTrigger < util.MAX_32BIT_INTEGER, "just double checking");
             // TODO: This span doesn't match the other data. Get things consistent. :/
             this.deadTrigger = this.symptomsTrigger + this.deadTrigger * span; // This will often get clamped down by the next line.
             this.deadTrigger = Math.min(this.deadTrigger, this.endContagiousTrigger - 1); // Make sure if you are meant to die, you do it before getting better.
@@ -454,7 +454,7 @@ export class Person {
 
         util.drawText(ctx, 252, 16, "Infection timeline", 14, "#aaaaaa");
         if (this.symptomaticOverall) {
-            if (this.severeTrigger < Number.MAX_SAFE_INTEGER) {
+            if (this.severeTrigger < util.MAX_32BIT_INTEGER) {
                 if (this.criticalIfSevere)
                     util.drawRect(
                         ctx,
@@ -506,11 +506,11 @@ export class Person {
                 "#ff4040"
             );
         }
-        if (this.deadTrigger < Number.MAX_SAFE_INTEGER) {
+        if (this.deadTrigger < util.MAX_32BIT_INTEGER) {
             util.drawRect(ctx, this.deadTrigger * scale, 0, 2, height, "#ffffff");
             util.drawText(ctx, this.deadTrigger * scale - 9, 16, "☠️", 16);
         }
-        if (this.isolationTrigger < Number.MAX_SAFE_INTEGER) {
+        if (this.isolationTrigger < util.MAX_32BIT_INTEGER) {
             util.drawRect(ctx, this.isolationTrigger * scale, 0, 2, height, "#ff5f1f");
             util.drawText(ctx, this.isolationTrigger * scale - 9, 14, "😷", 14);
         }

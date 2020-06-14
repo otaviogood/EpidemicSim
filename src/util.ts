@@ -1,6 +1,8 @@
 import RandomFast from "./random-fast";
 import MersenneTwister from "mersenne-twister";
 
+export const MAX_32BIT_INTEGER = 0x7fffffff;
+
 export enum VizFlags {
     pop10 = 1,
     homes = 2,
