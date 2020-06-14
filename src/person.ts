@@ -54,6 +54,9 @@ export class Person {
     get contagious(): boolean { if (!this.useWasmSim) return this._contagious; return <boolean>this.wasmPerson.contagious; }
     set contagious(x: boolean) { if (!this.useWasmSim) { this._contagious = x; return; } this.wasmPerson.contagious = x; }
 
+    get dead(): boolean { if (!this.useWasmSim) return this._dead; return <boolean>this.wasmPerson.dead; }
+    set dead(x: boolean) { if (!this.useWasmSim) { this._dead = x; return; } this.wasmPerson.dead = x; }
+
     get symptomaticOverall(): boolean { if (!this.useWasmSim) return this._symptomaticOverall; return <boolean>this.wasmPerson.symptomaticOverall; }
     set symptomaticOverall(x: boolean) { if (!this.useWasmSim) { this._symptomaticOverall = x; return; } this.wasmPerson.symptomaticOverall = x; }
 

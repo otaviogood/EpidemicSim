@@ -78,7 +78,7 @@ export class Sim {
     selectedCountyIndex = -1;
 
     wasmSim: any = null;
-    useWasmSim: boolean = false; // turn WASM sim backend on via this flag
+    useWasmSim: boolean = true; // turn WASM sim backend on via this flag
 
     // ---- visuals ----
     canvasWidth = 0;
