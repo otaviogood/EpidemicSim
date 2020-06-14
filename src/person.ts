@@ -397,7 +397,7 @@ export class Person {
         let prob = sim.params.prob_baseline_timestep * this.probabilityMultiplierFromDensity(density);
         let numSpread = this.howManyCatchItInThisTimeStep(rand, prob, occupants.length);
         for (let i = 0; i < numSpread; i++) {
-            let targetIndex = occupants[RandomFast.HashIntApprox(seed, 0, occupants.length)];
+            let targetIndex = occupants[rand.RandIntApprox(0, occupants.length)];
             if (pop[targetIndex].isVulnerable) pop[targetIndex].becomeSick(sim);
         }
     }

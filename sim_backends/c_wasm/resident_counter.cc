@@ -78,6 +78,10 @@ namespace EpidemicSimCore {
             return r.HashIntApprox(seed, from, to_exclusive);
         }
 
+        int rand_int_approx(int from, int to_exclusive) {
+            return r.RandIntApprox(from, to_exclusive);
+        }
+
         RNG() : r(1234567890) {
 
         }
@@ -607,7 +611,7 @@ namespace EpidemicSimCore {
         const auto& wholeList = sim->placesByType[sim->activityToPlaceSetIndex.at(activityType[0])].occupantList[index];
         for (int i = 0; i < count; i++) {
             //int j = sim->rng.random_int(0, wholeList.size());
-            int j = sim->rng.hash_int_approx(seed, 0, wholeList.size());
+            int j = sim->rng.rand_int_approx(0, wholeList.size());
 
             ret.push_back(wholeList[j]);
         }
