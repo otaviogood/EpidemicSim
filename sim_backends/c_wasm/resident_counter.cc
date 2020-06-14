@@ -20,6 +20,8 @@
 #define HAS_EMSCRIPTEN 0
 #endif
 
+#include "random_fast.cc"
+
 // constructor in global namespace. 
 // TODO: a huge vector of char[24] skips a pointer indirection.
 std::vector<std::string> activitiesNormal;
@@ -62,6 +64,25 @@ namespace EpidemicSimCore {
     struct OccupantCounter;
     struct Sim;
 
+#define USE_RANDOM_FAST 1
+#if USE_RANDOM_FAST
+    struct RNG {
+        RandomFast r;
+        typedef int seed_int_t;
+        // 0..1
+        float random() {
+            return r.RandFloat();
+        }
+
+        int hash_int_approx(seed_int_t seed, int from, int to_exclusive) {
+            return r.HashIntApprox(seed, from, to_exclusive);
+        }
+
+        RNG() : r(1234567890) {
+
+        }
+    };
+#else
     struct RNG {
         // 0..1
         float random() {
@@ -71,6 +92,10 @@ namespace EpidemicSimCore {
         int random_int(int a, int b) {
             std::uniform_int_distribution<int> distribution(a, b-1);
             return distribution(m_generator);
+        }
+
+        int hash_int_approx(int seed, int from, int to_exclusive) {
+            return random_int(from, to_exclusive+1);
         }
 
         std::random_device rd;
@@ -85,6 +110,7 @@ namespace EpidemicSimCore {
         std::mt19937 m_generator;
         std::uniform_real_distribution<float> m_distribution;
     };
+#endif
 
     struct TimeStep {
         static const int stepsInDay = 24;
@@ -125,7 +151,7 @@ namespace EpidemicSimCore {
         int getOccupantCount(const std::string& activityType, int index) const;
         void countOnly(int hour);
         void countAndFillLists(int hour);
-        std::vector<unsigned int> getNRandomOccupants(const std::string& activityType, int index, int count);
+        std::vector<unsigned int> getNRandomOccupants(RNG::seed_int_t seed, const std::string& activityType, int index, int count);
         std::vector<unsigned int> getOccupants(const std::string& activityType, int index);
         void prepare();
 
@@ -268,7 +294,7 @@ namespace EpidemicSimCore {
         // spreading
         float probabilityMultiplierFromDensity(float density);
         int howManyCatchItInThisTimeStep(RNG& rand, float prob, size_t popSize, size_t maxPeopleYouCanSpreadItToInYourRadius);
-        void spreadInAPlace(const std::string& activityType, int placeIndex, float density, std::vector<PersonCore>& pop, RNG& rand, Sim& sim);
+        void spreadInAPlace(long long int time_steps_since_start, const std::string& activityType, int placeIndex, float density, std::vector<PersonCore>& pop, RNG& rand, Sim& sim);
 
     };
 
@@ -576,11 +602,13 @@ namespace EpidemicSimCore {
     }
 
     // this minimizes copies
-    std::vector<unsigned int> OccupantCounter::getNRandomOccupants(const std::string& activityType, int index, int count) {
+    std::vector<unsigned int> OccupantCounter::getNRandomOccupants(RNG::seed_int_t seed, const std::string& activityType, int index, int count) {
         std::vector<unsigned int> ret;
         const auto& wholeList = sim->placesByType[sim->activityToPlaceSetIndex.at(activityType[0])].occupantList[index];
         for (int i = 0; i < count; i++) {
-            int j = sim->rng.random_int(0, wholeList.size());
+            //int j = sim->rng.random_int(0, wholeList.size());
+            int j = sim->rng.hash_int_approx(seed, 0, wholeList.size());
+
             ret.push_back(wholeList[j]);
         }
         return ret;
@@ -612,11 +640,13 @@ namespace EpidemicSimCore {
         return total;
     }
 
-    void PersonCore::spreadInAPlace(const std::string& activityType, int placeIndex, float density, std::vector<PersonCore>& pop, RNG& rand, Sim& sim) {
+    void PersonCore::spreadInAPlace(long long int time_steps_since_start_raw, const std::string& activityType, int placeIndex, float density, std::vector<PersonCore>& pop, RNG& rand, Sim& sim) {
         float prob = sim.params.prob_baseline_timestep * probabilityMultiplierFromDensity(density);
         int nOccupants = sim.occupantCounter->getOccupantCount(activityType, placeIndex);
         int numSpread = howManyCatchItInThisTimeStep(rand, prob, nOccupants, 30);
-        std::vector<unsigned int> spreatToList = sim.occupantCounter->getNRandomOccupants(activityType, placeIndex, numSpread); // selects n random occupants
+
+        RNG::seed_int_t seed = time_steps_since_start_raw * 4096 + id; // Unique for time step and each person
+        std::vector<unsigned int> spreatToList = sim.occupantCounter->getNRandomOccupants(seed, activityType, placeIndex, numSpread); // selects n random occupants
         
         if (numSpread > 0 && verbose > 0) {
             printf("id=%u spread numSpread=%d nOccupants=%d prob=%e\n", id, numSpread, nOccupants, prob);
@@ -643,6 +673,7 @@ namespace EpidemicSimCore {
                 int index = placeIndex[sim.activityToPlaceSetIndex[activity]];
 
                 spreadInAPlace(
+                    time_steps_since_start,
                     std::string(1, activity), index,
                     sim.activityDensity[activity],
                     pop,
@@ -709,8 +740,16 @@ EMSCRIPTEN_BINDINGS(OccupantCounterModule) {
         .property("lastStepRecovered", &EpidemicSimCore::Sim::lastStepRecovered)
         .property("lastStepInfected", &EpidemicSimCore::Sim::lastStepInfected)
         .property("lastStepDead", &EpidemicSimCore::Sim::lastStepDead)
-
         ;
+
+    emscripten::class_<EpidemicSimCore::RandomFast>("RandomFast")
+        .constructor<double>()
+        .function("RandFloat", &EpidemicSimCore::RandomFast::RandFloat)
+        .class_function("SmallHashA", &EpidemicSimCore::RandomFast::SmallHashA)
+        .class_function("SmallHashB", &EpidemicSimCore::RandomFast::SmallHashB)
+        .class_function("HashIntApprox", &EpidemicSimCore::RandomFast::HashIntApprox)
+        ;
+
 }
 #else
 

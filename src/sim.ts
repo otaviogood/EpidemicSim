@@ -282,6 +282,29 @@ export class Sim {
         window.requestAnimationFrame(() => this.draw());
     }
 
+    async testRNG() {
+        console.log("Testing RNG implementations");
+
+        let tsRand = new RandomFast(this.params.randomSeed);
+        let wasmRand = new moduleInstance.RandomFast(this.params.randomSeed);
+        let ntrials = 10;
+
+        console.log("RandomFast.SmallHashA");
+        for (let i = 0; i < ntrials; i++) {
+            console.log(i + " ts= " + RandomFast.SmallHashA(i) + "wasm=" + moduleInstance.RandomFast.SmallHashA(i));
+        }
+
+        console.log("RandFloat");
+        for (let i = 0; i < ntrials; i++) {
+            console.log(i + " ts= " + tsRand.RandFloat() + "wasm=" + wasmRand.RandFloat());
+        }
+
+        console.log("HashIntApprox");
+        for (let i = 0; i < ntrials; i++) {
+            console.log(i + " ts= " + RandomFast.HashIntApprox(i, 0, 10000) + "wasm=" + moduleInstance.RandomFast.HashIntApprox(i, 0, 10000));
+        }
+    }
+
     async initWasmSim() {
 
         this.paused = true; // locks the sim while loading
@@ -291,6 +314,9 @@ export class Sim {
         });
         console.log("Loaded wasm module");
         this.paused = false;
+
+        // test RNG
+        await this.testRNG()
 
         // sets up the activities
         for (var j = 0; j < Person.activitiesNormal.length; j++) {
