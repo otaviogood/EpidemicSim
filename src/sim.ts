@@ -291,32 +291,47 @@ export class Sim {
 
         console.log("RandomFast.SmallHashA");
         for (let i = 0; i < ntrials; i++) {
-            console.log(i + " ts= " + RandomFast.SmallHashA(i) + "wasm=" + moduleInstance.RandomFast.SmallHashA(i));
+            // console.log(i + " ts= " + RandomFast.SmallHashA(i) + "wasm=" + moduleInstance.RandomFast.SmallHashA(i));
+            util.assert(RandomFast.SmallHashA(i) === moduleInstance.RandomFast.SmallHashA(i), "smallhash error");
         }
 
         console.log("RandFloat");
         for (let i = 0; i < ntrials; i++) {
-            console.log(i + " ts= " + tsRand.RandFloat() + "wasm=" + wasmRand.RandFloat());
+            // console.log(i + " ts= " + tsRand.RandFloat() + "wasm=" + wasmRand.RandFloat());
+            util.assert(tsRand.RandFloat() === wasmRand.RandFloat(), "randfloat error");
         }
 
         console.log("HashIntApprox");
         for (let i = 0; i < ntrials; i++) {
-            console.log(i + " ts= " + RandomFast.HashIntApprox(i, 0, 10000) + "wasm=" + moduleInstance.RandomFast.HashIntApprox(i, 0, 10000));
+            // console.log(i + " ts= " + RandomFast.HashIntApprox(i, 0, 10000) + "wasm=" + moduleInstance.RandomFast.HashIntApprox(i, 0, 10000));
+            util.assert(RandomFast.HashIntApprox(i, 0, 1000000) === moduleInstance.RandomFast.HashIntApprox(i, 0, 1000000));
         }
+
+        // Test overhead of wasm call. Seems too big to call small functions. :(
+        // C++ function should be faster if no overhead because JS does inefficient multiplies.
+        ntrials = 100;
+        let total = 0.0;
+        let timer = performance.now();
+        for (let i = 0; i < ntrials; i++) total += tsRand.RandFloat();
+        console.log("ts   rand: " + (performance.now() - timer).toFixed(0) + "ms " + total.toFixed(2));  // 150 ms for 10 mil iterations
+
+        total = 0.0;
+        timer = performance.now();
+        for (let i = 0; i < ntrials; i++) total += wasmRand.RandFloat();
+        console.log("wasm rand: " + (performance.now() - timer).toFixed(0) + "ms " + total.toFixed(2));  // 900 ms for 10 mil iterations
     }
 
     async initWasmSim() {
-
         this.paused = true; // locks the sim while loading
         console.log("Loading wasm module");
-        await Module().then(function (loadedModule: any) {
+        await Module().then(function(loadedModule: any) {
             moduleInstance = loadedModule;
         });
         console.log("Loaded wasm module");
         this.paused = false;
 
         // test RNG
-        await this.testRNG()
+        await this.testRNG();
 
         // sets up the activities
         for (var j = 0; j < Person.activitiesNormal.length; j++) {

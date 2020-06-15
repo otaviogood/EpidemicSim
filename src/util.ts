@@ -15,7 +15,7 @@ export enum VizFlags {
 }
 
 let alreadyAlerted = false;
-export function assert(condition: boolean, message: string) {
+export function assert(condition: boolean, message: string = "ERROR") {
     if (!condition) {
         console.log(message);
         if (!alreadyAlerted) window.alert(message);
