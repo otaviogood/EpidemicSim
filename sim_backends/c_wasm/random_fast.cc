@@ -8,7 +8,7 @@
 
 namespace EpidemicSimCore {
     struct RandomFast {
-        typedef int32_t js_io_t;
+        typedef uint32_t js_io_t;
 
         // 0xffffff is biggest 2^n-1 that 32 bit float does exactly.
         // Check with Math.fround(0xffffff) in javascript.
@@ -26,16 +26,16 @@ namespace EpidemicSimCore {
 
         static js_io_t HashIntApprox(js_io_t seedIn, js_io_t fromInclusive, js_io_t toExclusive) {
             //if (toExclusive - fromInclusive > 2000000) throw std::runtime_error("range too large");
-            int32_t seed = RandomFast::SmallHashA(seedIn);
-            int32_t tempState = (seed << 13) | (seed >> 19);
+            uint32_t seed = RandomFast::SmallHashA(seedIn);
+            uint32_t tempState = (seed << 13) | (seed >> 19);
             tempState = RandomFast::SmallHashB(tempState);
-            return (abs(tempState >> 10) % (toExclusive - fromInclusive)) + fromInclusive;
+            return ((tempState >> 10) % (toExclusive - fromInclusive)) + fromInclusive;
         }
 
         double RandFloat() {
             randomState = RandomFast::SmallHashA(randomState);
             // Add these 2 lines for extra randomness. And change last line to tempState.
-            int32_t tempState = (randomState << 13) | (randomState >> 19);
+            uint32_t tempState = (randomState << 13) | (randomState >> 19);
             tempState = RandomFast::SmallHashB(tempState);
             return double((tempState >> 8) & 0xffffff) * RandomFast::invMax24Bit;
         }
@@ -44,9 +44,9 @@ namespace EpidemicSimCore {
         js_io_t RandIntApprox(js_io_t a, js_io_t b) {
             // if (b - a > 2000000) alert("random range too big");
             randomState = RandomFast::SmallHashA(randomState);
-            int32_t tempState = (randomState << 13) | (randomState >> 19);
+            uint32_t tempState = (randomState << 13) | (randomState >> 19);
             tempState = RandomFast::SmallHashB(tempState);
-            return (abs(tempState >> 10) % (b - a)) + a;
+            return ((tempState >> 10) % (b - a)) + a;
         }
 
         RandomFast(double state) : randomState(state) {

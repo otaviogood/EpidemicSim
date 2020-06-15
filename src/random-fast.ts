@@ -6,7 +6,7 @@ function multiply_uint32(a: number, b: number): number {
     let bh = (b >> 16) & 0xffff,
         bl = b & 0xffff;
     let high = (ah * bl + al * bh) & 0xffff;
-    return (((high << 16) >>> 0) + al * bl) & 0xffffffff;
+    return (((high << 16) >>> 0) + al * bl) >>> 0;
 }
 
 // Fast random number and hashing algorithms from https://www.shadertoy.com/view/wljXDz
@@ -23,36 +23,41 @@ export default class RandomFast {
     // This is the main hash function that should produce a non-repeating
     // pseudo-random sequence for 2^31 iterations.
     static SmallHashA(seed: number): number {
-        return multiply_uint32(seed ^ 1057926937, 3812423987) ^ multiply_uint32(seed, multiply_uint32(seed, 4000000007));
+        // >>> 0 converts to *unsigned* 32 bit integer (javascript madness)
+        return (
+            (multiply_uint32((seed ^ 1057926937) >>> 0, 3812423987) ^
+                multiply_uint32(seed, multiply_uint32(seed, 4000000007))) >>>
+            0
+        );
     }
     // This is an extra hash function to clean things up a little.
     static SmallHashB(seed: number): number {
-        return multiply_uint32(seed ^ 2156034509, 3699529241);
+        return multiply_uint32((seed ^ 2156034509) >>> 0, 3699529241);
     }
 
     // Hash the random state to get a random float ranged [0..1]
     RandFloat(): number {
         this.randomState = RandomFast.SmallHashA(this.randomState);
-        let tempState = (this.randomState << 13) | (this.randomState >> 19);
+        let tempState = ((this.randomState << 13) | (this.randomState >>> 19)) >>> 0;
         tempState = RandomFast.SmallHashB(tempState);
-        return Number((tempState >> 8) & 0xffffff) * RandomFast.invMax24Bit;
+        return Number((tempState >>> 8) & 0xffffff) * RandomFast.invMax24Bit;
     }
 
     // This will be biased...
     RandIntApprox(a: number, b: number) {
         if (b - a > 2000000) alert("random range too big");
         this.randomState = RandomFast.SmallHashA(this.randomState);
-        let tempState = (this.randomState << 13) | (this.randomState >> 19);
-        tempState = RandomFast.SmallHashB(tempState) | 0;
+        let tempState = ((this.randomState << 13) | (this.randomState >>> 19)) >>> 0;
+        tempState = RandomFast.SmallHashB(tempState);
         b |= 0;
         a |= 0;
-        return (Math.abs(tempState >> 10) % (b - a)) + a;
+        return ((tempState >>> 10) % (b - a)) + a;
     }
 
     static HashInt32(seed: number) {
         seed = RandomFast.SmallHashA(seed);
-        let tempState = (seed << 13) | (seed >> 19);
-        tempState = RandomFast.SmallHashB(tempState) | 0;
+        let tempState = ((seed << 13) | (seed >>> 19)) >>> 0;
+        tempState = RandomFast.SmallHashB(tempState);
         return tempState;
     }
 
@@ -61,23 +66,23 @@ export default class RandomFast {
     static HashIntApprox(seed: number, fromInclusive: number, toExclusive: number) {
         if (toExclusive - fromInclusive > 2000000) alert("has range too big");
         seed = RandomFast.SmallHashA(seed);
-        let tempState = (seed << 13) | (seed >> 19);
-        tempState = RandomFast.SmallHashB(tempState) | 0;
+        let tempState = ((seed << 13) | (seed >>> 19)) >>> 0;
+        tempState = RandomFast.SmallHashB(tempState);
         toExclusive |= 0;
         fromInclusive |= 0;
-        return (Math.abs(tempState >> 10) % (toExclusive - fromInclusive)) + fromInclusive;
+        return ((tempState >>> 10) % (toExclusive - fromInclusive)) + fromInclusive;
     }
 
     static HashI2(seedx: number, seedy: number) {
         let seed = RandomFast.SmallHashA((seedx | 0) ^ ((seedy | 0) * 65537));
-        let tempState = (seed << 13) | (seed >> 19);
-        return RandomFast.SmallHashB(tempState) | 0;
+        let tempState = ((seed << 13) | (seed >>> 19)) >>> 0;
+        return RandomFast.SmallHashB(tempState);
     }
 
     // Returns a random float from [0..1]
     static HashFloat(seed: number): number {
         seed = RandomFast.SmallHashA(seed);
-        return ((seed >> 8) & 0xffffff) * RandomFast.invMax24Bit;
+        return ((seed >>> 8) & 0xffffff) * RandomFast.invMax24Bit;
     }
     static HashString(s: string): number {
         let hash = 0,
