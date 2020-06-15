@@ -235,13 +235,13 @@ namespace EpidemicSimCore {
         int time_since_infected = 0;
         // These are times of onset of various things
         // using float to prevent numberical overflows with "-" operator
-        float contagiousTrigger = INT32_MAX;
-        float endContagiousTrigger = INT32_MAX;
-        float symptomsTrigger = INT32_MAX;
-        float endSymptomsTrigger = INT32_MAX;
-        float deadTrigger = INT32_MAX;
-        float severeTrigger = INT32_MAX;
-        float isolationTrigger = INT32_MAX; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
+        double contagiousTrigger = INT32_MAX;
+        double endContagiousTrigger = INT32_MAX;
+        double symptomsTrigger = INT32_MAX;
+        double endSymptomsTrigger = INT32_MAX;
+        double deadTrigger = INT32_MAX;
+        double severeTrigger = INT32_MAX;
+        double isolationTrigger = INT32_MAX; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
         int symptomsCurrent = SymptomsLevels::none;
         
         bool recovered = false;
