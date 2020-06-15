@@ -111,8 +111,8 @@
                     />
                 </div>
 
-                <div class="stats" style="font-size:10px">Day: {{ person.routine }}</div>
-                <div class="stats">Location: {{ person.location }}</div>
+                <div class="stats" style="font-size:10px">Day: <span v-html="person.routine"></span></div>
+                <div class="stats">Place: {{ person.location }}</div>
                 <div class="stats">Health: {{ person.status }}</div>
                 <div class="stats">Age (TODO): {{ person.age }}</div>
                 <div class="stats">asymptomatic overall? {{ person.asymptomaticOverall }}</div>
@@ -269,16 +269,21 @@ export default Vue.extend({
             const labels = new Map([
                 ["h", "Home"],
                 ["w", "Office"],
-                ["s", "Supermarket"],
+                ["s", ""], // Supermarket
                 ["o", "Hospital"],
                 ["c", "Car"],
                 ["t", "Train"],
             ]);
             let act = p.getCurrentActivity(currentStep);
-            self.person.location = icons.get(act).toString() + " " + labels.get(act).toString();
+            let details = "";
+            if (act == "h") details = ", occupants " + sim.allHouseholds[p.homeIndex].currentOccupants.length + " / " + sim.allHouseholds[p.homeIndex].residents.length;
+            if (act == "s") details = sim.supermarketJSON[p.marketIndex][2];
+            self.person.location = icons.get(act).toString() + " " + labels.get(act).toString() + details;
             self.person.routine = "";
             for (let i = 0; i < 24; i++) {
+                if (i == currentStep) self.person.routine += "<span style='background-color:#f41; height:18px;display:inline-block;border-radius:4px'>";
                 self.person.routine += icons.get(p.getCurrentActivity(i)).toString();
+                if (i == currentStep) self.person.routine += "</span>";
             }
             self.person.status = "🙂 Happily not sick";
             if (p.isSick) self.person.status = "🦠Sick";

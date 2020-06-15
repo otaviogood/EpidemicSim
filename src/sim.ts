@@ -60,6 +60,7 @@ export class Sim {
     allOffices: Place[] = [];
     allSuperMarkets: Place[] = [];
     allHospitals: Place[] = [];
+    supermarketJSON: any;
     latMin: number = 0;
     latMax: number = 0;
     lonMin: number = 0;
@@ -103,6 +104,13 @@ export class Sim {
         ypos /= this.latAdjust; // Adjust for curved earth
         return [xpos, ypos];
     }
+    latLonDistKm(latA: number, lonA: number, latB: number, lonB: number): number {
+        let dx = (lonB - lonA) * this.latAdjust;
+        let dy = latB - latA;
+        let dx_km = dx * 111.32;
+        let dy_km = dy * 110.574;
+        return Math.sqrt(dx_km * dx_km + dy_km * dy_km);
+    }
 
     async setup() {
         console.log("-------- SETUP --------");
@@ -125,7 +133,7 @@ export class Sim {
 
         // -------- Load HOUSE position and size data --------
         let jsonTempA = await fetch("datafiles/" + mapBounds.defaultPlace + "_Supermarkets.json");
-        let supermarketJSON = await jsonTempA.json();
+        this.supermarketJSON = await jsonTempA.json();
 
         let jsonTempB = await fetch("datafiles/" + mapBounds.defaultPlace + "_Hospitals.json");
         let hospitalJSON = await jsonTempB.json();
@@ -174,12 +182,12 @@ export class Sim {
         console.log("Total offices: " + this.allOffices.length);
         console.log("Average office size: " + totalOfficeCapacity / this.allOffices.length);
 
-        for (const sm of supermarketJSON) this.allSuperMarkets.push(Place.genPlace(this, sm[0], sm[1], 200)); // TODO: supermarket capacity???
+        for (const sm of this.supermarketJSON) this.allSuperMarkets.push(Place.genPlace(this, sm[0], sm[1], 200)); // TODO: supermarket capacity???
         for (const h of hospitalJSON) this.allHospitals.push(Place.genPlace(this, h[0], h[1], 200)); // TODO: hospital capacity???
 
-        // util.shuffleArrayInPlace(this.allHouseholds, this.rand);
+        util.shuffleArrayInPlace(this.allHouseholds, this.rand);
         for (let i = 0; i < this.allHouseholds.length; i++) this.allHouseholds[i].latLonToPos(this);
-        // util.shuffleArrayInPlace(this.allOffices, this.rand);
+        util.shuffleArrayInPlace(this.allOffices, this.rand);
         for (let i = 0; i < this.allOffices.length; i++) this.allOffices[i].latLonToPos(this);
 
         this.countyStats.init(mapBounds.info[mapBounds.defaultPlace].includedCounties.length);
@@ -192,6 +200,7 @@ export class Sim {
         let done = false;
         let i = 0;
 
+        let totalCommuteDistance = 0.0;
         while (!done) {
             let person = new Person(this.params, this.rand, this.pop.length);
             // Assign a random household, without overflowing the capacity
@@ -219,7 +228,11 @@ export class Sim {
             }
             office.residents.push(this.pop.length);
             person.officeIndex = randOff;
+            let officePos = this.allOffices[person.officeIndex];
+            let homePos = this.allHouseholds[person.homeIndex];
+            totalCommuteDistance += this.latLonDistKm(officePos.lat, officePos.lon, homePos.lat, homePos.lon);
 
+            
             // Assign a semi-random, but close-to-your-house supermarket as your favorite place to go
             let randMarket = this.rand.RandIntApprox(0, this.allSuperMarkets.length);
             let marketDist = Number.MAX_VALUE;
@@ -258,6 +271,7 @@ export class Sim {
         }
         console.log("total people: " + this.pop.length);
         console.log("used homes: " + householdIndex);
+        console.log("Average commute distance: " + (totalCommuteDistance / this.pop.length).toFixed(2) + "km");
 
         if (this.useWasmSim) {
             await this.initWasmSim();
@@ -313,12 +327,12 @@ export class Sim {
         let total = 0.0;
         let timer = performance.now();
         for (let i = 0; i < ntrials; i++) total += tsRand.RandFloat();
-        console.log("ts   rand: " + (performance.now() - timer).toFixed(0) + "ms " + total.toFixed(2));  // 150 ms for 10 mil iterations
+        console.log("ts   rand: " + (performance.now() - timer).toFixed(0) + "ms " + total.toFixed(2)); // 150 ms for 10 mil iterations
 
         total = 0.0;
         timer = performance.now();
         for (let i = 0; i < ntrials; i++) total += wasmRand.RandFloat();
-        console.log("wasm rand: " + (performance.now() - timer).toFixed(0) + "ms " + total.toFixed(2));  // 900 ms for 10 mil iterations
+        console.log("wasm rand: " + (performance.now() - timer).toFixed(0) + "ms " + total.toFixed(2)); // 900 ms for 10 mil iterations
     }
 
     async initWasmSim() {
@@ -414,9 +428,9 @@ export class Sim {
             }
             this.time_steps_since_start.increment();
 
-        // Update graphs with latest stats
-        this.countyStats.updateTimeSeriesFromCounters();
-    }
+            // Update graphs with latest stats
+            this.countyStats.updateTimeSeriesFromCounters();
+        }
     }
 
     runWasmSimulation(num_time_steps: number) {
@@ -599,7 +613,7 @@ export class Sim {
                 let px = p.xpos;
                 let py = p.ypos;
 
-                this.drawCircle(ctx, px, py, 12, "rgba(0,220,255,0.4)");
+                // this.drawCircle(ctx, px, py, 12, "rgba(0,220,255,0.4)");
                 // this.drawText(ctx, hh.xpos + 0.02, hh.ypos, hh.residents.length.toString());
                 this.drawLine(ctx, px, py, market.xpos, market.ypos, "rgba(60, 255, 60, 0.5)");
                 this.drawLine(ctx, px, py, house.xpos, house.ypos, "rgba(0, 0, 0, 0.5)");
@@ -609,6 +623,7 @@ export class Sim {
                 this.drawText(ctx, house.xpos - 0.0125, house.ypos, "🏡");
                 this.drawText(ctx, office.xpos - 0.0125, office.ypos, "🏢");
                 this.drawText(ctx, hospital.xpos - 0.0125, hospital.ypos, "🏥");
+                this.drawText(ctx, px, py, "😃");
             }
 
             if ((this.visualsFlag & util.VizFlags.pop10) != 0) {
