@@ -413,10 +413,10 @@ export class Sim {
                 person.spread(this.time_steps_since_start, i, this.pop, this.rand, this);
             }
             this.time_steps_since_start.increment();
-        }
 
         // Update graphs with latest stats
         this.countyStats.updateTimeSeriesFromCounters();
+    }
     }
 
     runWasmSimulation(num_time_steps: number) {
