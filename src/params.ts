@@ -56,6 +56,9 @@ export class TimeStep {
     getStepModDay(): number {
         return this.time % TimeStep.stepsInDay;
     }
+    getStepModDayOffset(offset:number): number {
+        return (this.time + offset) % TimeStep.stepsInDay;
+    }
     toMoment(startDate: moment.Moment) {
         return moment(startDate).add(this.time, "hours");
     }

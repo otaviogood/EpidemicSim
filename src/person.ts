@@ -10,6 +10,7 @@ import * as Params from "./params";
 import * as util from "./util";
 
 // hospital, school, supermarket, retirement community, prison
+// TODO: why are these strings? Slow???
 export enum ActivityType {
     home = "h",
     work = "w",
@@ -18,6 +19,14 @@ export enum ActivityType {
     car = "c",
     train = "t",
 }
+let ActivityMap = new Map([
+    ["h", ActivityType.home],
+    ["w", ActivityType.work],
+    ["s", ActivityType.shopping],
+    ["o", ActivityType.hospital],
+    ["c", ActivityType.car],
+    ["t", ActivityType.train],
+]);
 
 export enum SymptomsLevels {
     // 0 none, 1 is mild to moderate (80%), 2 is severe (14%), 3 is critical (6%)
@@ -127,7 +136,8 @@ export class Person {
     officeIndex = -1;
     marketIndex = -1;
     hospitalIndex = -1;
-    currentActivity: string = Person.activitiesNormal[0];
+    currentRoutine: string = Person.activitiesNormal[0];
+    // currentActivity: ActivityType = ActivityType.home;
     county = -1;
     useWasmSim = false;
 
@@ -148,7 +158,7 @@ export class Person {
         // Initialization needs to happen after we create the WASM sim, that needs to happen after we know how many persons there are, so initialization has been moved out of constuctor
 
         // Find person's main activity (what they do during the day)
-        this.currentActivity = this.getPersonDefaultActivity();
+        this.currentRoutine = this.getPersonDefaultRoutine();
 
         // ---- Generate trigger times when sickness events will happen ----
         [this.contagiousTrigger] = util.RandGaussian(
@@ -216,12 +226,12 @@ export class Person {
         }
     }
 
-    getPersonDefaultActivityIndex(): number {
+    getPersonDefaultRoutineIndex(): number {
         return RandomFast.HashIntApprox(this.id, 0, Person.activitiesNormal.length);
     }
 
-    getPersonDefaultActivity(): string {
-        return Person.activitiesNormal[this.getPersonDefaultActivityIndex()];
+    getPersonDefaultRoutine(): string {
+        return Person.activitiesNormal[this.getPersonDefaultRoutineIndex()];
     }
 
     get hashId() {
@@ -298,7 +308,7 @@ export class Person {
         this.symptomsCurrent = 0;
         this.contagious = false;
         this.isolating = false;
-        this.currentActivity = this.getPersonDefaultActivity();
+        this.currentRoutine = this.getPersonDefaultRoutine();
         if (sim && this.county >= 0) sim.countyStats.counters[this.county][GraphType.currentInfected]--;
     }
 
@@ -328,8 +338,7 @@ export class Person {
 
     becomeIsolated() {
         this.isolating = true;
-        this.currentActivity =
-            Person.activitiesWhileSick[RandomFast.HashIntApprox(this.id, 0, Person.activitiesWhileSick.length)];
+        this.currentRoutine = Person.activitiesWhileSick[RandomFast.HashIntApprox(this.id, 0, Person.activitiesWhileSick.length)];
     }
 
     inRange(condition: boolean, start: number, end: number) {
@@ -403,13 +412,15 @@ export class Person {
     }
 
     getCurrentActivity(currentHour: number): ActivityType {
-        return this.currentActivity[currentHour] as ActivityType;
+        // return this.currentRoutine[currentHour] as ActivityType;
+        return ActivityMap.get(this.currentRoutine[currentHour])!;
     }
 
     spread(time_steps_since_start: Params.TimeStep, index: number, pop: Person[], rand: RandomFast, sim: Sim) {
         if (this.isContagious) {
             let currentStep = sim.time_steps_since_start.getStepModDay();
             let activity = this.getCurrentActivity(currentStep);
+            // let activity = this.currentActivity;
             let seed = Math.trunc(time_steps_since_start.raw * 4096 + index); // Unique for time step and each person
             if (activity == ActivityType.home) {
                 this.spreadInAPlace(

@@ -369,7 +369,7 @@ export class Sim {
             placeIndexArray.push_back(person.marketIndex);
             //placeIndexArray.push_back(person.hospitalIndex);
             this.wasmSim.addPerson(
-                new moduleInstance.PersonCore(person.id, placeIndexArray, person.getPersonDefaultActivityIndex())
+                new moduleInstance.PersonCore(person.id, placeIndexArray, person.getPersonDefaultRoutineIndex())
             );
             placeIndexArray.delete(); // annoying!
         }
@@ -403,7 +403,9 @@ export class Sim {
         let currentStep = this.time_steps_since_start.getStepModDay();
         for (let i = 0; i < this.pop.length; i++) {
             let person = this.pop[i];
+            // Sets activity for this time step
             let activity = person.getCurrentActivity(currentStep);
+            // person.currentActivity = activity;
             if (activity == ActivityType.home) {
                 this.allHouseholds[person.homeIndex].currentOccupants.push(i);
             } else if (activity == ActivityType.work) {
@@ -601,8 +603,9 @@ export class Sim {
                 let office = this.allOffices[p.officeIndex];
                 let hospital = this.allHospitals[p.hospitalIndex];
 
-                let currentStep = this.time_steps_since_start.getStepModDay();
+                let currentStep = this.time_steps_since_start.getStepModDay();  // Should this be time_step - 1????
                 let activity = p.getCurrentActivity(currentStep);
+                // let activity = p.currentActivity;
                 let localx: number = house.xpos;
                 let localy: number = house.ypos;
                 if (activity == ActivityType.work) (localx = office.xpos), (localy = office.ypos);
@@ -613,8 +616,6 @@ export class Sim {
                 let px = p.xpos;
                 let py = p.ypos;
 
-                // this.drawCircle(ctx, px, py, 12, "rgba(0,220,255,0.4)");
-                // this.drawText(ctx, hh.xpos + 0.02, hh.ypos, hh.residents.length.toString());
                 this.drawLine(ctx, px, py, market.xpos, market.ypos, "rgba(60, 255, 60, 0.5)");
                 this.drawLine(ctx, px, py, house.xpos, house.ypos, "rgba(0, 0, 0, 0.5)");
                 this.drawLine(ctx, px, py, office.xpos, office.ypos, "rgba(160, 160, 160, 0.5)");
@@ -632,8 +633,9 @@ export class Sim {
                 for (let i = 0; i < this.pop.length; i += skip) {
                     let person = this.pop[i];
                     let pos = [person.xpos, person.ypos];
-                    let currentStep = this.time_steps_since_start.getStepModDay();
+                    let currentStep = this.time_steps_since_start.getStepModDay();  // Should this be time_step - 1????
                     let activity = person.getCurrentActivity(currentStep);
+                    // let activity = person.currentActivity;
                     if (activity == ActivityType.home) {
                         let p = this.allHouseholds[person.homeIndex];
                         pos = [p.xpos, p.ypos];

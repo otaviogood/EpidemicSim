@@ -252,7 +252,7 @@ export default Vue.extend({
         },
         updatePerson: function() {
             let self = this;
-            let currentStep = sim.time_steps_since_start.getStepModDay(); // % 24;
+            let currentStep = sim.time_steps_since_start.getStepModDayOffset(-1); // Show results for timestep that just passed, not future timestep.
             let p = sim.pop[sim.selectedPersonIndex];
             self.person.timeSinceInfected = p.time_since_infected;
             self.person.asymptomaticOverall = !p.symptomaticOverall;
@@ -275,6 +275,7 @@ export default Vue.extend({
                 ["t", "Train"],
             ]);
             let act = p.getCurrentActivity(currentStep);
+            // let act = p.currentActivity;
             let details = "";
             if (act == "h") details = ", occupants " + sim.allHouseholds[p.homeIndex].currentOccupants.length + " / " + sim.allHouseholds[p.homeIndex].residents.length;
             if (act == "s") details = sim.supermarketJSON[p.marketIndex][2];

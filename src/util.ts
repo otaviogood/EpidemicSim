@@ -153,3 +153,41 @@ export function getPaletteHappy(i: number): string {
     let p = ["#f2bb07", "#f28322", "#f2622e", "#ff2635", "#b0d9bd", "#bd0835"];
     return p[i % p.length];
 }
+
+export class ProbabilityDistribution {
+    probs: number[];
+    // Input is an array that will then be normalized to add to 1... a probability distribution.
+    constructor(probs: number[]) {
+        this.probs = probs.slice();
+        // Normalize the distribution.
+        let total = 0.0;
+        for (let i = 0; i < this.probs.length; i++) {
+            assert(this.probs[i] >= 0);
+            total += this.probs[i];
+        }
+        assert(total > 0);
+        for (let i = 0; i < this.probs.length; i++) {
+            this.probs[i] /= total;
+        }
+    }
+
+    sampleProbabilites(rand: RandomFast) {
+        let r = rand.RandFloat();
+        // probs needs to already be normalized.
+        for (let i = 0; i < this.probs.length; i++) {
+            let p = this.probs[i];
+            if (r < p) return i;
+            r -= p;
+        }
+        return this.probs.length - 1; // In theory, we shouldn't ever reach this return statement.
+    }
+
+    static tests() {
+        let rand = new RandomFast(12345);
+        let pdf = new ProbabilityDistribution([1,2,30]);
+        console.log(pdf.probs);
+        for (let i = 0; i < 30; i++) {
+            console.log(pdf.sampleProbabilites(rand));
+        }
+    }
+}
