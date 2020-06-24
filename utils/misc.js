@@ -1,15 +1,25 @@
 "use strict";
 var assert = require("assert");
 const fs = require("fs");
+var flatbuffers = require("flatbuffers").flatbuffers;
 
 class SimplePlace {
-    xpos = 0;
-    ypos = 0;
+    lat=1000.0;
+    lon=1000.0;
+    capacity=0;
+    residentCount=0;
+    countyIndex=-1;
+    xpos = -1;
+    ypos = -1;
     name;
 
     constructor(lat, lon, capacity, countyIndex = -1) {
         assert(lat < 85.0 && lat > -85.0);  // realistically, we won't be doing antarctica or the north pole.
         assert(lon <= 180.0 && lon >= -180.0);
+        this.lat = lat;
+        this.lon = lon;
+        this.capacity = capacity;
+        this.countyIndex = countyIndex;
     }
 
     // latLonToPos(sim: Sim) {
@@ -184,4 +194,13 @@ function toRadians(angle) {
     return angle * (Math.PI / 180);
 }
 
-module.exports = { SimplePlace, loadJSONObject, loadJSONMap, saveJSONMap, Box2, getDim, roundRandom, shuffleArrayInPlace, toDegrees, toRadians };
+function loadFlatBuffer(filename) {
+    let bufA = fs.readFileSync(filename, {encoding:null});
+    return new flatbuffers.ByteBuffer(new Uint8Array(bufA));
+}
+
+function toRadians(angle) {
+    return angle * 0.0174532925199;
+}
+
+module.exports = { SimplePlace, loadJSONObject, loadJSONMap, saveJSONMap, Box2, getDim, roundRandom, shuffleArrayInPlace, toDegrees, toRadians, loadFlatBuffer, toRadians };

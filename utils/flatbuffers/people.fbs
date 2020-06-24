@@ -1,0 +1,16 @@
+namespace Flatbuf;
+table Person {
+    homeIndex:int32;
+    officeIndex:int32;
+    supermarketIndex:int32;
+    hospitalIndex:int16;
+    countyIndex:int16;
+    name:string;
+}
+
+table PersonArray {
+    people:[Person];
+    junk:int32;
+}
+
+root_type PersonArray;

@@ -4,8 +4,9 @@
 !.gitignore
 !sfHospitals.json
 !sfSupermarkets.json
+!santaCruz_FinalPeople.fb
 !santaCruz_Hospitals.json
-!santaCruz_Households.json
+!santaCruz_Households.fb
 !santaCruz_Offices.json
 !santaCruz_Supermarkets.json
 !*.jpg

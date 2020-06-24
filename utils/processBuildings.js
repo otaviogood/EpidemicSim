@@ -37,8 +37,8 @@ async function doEverything() {
     let countyPopsInitial = Array(numCounties).fill(0);
     for (let i = 0; i < buildingPositionsJSON.length; i++) {
         let posAndCount = buildingPositionsJSON[i];
-        let lat = posAndCount[0];
-        let lon = posAndCount[1];
+        // let lat = posAndCount[0];
+        // let lon = posAndCount[1];
         let count = posAndCount[2];
         let countyIndex = posAndCount[posAndCount.length - 1];
         countyPopsInitial[countyIndex] += count;
@@ -63,7 +63,7 @@ async function doEverything() {
         let lon = posAndCount[1];
         let count = posAndCount[2];
         let countyIndex = posAndCount[posAndCount.length - 1];
-        count *= misc.roundRandom(rand, multipliers[countyIndex]);
+        count *= misc.roundRandom(rand, multipliers[countyIndex]);  // Adjust population to approximately match census data.
         population += count;
         let targetHouseholdSize = countyStuff.censusInfo.get(countyIndex).get("personsPerHousehold");
         while (count > 0) {
@@ -74,8 +74,8 @@ async function doEverything() {
             let r = rand.random_int31() % 3;
             if (r == 0) rsize += rand.random_int31() & 7; //  crappy distribution so we get some bigger houses
             let capacity = Math.min(count, rsize);
-            // households.push(new misc.SimplePlace(lat, lon, capacity, countyIndex));
-            households.push([lat, lon, capacity, countyIndex]);
+            households.push(new misc.SimplePlace(lat, lon, capacity, countyIndex));
+            // households.push([lat, lon, capacity, countyIndex]);
             avgHouseholdSize += capacity;
             count -= capacity;
         }
@@ -83,19 +83,21 @@ async function doEverything() {
     console.log("Average household size: " + ((avgHouseholdSize * 1.0) / households.length).toFixed(2));
     console.log("Adjusted Population: " + population);
 
-    // ---- Build the flatbuffer of places ----
-    // var builder = new flatbuffers.Builder(households.length);
-    // let allSimplePlaces = [];
-    // for (let i = 0; i < households.length; i++) {
-    //     let p = households[i];
-    //     let simplePlace = FlatbufPlaces.SimplePlace.createSimplePlace(builder, p.lat, p.lon, p.capacity, p.countyIndex, 0);
-    //     allSimplePlaces.push(simplePlace);
-    // }
-    // let allPlacesOffset = FlatbufPlaces.PlaceArray.createPlaceVector(builder, allSimplePlaces);
-    // builder.finish(FlatbufPlaces.PlaceArray.createPlaceArray(builder, allPlacesOffset, avgHouseholdSize));
-    // fs.writeFileSync("processedData/" + mapBounds.defaultPlace + "_Households.fb", builder.asUint8Array(), { encoding: null });
+    misc.shuffleArrayInPlace(households, rand);
 
-    fs.writeFileSync(houseHoldFile, stringify(households, null, "\t"));
+    // ---- Build the flatbuffer of places ----
+    var builder = new flatbuffers.Builder(households.length);
+    let allSimplePlaces = [];
+    for (let i = 0; i < households.length; i++) {
+        let p = households[i];
+        let simplePlace = FlatbufPlaces.SimplePlace.createSimplePlace(builder, p.lat, p.lon, p.capacity, p.countyIndex, 0);
+        allSimplePlaces.push(simplePlace);
+    }
+    let allPlacesOffset = FlatbufPlaces.PlaceArray.createPlaceVector(builder, allSimplePlaces);
+    builder.finish(FlatbufPlaces.PlaceArray.createPlaceArray(builder, allPlacesOffset, avgHouseholdSize));
+    fs.writeFileSync("processedData/" + mapBounds.defaultPlace + "_Households.fb", builder.asUint8Array(), { encoding: null });
+
+    // fs.writeFileSync(houseHoldFile, stringify(households, null, "\t"));
 
     fs.writeFileSync(countyPolygonsFile, stringify(Object.fromEntries(countyStuff.relevantCountyPolygons)));
 

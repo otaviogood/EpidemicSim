@@ -49,6 +49,7 @@ node findMapBounds.js
 node openstreetmapFilter.js
 node geotiff.js
 node processBuildings.js
+node processPeople.js
 ```
 
 -----------------------
@@ -66,6 +67,14 @@ Flatbuffers are now being used instead of json for some things. They are binary,
 https://github.com/google/flatbuffers/releases  
 Documentation here:  
 https://google.github.io/flatbuffers/flatbuffers_guide_tutorial.html  
+Call the compiler for each file like this:  
+```
+..\..\flatc.exe --js households.fbs
+```
+or: (windows specific because of lame file path backslash)  
+```
+npm run build-flatbuffers
+```
 
 ## Credits
 

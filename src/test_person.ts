@@ -122,7 +122,7 @@ export class TestPerson {
     }
     runTests(params: Params.Base) {
         // ------------------ test Person virus model --------------------------
-        console.log("-------- RUNNING " + TestPerson.numSamples + " TESTS... --------");
+        console.log("---- RUNNING " + TestPerson.numSamples + " TESTS... ----");
         let timer = performance.now();
 
         let rand = new RandomFast(1234567890);
@@ -155,7 +155,7 @@ export class TestPerson {
         for (const stats of this.allStats) stats.makeMetricsObject();
 
         this.allChecks();
-        console.log("-------- DONE TESTS in " + (performance.now() - timer).toFixed(0) + "ms --------");
+        console.log("---- DONE TESTS in " + (performance.now() - timer).toFixed(0) + "ms ----");
     }
 
     drawHistogram(canvas: any) {
