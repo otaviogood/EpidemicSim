@@ -201,6 +201,7 @@ export class Sim {
         let personfb = FlatbufPeople.PersonArray.getRootAsPersonArray(buf);
         let peopleLen = personfb.peopleLength();
         this.pop = [];
+        let totalAge = 0;
         // Allocate people to their houses and offices.
         for (let i = 0; i < peopleLen; i++) {
             let person = new Person(this.params, this.rand, this.pop.length);
@@ -210,6 +211,10 @@ export class Sim {
             person.officeIndex = source.officeIndex();
             person.marketIndex = source.supermarketIndex();
             person.hospitalIndex = source.hospitalIndex();
+            person.age = source.age();
+            person.maleFemale = source.maleFemale();
+            person.race = source.race();
+            totalAge += source.age();
             let home = this.allHouseholds[person.homeIndex];
             home.residents.push(person.id);
             person.xpos = home.xpos;
@@ -220,6 +225,7 @@ export class Sim {
             this.pop.push(person);
             if (person.county >= 0) this.countyStats.counters[person.county][GraphType.startingPopulation]++;
         }
+        console.log("average age: " + totalAge * 1.0 / this.pop.length);
         console.log("loaded homes in: " + (performance.now() - timer).toFixed(0) + "ms");
 
         console.log("total people: " + this.pop.length);

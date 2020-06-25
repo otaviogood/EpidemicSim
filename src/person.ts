@@ -139,6 +139,11 @@ export class Person {
     currentRoutine: string = Person.activitiesNormal[0];
     // currentActivity: ActivityType = ActivityType.home;
     county = -1;
+    // Demogaphic info
+    age = -1;
+    maleFemale = -1;
+
+
     useWasmSim = false;
 
     wasmPerson: any = null;

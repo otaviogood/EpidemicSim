@@ -78,6 +78,72 @@ function acronymToFullName(acronym) {
     return acronym;
 }
 
+// https://www.census.gov/library/reference/code-lists/ansi/ansi-codes-for-states.html
+// STATE, STUSAB, STATE_NAME, STATENS
+let stateNumbers = [
+    ["01", "AL", "Alabama", "01779775"],
+    ["02", "AK", "Alaska", "01785533"],
+    ["04", "AZ", "Arizona", "01779777"],
+    ["05", "AR", "Arkansas", "00068085"],
+    ["06", "CA", "California", "01779778"],
+    ["08", "CO", "Colorado", "01779779"],
+    ["09", "CT", "Connecticut", "01779780"],
+    ["10", "DE", "Delaware", "01779781"],
+    ["11", "DC", "District of Columbia", "01702382"],
+    ["12", "FL", "Florida", "00294478"],
+    ["13", "GA", "Georgia", "01705317"],
+    ["15", "HI", "Hawaii", "01779782"],
+    ["16", "ID", "Idaho", "01779783"],
+    ["17", "IL", "Illinois", "01779784"],
+    ["18", "IN", "Indiana", "00448508"],
+    ["19", "IA", "Iowa", "01779785"],
+    ["20", "KS", "Kansas", "00481813"],
+    ["21", "KY", "Kentucky", "01779786"],
+    ["22", "LA", "Louisiana", "01629543"],
+    ["23", "ME", "Maine", "01779787"],
+    ["24", "MD", "Maryland", "01714934"],
+    ["25", "MA", "Massachusetts", "00606926"],
+    ["26", "MI", "Michigan", "01779789"],
+    ["27", "MN", "Minnesota", "00662849"],
+    ["28", "MS", "Mississippi", "01779790"],
+    ["29", "MO", "Missouri", "01779791"],
+    ["30", "MT", "Montana", "00767982"],
+    ["31", "NE", "Nebraska", "01779792"],
+    ["32", "NV", "Nevada", "01779793"],
+    ["33", "NH", "New Hampshire", "01779794"],
+    ["34", "NJ", "New Jersey", "01779795"],
+    ["35", "NM", "New Mexico", "00897535"],
+    ["36", "NY", "New York", "01779796"],
+    ["37", "NC", "North Carolina", "01027616"],
+    ["38", "ND", "North Dakota", "01779797"],
+    ["39", "OH", "Ohio", "01085497"],
+    ["40", "OK", "Oklahoma", "01102857"],
+    ["41", "OR", "Oregon", "01155107"],
+    ["42", "PA", "Pennsylvania", "01779798"],
+    ["44", "RI", "Rhode Island", "01219835"],
+    ["45", "SC", "South Carolina", "01779799"],
+    ["46", "SD", "South Dakota", "01785534"],
+    ["47", "TN", "Tennessee", "01325873"],
+    ["48", "TX", "Texas", "01779801"],
+    ["49", "UT", "Utah", "01455989"],
+    ["50", "VT", "Vermont", "01779802"],
+    ["51", "VA", "Virginia", "01779803"],
+    ["53", "WA", "Washington", "01779804"],
+    ["54", "WV", "West Virginia", "01779805"],
+    ["55", "WI", "Wisconsin", "01779806"],
+    ["56", "WY", "Wyoming", "01779807"],
+    ["60", "AS", "American Samoa", "01802701"],
+    ["66", "GU", "Guam", "01802705"],
+    ["69", "MP", "Northern Mariana Islands", "01779809"],
+    ["72", "PR", "Puerto Rico", "01779808"],
+    ["74", "UM", "U.S. Minor Outlying Islands", "01878752"],
+    ["78", "VI", "U.S. Virgin Islands", "01802710"],
+];
+function getStateNumber(abbr) {
+    let index = stateNumbers.findIndex(x => x[1] === abbr);
+    return stateNumbers[index][0];
+}
+
 papa.parsePromise = function(csvString) {
     return new Promise(function(complete, error) {
         papa.parse(csvString, {
@@ -91,6 +157,25 @@ papa.parsePromise = function(csvString) {
 class CountyInfo {
     relevantCountyPolygons = new Map();
     censusInfo = new Map();
+    acsInfo = new Map(); // American community survey
+
+    // American community survey data
+    acsPopulation = 0;
+    fractionMale = 0.5;
+    fractionAge0_4 = 0;
+    fractionAge5_9 = 0;
+    fractionAge10_14 = 0;
+    fractionAge15_19 = 0;
+    fractionAge20_24 = 0;
+    fractionAge25_34 = 0;
+    fractionAge35_44 = 0;
+    fractionAge45_54 = 0;
+    fractionAge55_59 = 0;
+    fractionAge60_64 = 0;
+    fractionAge65_74 = 0;
+    fractionAge75_84 = 0;
+    fractionAge85_up = 0;
+    // Race TODO: What data is there on race and covid, so what race categories should there be?
 
     async readCensusCSV(countyName, stateAbbr, countyIndex) {
         let stateName = acronymToFullName(stateAbbr);
@@ -147,6 +232,66 @@ class CountyInfo {
         }
     }
 
+    // American community survey is older than the standard census data, but has some extra info.
+    async readAmericanCommunitySurveyCSV(countyName, stateAbbr, countyIndex) {
+        if (!this.acsInfo.has(countyIndex)) this.acsInfo.set(countyIndex, new Map());
+        let countyStateNumber = getStateNumber(stateAbbr);
+        console.log("-------- Loading American Community Survey data for county state number " + countyStateNumber + " --------");
+        console.log(stateAbbr);
+        const csvString = fs.readFileSync("../sourceData/Profiles0502004.csv", "utf8");
+        let csvResult = await papa.parsePromise(csvString);
+        csvResult = csvResult.data;
+        // console.log(csvResult);
+        assert(csvResult[0].length == 8); // Make sure this file has the right number of columns
+        let csvGeoidIndex = 0;
+        let csvCountyIndex = 1;
+        let csvTableNumber = 2;
+        let csvTableOrder = 3;
+        let csvDescription = 4;
+        let csvValue = 5;
+        assert(csvResult[0][csvGeoidIndex] == "Geographic ID Code"); // Check that file format is right
+        assert(csvResult[0][csvCountyIndex] == "Geographic Name"); // Check that file format is right
+        assert(csvResult[0][csvTableNumber] == "Table Number"); // Check that file format is right
+        assert(csvResult[0][csvTableOrder] == "Table Order"); // Check that file format is right
+        assert(csvResult[0][csvDescription] == "Stub"); // Check that file format is right
+        assert(csvResult[0][csvValue] == "Estimate"); // Check that file format is right
+
+        for (let i = 1; i < csvResult.length; i++) {
+            let stateNumber = csvResult[i][csvGeoidIndex].slice(7, 9);
+            if (stateNumber == countyStateNumber) {
+                if (csvResult[i][csvCountyIndex] == countyName) {
+                    let uniqueDescription = csvResult[i][csvTableOrder] + "_" + csvResult[i][csvDescription];
+                    if (csvResult[i][csvTableNumber] == "DP001") {
+                        let fraction = (parseInt(csvResult[i][csvValue]) * 1.0) / this.acsPopulation;
+                        if (uniqueDescription == "1_Total population") {
+                            this.acsPopulation = parseInt(csvResult[i][csvValue]);
+                            console.log("Population of " + countyName + ": " + this.acsPopulation);
+                        } else if (uniqueDescription == "3_Male") this.fractionMale = fraction;
+                        else if (uniqueDescription == "5_Under 5 years") this.fractionAge0_4 = fraction;
+                        else if (uniqueDescription == "6_5 to 9 years") this.fractionAge5_9 = fraction;
+                        else if (uniqueDescription == "7_10 to 14 years") this.fractionAge10_14 = fraction;
+                        else if (uniqueDescription == "8_15 to 19 years") this.fractionAge15_19 = fraction;
+                        else if (uniqueDescription == "9_20 to 24 years") this.fractionAge20_24 = fraction;
+                        else if (uniqueDescription == "10_25 to 34 years") this.fractionAge25_34 = fraction;
+                        else if (uniqueDescription == "11_35 to 44 years") this.fractionAge35_44 = fraction;
+                        else if (uniqueDescription == "12_45 to 54 years") this.fractionAge45_54 = fraction;
+                        else if (uniqueDescription == "13_55 to 59 years") this.fractionAge55_59 = fraction;
+                        else if (uniqueDescription == "14_60 to 64 years") this.fractionAge60_64 = fraction;
+                        else if (uniqueDescription == "15_65 to 74 years") this.fractionAge65_74 = fraction;
+                        else if (uniqueDescription == "16_75 to 84 years") this.fractionAge75_84 = fraction;
+                        else if (uniqueDescription == "17_85 years and over") this.fractionAge85_up = fraction;
+                    }
+                    // Make a key/value dictionary of all the values just in case it's useful.
+                    if (!isNaN(parseFloat(csvResult[i][csvValue]))) {
+                        if (this.acsInfo.get(countyIndex).get(uniqueDescription)) console.log(this.acsInfo.get(countyIndex));
+                        this.acsInfo.get(countyIndex).set(uniqueDescription, csvResult[i][csvValue]);
+                    }
+                }
+            }
+        }
+        // console.log(this.acsInfo);
+    }
+
     async readAllCountiesCensus() {
         let ourCounties = mapBounds.info[mapBounds.defaultPlace].includedCounties.map(x => x[0]);
         let ourStates = mapBounds.info[mapBounds.defaultPlace].includedCounties.map(x => x[1]);
@@ -155,6 +300,7 @@ class CountyInfo {
             let ourState = ourStates[j];
             let ourCountyId = j;
             await this.readCensusCSV(ourCounty, ourState, ourCountyId);
+            await this.readAmericanCommunitySurveyCSV(ourCounty, ourState, ourCountyId);
         }
     }
 

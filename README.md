@@ -41,6 +41,10 @@ Download census CSV files here: https://www.census.gov/quickfacts/fact/table/san
 Get whatever counties are relevant and put the CSVs in sourceData/  
 Name them like this... 'QuickFacts_santaclaracountycalifornia.csv'  
 
+American Community Survey data from here: https://www2.census.gov/programs-surveys/acs/data/archive/2004/  
+File: Profiles0502004.csv  
+American community survey is older than the standard census data, but has some extra info.  
+
 For maps, I take a screenshot from openstreetmap.org by going to 'Export', then putting in the lat/lon, then go to 'share' icon and set custom dimensions and export an image. There's probably a much better way to do this. :)  
 
 inside utils, run:

@@ -101,10 +101,34 @@ Flatbuf.Person.prototype.name = function(optionalEncoding) {
 };
 
 /**
+ * @returns {number}
+ */
+Flatbuf.Person.prototype.age = function() {
+  var offset = this.bb.__offset(this.bb_pos, 16);
+  return offset ? this.bb.readUint8(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @returns {number}
+ */
+Flatbuf.Person.prototype.maleFemale = function() {
+  var offset = this.bb.__offset(this.bb_pos, 18);
+  return offset ? this.bb.readUint8(this.bb_pos + offset) : 0;
+};
+
+/**
+ * @returns {number}
+ */
+Flatbuf.Person.prototype.race = function() {
+  var offset = this.bb.__offset(this.bb_pos, 20);
+  return offset ? this.bb.readUint8(this.bb_pos + offset) : 0;
+};
+
+/**
  * @param {flatbuffers.Builder} builder
  */
 Flatbuf.Person.startPerson = function(builder) {
-  builder.startObject(6);
+  builder.startObject(9);
 };
 
 /**
@@ -157,6 +181,30 @@ Flatbuf.Person.addName = function(builder, nameOffset) {
 
 /**
  * @param {flatbuffers.Builder} builder
+ * @param {number} age
+ */
+Flatbuf.Person.addAge = function(builder, age) {
+  builder.addFieldInt8(6, age, 0);
+};
+
+/**
+ * @param {flatbuffers.Builder} builder
+ * @param {number} maleFemale
+ */
+Flatbuf.Person.addMaleFemale = function(builder, maleFemale) {
+  builder.addFieldInt8(7, maleFemale, 0);
+};
+
+/**
+ * @param {flatbuffers.Builder} builder
+ * @param {number} race
+ */
+Flatbuf.Person.addRace = function(builder, race) {
+  builder.addFieldInt8(8, race, 0);
+};
+
+/**
+ * @param {flatbuffers.Builder} builder
  * @returns {flatbuffers.Offset}
  */
 Flatbuf.Person.endPerson = function(builder) {
@@ -172,9 +220,12 @@ Flatbuf.Person.endPerson = function(builder) {
  * @param {number} hospitalIndex
  * @param {number} countyIndex
  * @param {flatbuffers.Offset} nameOffset
+ * @param {number} age
+ * @param {number} maleFemale
+ * @param {number} race
  * @returns {flatbuffers.Offset}
  */
-Flatbuf.Person.createPerson = function(builder, homeIndex, officeIndex, supermarketIndex, hospitalIndex, countyIndex, nameOffset) {
+Flatbuf.Person.createPerson = function(builder, homeIndex, officeIndex, supermarketIndex, hospitalIndex, countyIndex, nameOffset, age, maleFemale, race) {
   Flatbuf.Person.startPerson(builder);
   Flatbuf.Person.addHomeIndex(builder, homeIndex);
   Flatbuf.Person.addOfficeIndex(builder, officeIndex);
@@ -182,6 +233,9 @@ Flatbuf.Person.createPerson = function(builder, homeIndex, officeIndex, supermar
   Flatbuf.Person.addHospitalIndex(builder, hospitalIndex);
   Flatbuf.Person.addCountyIndex(builder, countyIndex);
   Flatbuf.Person.addName(builder, nameOffset);
+  Flatbuf.Person.addAge(builder, age);
+  Flatbuf.Person.addMaleFemale(builder, maleFemale);
+  Flatbuf.Person.addRace(builder, race);
   return Flatbuf.Person.endPerson(builder);
 }
 

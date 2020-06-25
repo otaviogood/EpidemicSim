@@ -203,4 +203,48 @@ function toRadians(angle) {
     return angle * 0.0174532925199;
 }
 
-module.exports = { SimplePlace, loadJSONObject, loadJSONMap, saveJSONMap, Box2, getDim, roundRandom, shuffleArrayInPlace, toDegrees, toRadians, loadFlatBuffer, toRadians };
+class ProbabilityDistribution {
+    probs = [];
+    // Input is an array that will then be normalized to add to 1... a probability distribution.
+    constructor(probs) {
+        this.probs = probs.slice();
+        // Normalize the distribution.
+        let total = 0.0;
+        for (let i = 0; i < this.probs.length; i++) {
+            assert(this.probs[i] >= 0);
+            total += this.probs[i];
+        }
+        assert(total > 0);
+        for (let i = 0; i < this.probs.length; i++) {
+            this.probs[i] /= total;
+        }
+    }
+
+    sampleProbabilites(rand) {
+        let r = rand.random();// rand.RandFloat();
+        // probs needs to already be normalized.
+        for (let i = 0; i < this.probs.length; i++) {
+            let p = this.probs[i];
+            if (r < p) return i;
+            r -= p;
+        }
+        return this.probs.length - 1; // In theory, we shouldn't ever reach this return statement.
+    }
+
+    // static tests() {
+    //     let rand = new RandomFast(12345);
+    //     let pdf = new ProbabilityDistribution([1,2,30]);
+    //     console.log(pdf.probs);
+    //     for (let i = 0; i < 30; i++) {
+    //         console.log(pdf.sampleProbabilites(rand));
+    //     }
+    // }
+}
+
+// Biased, but not much for small ranges.
+function randint(rand, a, b) {
+    let temp = rand.random_int31();
+    return (temp % (b - a)) + a;
+}
+
+module.exports = { SimplePlace, loadJSONObject, loadJSONMap, saveJSONMap, Box2, getDim, roundRandom, shuffleArrayInPlace, toDegrees, toRadians, loadFlatBuffer, toRadians, ProbabilityDistribution, randint };

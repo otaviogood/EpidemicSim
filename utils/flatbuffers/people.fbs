@@ -6,6 +6,10 @@ table Person {
     hospitalIndex:int16;
     countyIndex:int16;
     name:string;
+    age:uint8;
+    maleFemale:uint8;  // 0 is male, 1 is female
+    race:uint8;
+
 }
 
 table PersonArray {

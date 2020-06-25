@@ -66,6 +66,8 @@ class SimplePerson {
     supermarketIndex = -1;
     hospitalIndex = -1;
     county = -1;
+    age = -1;
+    maleFemale;
     constructor(id) {
         this.id = id;
     }
@@ -195,6 +197,29 @@ async function doEverything() {
             randHospital = randint(rand, 0, allHospitals.length);
         }
 
+        // ---- Demographics ----
+        let pd = new misc.ProbabilityDistribution([countyStuff.fractionMale, 1.0 - countyStuff.fractionMale]);
+        person.maleFemale = pd.sampleProbabilites(rand);
+
+        pd = new misc.ProbabilityDistribution([
+            countyStuff.fractionAge0_4,
+            countyStuff.fractionAge5_9,
+            countyStuff.fractionAge10_14,
+            countyStuff.fractionAge15_19,
+            countyStuff.fractionAge20_24,
+            countyStuff.fractionAge25_34,
+            countyStuff.fractionAge35_44,
+            countyStuff.fractionAge45_54,
+            countyStuff.fractionAge55_59,
+            countyStuff.fractionAge60_64,
+            countyStuff.fractionAge65_74,
+            countyStuff.fractionAge75_84,
+            countyStuff.fractionAge85_up,
+        ]);
+        const ranges = [0,5,10,15,20,25,35,45,55,60,65,75,85,100];
+        let bucket = pd.sampleProbabilites(rand);
+        person.age = misc.randint(rand, ranges[bucket], ranges[bucket+1]);
+
         allPeople.push(person);
     }
     console.log("total people: " + allPeople.length);
@@ -213,6 +238,9 @@ async function doEverything() {
             p.marketIndex,
             p.hospitalIndex,
             p.countyIndex,
+            0,
+            p.age,
+            p.maleFemale,
             0
         );
         allSimplePeople.push(simplePerson);

@@ -114,7 +114,7 @@
                 <div class="stats" style="font-size:10px">Day: <span v-html="person.routine"></span></div>
                 <div class="stats">Place: {{ person.location }}</div>
                 <div class="stats">Health: {{ person.status }}</div>
-                <div class="stats">Age (TODO): {{ person.age }}</div>
+                <div class="stats">Age: {{ person.age }}, {{ person.maleFemale == 0 ? "Male" : "Female" }}</div>
                 <div class="stats">asymptomatic overall? {{ person.asymptomaticOverall }}</div>
                 <div class="stats">Symptom level: {{ person.symptoms }}</div>
                 <div class="stats">Isolating? <span v-html="person.isolating"></span></div>
@@ -169,6 +169,7 @@
                 id="statistics-canvas"
             ></canvas>
         </span>
+        <div v-if="!loadedSim" style="position:absolute;top:calc(50% - 64px); left:calc(50% - 220px); background-color:#dd3311;color:white;font-size:96px;border-radius:64px;border:2px solid #ffccbb;padding:24px">Loading...</div>
     </div>
 </template>
 
@@ -199,6 +200,7 @@ export default Vue.extend({
             county: Vue.prototype.$mapBounds.info[Vue.prototype.$mapBounds.defaultPlace].includedCounties[0][0],
             person: {
                 age: -1,
+                maleFemale: -1,
                 id: -1,
                 location: "",
                 status: "",
@@ -224,6 +226,7 @@ export default Vue.extend({
                 mode: -1,
             },
             stepSize: 1,
+            loadedSim: false,
         };
     },
     created: function() {
@@ -245,6 +248,7 @@ export default Vue.extend({
         sim = new Sim(params);
         await sim.setup();
         sim.paused = true;
+        this.loadedSim = true;
     },
     methods: {
         updateStats: function() {
@@ -257,7 +261,8 @@ export default Vue.extend({
             self.person.timeSinceInfected = p.time_since_infected;
             self.person.asymptomaticOverall = !p.symptomaticOverall;
             self.person.isolating = p.isolating ? "<strong>YES</strong>" : "No";
-            // self.person.age = p.age;
+            self.person.age = p.age;
+            self.person.maleFemale = p.maleFemale;
             const icons = new Map([
                 ["h", "🏡"],
                 ["w", "🏢"],
