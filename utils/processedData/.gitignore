@@ -4,6 +4,8 @@
 !.gitignore
 !sfHospitals.json
 !sfSupermarkets.json
+!santaCruz_AllCountyBounds.json
+!santaCruz_CountyPolygons.json
 !santaCruz_FinalPeople.fb
 !santaCruz_Hospitals.json
 !santaCruz_Households.fb
