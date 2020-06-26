@@ -59,6 +59,21 @@ namespace EpidemicSimCore {
         car = 'c',
         train = 't'
     };
+    uint8_t ActivityMap[128] = {
+        255,255,255,255,255,255,255,255,255,255,  // 0
+        255,255,255,255,255,255,255,255,255,255,  // 10
+        255,255,255,255,255,255,255,255,255,255,  // 20
+        255,255,255,255,255,255,255,255,255,255,  // 30
+        255,255,255,255,255,255,255,255,255,255,  // 40
+        255,255,255,255,255,255,255,255,255,255,  // 50
+        255,255,255,255,255,255,255,255,255,255,  // 60
+        255,255,255,255,255,255,255,255,255,255,  // 70
+        255,255,255,255,255,255,255,255,255,255,  // 80
+        255,255,255,255,255,255,255,255,255,255,  // 90
+        255,255,255,255,255,255,255,255,255,255,  // 100
+        255,255,255,255,255,255,255,255,255,255,  // 110
+        255,255,255,255,255,255,255,255,  // 120
+    };
 
     struct PersonCore;
     struct OccupantCounter;
@@ -169,7 +184,6 @@ namespace EpidemicSimCore {
 
         // all hospitals, etc
         struct PlaceSet {
-            char activityType = 'h';
             std::vector<int> occupantCount;
             std::vector<std::vector<unsigned int>> occupantList;
             std::vector<std::vector<unsigned int>> residentsList;
@@ -318,20 +332,31 @@ namespace EpidemicSimCore {
             }
         }
 
-        for (size_t i = 0; i < personPlaceInfo.size(); i++) {
+        auto sizePP = personPlaceInfo.size();
+        auto sizePlaces = sim->placesByType.size();
+        for (size_t i = 0; i < sizePP; i++) {
             const PersonPlaceOnly& p = personPlaceInfo[i];
             const char personActivity = p.getActivity(hour);
 
-            for (size_t index = 0; index < sim->placesByType.size(); index++) {
-                Sim::PlaceSet& ps = sim->placesByType[index];
-                if (personActivity == ps.activityType) {
-                    int personPlaceIndex = p.placeIndex[index];
-                    if (fillLists) {
-                        ps.occupantList[personPlaceIndex].push_back((unsigned int)i);
-                    }
-                    ps.occupantCount[personPlaceIndex]++;
-                }
+            size_t index = ActivityMap[personActivity];  // This can be done as a pre-process so we just look up an in instead of char->int. Also, getActivity() can be faster and return the int.
+            if (index == 255) continue;
+            Sim::PlaceSet& ps = sim->placesByType[index];
+            int personPlaceIndex = p.placeIndex[index];
+            if (fillLists) {
+                ps.occupantList[personPlaceIndex].push_back((unsigned int)i);
             }
+            ps.occupantCount[personPlaceIndex]++;
+
+            // for (size_t index = 0; index < sizePlaces; index++) {
+            //     Sim::PlaceSet& ps = sim->placesByType[index];
+            //     if (personActivity == ps.activityType) {
+            //         int personPlaceIndex = p.placeIndex[index];
+            //         if (fillLists) {
+            //             ps.occupantList[personPlaceIndex].push_back((unsigned int)i);
+            //         }
+            //         ps.occupantCount[personPlaceIndex]++;
+            //     }
+            // }
         }
     }
 
@@ -521,8 +546,10 @@ namespace EpidemicSimCore {
         activityToPlaceSetIndex[activityType] = placesByType.size();
         activityDensity[activityType] = density;
 
+        // Build a map from chars, like "h", "s", "o" to indexes.
+        ActivityMap[(int)activityType] = placesByType.size();
+
         PlaceSet ps;
-        ps.activityType = activityType;
         ps.occupantCount.resize(count);
         placesByType.emplace_back(std::move(ps));
     }
