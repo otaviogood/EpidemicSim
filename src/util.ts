@@ -184,7 +184,7 @@ export class ProbabilityDistribution {
 
     static tests() {
         let rand = new RandomFast(12345);
-        let pdf = new ProbabilityDistribution([1,2,30]);
+        let pdf = new ProbabilityDistribution([1, 2, 30]);
         console.log(pdf.probs);
         for (let i = 0; i < 30; i++) {
             console.log(pdf.sampleProbabilites(rand));

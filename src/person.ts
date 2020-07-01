@@ -43,7 +43,6 @@ export enum SymptomsLevels {
 }
 
 export class Person {
-
     // flags
     _infected = false;
     _contagious = false;
@@ -63,50 +62,50 @@ export class Person {
     _severeTrigger = util.MAX_32BIT_INTEGER;
     _isolationTrigger = util.MAX_32BIT_INTEGER; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
 
-    get infected(): boolean { if (!this.useWasmSim) return this._infected; return <boolean>this.wasmPerson.infected; }
-    set infected(x: boolean) { if (!this.useWasmSim) { this._infected = x; return; } this.wasmPerson.infected = x; }
+    get infected(): boolean { if (!this.useWasmSim) return this._infected; return <boolean>this.wasmPerson.infected; } // prettier-ignore
+    set infected(x: boolean) { if (!this.useWasmSim) { this._infected = x; return; } this.wasmPerson.infected = x; } // prettier-ignore
 
-    get contagious(): boolean { if (!this.useWasmSim) return this._contagious; return <boolean>this.wasmPerson.contagious; }
-    set contagious(x: boolean) { if (!this.useWasmSim) { this._contagious = x; return; } this.wasmPerson.contagious = x; }
+    get contagious(): boolean { if (!this.useWasmSim) return this._contagious; return <boolean>this.wasmPerson.contagious; } // prettier-ignore
+    set contagious(x: boolean) { if (!this.useWasmSim) { this._contagious = x; return; } this.wasmPerson.contagious = x; } // prettier-ignore
 
-    get dead(): boolean { if (!this.useWasmSim) return this._dead; return <boolean>this.wasmPerson.dead; }
-    set dead(x: boolean) { if (!this.useWasmSim) { this._dead = x; return; } this.wasmPerson.dead = x; }
+    get dead(): boolean { if (!this.useWasmSim) return this._dead; return <boolean>this.wasmPerson.dead; } // prettier-ignore
+    set dead(x: boolean) { if (!this.useWasmSim) { this._dead = x; return; } this.wasmPerson.dead = x; } // prettier-ignore
 
-    get symptomaticOverall(): boolean { if (!this.useWasmSim) return this._symptomaticOverall; return <boolean>this.wasmPerson.symptomaticOverall; }
-    set symptomaticOverall(x: boolean) { if (!this.useWasmSim) { this._symptomaticOverall = x; return; } this.wasmPerson.symptomaticOverall = x; }
+    get symptomaticOverall(): boolean { if (!this.useWasmSim) return this._symptomaticOverall; return <boolean>this.wasmPerson.symptomaticOverall; } // prettier-ignore
+    set symptomaticOverall(x: boolean) { if (!this.useWasmSim) { this._symptomaticOverall = x; return; } this.wasmPerson.symptomaticOverall = x; } // prettier-ignore
 
-    get recovered(): boolean { if (!this.useWasmSim) return this._recovered; return <boolean>this.wasmPerson.recovered; }
-    set recovered(x: boolean) { if (!this.useWasmSim) { this._recovered = x; return; } this.wasmPerson.recovered = x; }
+    get recovered(): boolean { if (!this.useWasmSim) return this._recovered; return <boolean>this.wasmPerson.recovered; } // prettier-ignore
+    set recovered(x: boolean) { if (!this.useWasmSim) { this._recovered = x; return; } this.wasmPerson.recovered = x; } // prettier-ignore
 
-    get criticalIfSevere(): boolean { if (!this.useWasmSim) return this._criticalIfSevere; return <boolean>this.wasmPerson.criticalIfSevere; }
-    set criticalIfSevere(x: boolean) { if (!this.useWasmSim) { this._criticalIfSevere = x; return; } this.wasmPerson.criticalIfSevere = x; }
+    get criticalIfSevere(): boolean { if (!this.useWasmSim) return this._criticalIfSevere; return <boolean>this.wasmPerson.criticalIfSevere; } // prettier-ignore
+    set criticalIfSevere(x: boolean) { if (!this.useWasmSim) { this._criticalIfSevere = x; return; } this.wasmPerson.criticalIfSevere = x; } // prettier-ignore
 
-    get isolating(): boolean { if (!this.useWasmSim) return this._isolating; return <boolean>this.wasmPerson.isolating; }
-    set isolating(x: boolean) { if (!this.useWasmSim) { this._isolating = x; return; } this.wasmPerson.isolating = x; }
+    get isolating(): boolean { if (!this.useWasmSim) return this._isolating; return <boolean>this.wasmPerson.isolating; } // prettier-ignore
+    set isolating(x: boolean) { if (!this.useWasmSim) { this._isolating = x; return; } this.wasmPerson.isolating = x; } // prettier-ignore
 
-    get symptomsCurrent(): number { if (!this.useWasmSim) return this._symptomsCurrent; return <number>this.wasmPerson.symptomsCurrent; }
-    set symptomsCurrent(x: number) { if (!this.useWasmSim) { this._symptomsCurrent = x; return; } this.wasmPerson.symptomsCurrent = x; }
+    get symptomsCurrent(): number { if (!this.useWasmSim) return this._symptomsCurrent; return <number>this.wasmPerson.symptomsCurrent; } // prettier-ignore
+    set symptomsCurrent(x: number) { if (!this.useWasmSim) { this._symptomsCurrent = x; return; } this.wasmPerson.symptomsCurrent = x; } // prettier-ignore
 
-    get contagiousTrigger(): number { if (!this.useWasmSim) return this._contagiousTrigger; return <number>this.wasmPerson.contagiousTrigger; }
-    set contagiousTrigger(x: number) { if (!this.useWasmSim) { this._contagiousTrigger = x; return; } this.wasmPerson.contagiousTrigger = x; }
+    get contagiousTrigger(): number { if (!this.useWasmSim) return this._contagiousTrigger; return <number>this.wasmPerson.contagiousTrigger; } // prettier-ignore
+    set contagiousTrigger(x: number) { if (!this.useWasmSim) { this._contagiousTrigger = x; return; } this.wasmPerson.contagiousTrigger = x; } // prettier-ignore
 
-    get endContagiousTrigger(): number { if (!this.useWasmSim) return this._endContagiousTrigger; return <number>this.wasmPerson.endContagiousTrigger; }
-    set endContagiousTrigger(x: number) { if (!this.useWasmSim) { this._endContagiousTrigger = x; return; } this.wasmPerson.endContagiousTrigger = x; }
+    get endContagiousTrigger(): number { if (!this.useWasmSim) return this._endContagiousTrigger; return <number>this.wasmPerson.endContagiousTrigger; } // prettier-ignore
+    set endContagiousTrigger(x: number) { if (!this.useWasmSim) { this._endContagiousTrigger = x; return; } this.wasmPerson.endContagiousTrigger = x; } // prettier-ignore
 
-    get symptomsTrigger(): number { if (!this.useWasmSim) return this._symptomsTrigger; return <number>this.wasmPerson.symptomsTrigger; }
-    set symptomsTrigger(x: number) { if (!this.useWasmSim) { this._symptomsTrigger = x; return; } this.wasmPerson.symptomsTrigger = x; }
+    get symptomsTrigger(): number { if (!this.useWasmSim) return this._symptomsTrigger; return <number>this.wasmPerson.symptomsTrigger; } // prettier-ignore
+    set symptomsTrigger(x: number) { if (!this.useWasmSim) { this._symptomsTrigger = x; return; } this.wasmPerson.symptomsTrigger = x; } // prettier-ignore
 
-    get endSymptomsTrigger(): number { if (!this.useWasmSim) return this._endSymptomsTrigger; return <number>this.wasmPerson.endSymptomsTrigger; }
-    set endSymptomsTrigger(x: number) { if (!this.useWasmSim) { this._endSymptomsTrigger = x; return; } this.wasmPerson.endSymptomsTrigger = x; }
+    get endSymptomsTrigger(): number { if (!this.useWasmSim) return this._endSymptomsTrigger; return <number>this.wasmPerson.endSymptomsTrigger; } // prettier-ignore
+    set endSymptomsTrigger(x: number) { if (!this.useWasmSim) { this._endSymptomsTrigger = x; return; } this.wasmPerson.endSymptomsTrigger = x; } // prettier-ignore
 
-    get deadTrigger(): number { if (!this.useWasmSim) return this._deadTrigger; return <number>this.wasmPerson.deadTrigger; }
-    set deadTrigger(x: number) { if (!this.useWasmSim) { this._deadTrigger = x; return; } this.wasmPerson.deadTrigger = x; }
+    get deadTrigger(): number { if (!this.useWasmSim) return this._deadTrigger; return <number>this.wasmPerson.deadTrigger; } // prettier-ignore
+    set deadTrigger(x: number) { if (!this.useWasmSim) { this._deadTrigger = x; return; } this.wasmPerson.deadTrigger = x; } // prettier-ignore
 
-    get severeTrigger(): number { if (!this.useWasmSim) return this._severeTrigger; return <number>this.wasmPerson.severeTrigger; }
-    set severeTrigger(x: number) { if (!this.useWasmSim) { this._severeTrigger = x; return; } this.wasmPerson.severeTrigger = x; }
+    get severeTrigger(): number { if (!this.useWasmSim) return this._severeTrigger; return <number>this.wasmPerson.severeTrigger; } // prettier-ignore
+    set severeTrigger(x: number) { if (!this.useWasmSim) { this._severeTrigger = x; return; } this.wasmPerson.severeTrigger = x; } // prettier-ignore
 
-    get isolationTrigger(): number { if (!this.useWasmSim) return this._isolationTrigger; return <number>this.wasmPerson.isolationTrigger; }
-    set isolationTrigger(x: number) { if (!this.useWasmSim) { this._isolationTrigger = x; return; } this.wasmPerson.isolationTrigger = x; }
+    get isolationTrigger(): number { if (!this.useWasmSim) return this._isolationTrigger; return <number>this.wasmPerson.isolationTrigger; } // prettier-ignore
+    set isolationTrigger(x: number) { if (!this.useWasmSim) { this._isolationTrigger = x; return; } this.wasmPerson.isolationTrigger = x; } // prettier-ignore
 
     // lots of sets of 24-hour periods of different behaviors that represent different people's lifestyles
     // TODO: use real world data to set this
@@ -148,7 +147,6 @@ export class Person {
     // Demogaphic info
     age = -1;
     maleFemale = -1;
-
 
     useWasmSim = false;
 
@@ -364,7 +362,8 @@ export class Person {
 
     becomeIsolated() {
         this.isolating = true;
-        this.currentRoutine = Person.activitiesWhileSickByte[RandomFast.HashIntApprox(this.id, 0, Person.activitiesWhileSickByte.length)];
+        this.currentRoutine =
+            Person.activitiesWhileSickByte[RandomFast.HashIntApprox(this.id, 0, Person.activitiesWhileSickByte.length)];
     }
 
     inRange(condition: boolean, start: number, end: number) {

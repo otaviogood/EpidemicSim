@@ -65,7 +65,7 @@ export class Sim {
     // next array is indexes to people currently occupying Places... This has more info than just that array.
     allPlaces: Array<Array<Place>> = [];
 
-    supermarketJSON: any;  // hold onto this info so we can get place names for visualization purposes
+    supermarketJSON: any; // hold onto this info so we can get place names for visualization purposes
     latMin: number = 0;
     latMax: number = 0;
     lonMin: number = 0;
@@ -189,7 +189,8 @@ export class Sim {
 
         this.allPlaces[PlaceType.supermarket] = [];
         this.allPlaces[PlaceType.hospital] = [];
-        for (const sm of this.supermarketJSON) this.allPlaces[PlaceType.supermarket].push(Place.genPlace(this, sm[0], sm[1], 200)); // TODO: supermarket capacity???
+        for (const sm of this.supermarketJSON)
+            this.allPlaces[PlaceType.supermarket].push(Place.genPlace(this, sm[0], sm[1], 200)); // TODO: supermarket capacity???
         for (const h of hospitalJSON) this.allPlaces[PlaceType.hospital].push(Place.genPlace(this, h[0], h[1], 200)); // TODO: hospital capacity???
 
         for (let i = 0; i < this.allPlaces[PlaceType.home].length; i++) this.allPlaces[PlaceType.home][i].latLonToPos(this);
@@ -230,7 +231,7 @@ export class Sim {
             this.pop.push(person);
             if (person.county >= 0) this.countyStats.counters[person.county][GraphType.startingPopulation]++;
         }
-        console.log("average age: " + totalAge * 1.0 / this.pop.length);
+        console.log("average age: " + (totalAge * 1.0) / this.pop.length);
         console.log("loaded homes in: " + (performance.now() - timer).toFixed(0) + "ms");
 
         console.log("total people: " + this.pop.length);
@@ -319,7 +320,11 @@ export class Sim {
         this.wasmSim = new moduleInstance.Sim(this.pop.length);
         this.wasmSim.setNumberOfPlacesForActivity("h", this.allPlaces[PlaceType.home].length, this.params.home_density);
         this.wasmSim.setNumberOfPlacesForActivity("w", this.allPlaces[PlaceType.office].length, this.params.office_density);
-        this.wasmSim.setNumberOfPlacesForActivity("s", this.allPlaces[PlaceType.supermarket].length, this.params.shopping_density);
+        this.wasmSim.setNumberOfPlacesForActivity(
+            "s",
+            this.allPlaces[PlaceType.supermarket].length,
+            this.params.shopping_density
+        );
         // not used in reference js yet: this.occupantCounter.setNumberOfPlacesForActivity('o', this.allHospitals.length);
 
         for (var j = 0; j < this.pop.length; j++) {
@@ -356,9 +361,10 @@ export class Sim {
     }
 
     clearOccupants() {
-        for (let i = 0; i < this.allPlaces[PlaceType.home].length; i++) this.allPlaces[PlaceType.home][i].currentOccupants.reset();
-        for (let i = 0; i < this.allPlaces[PlaceType.office].length; i++) this.allPlaces[PlaceType.office][i].currentOccupants.reset();
-        for (let i = 0; i < this.allPlaces[PlaceType.supermarket].length; i++) this.allPlaces[PlaceType.supermarket][i].currentOccupants.reset();
+        const ap = this.allPlaces;
+        for (let i = 0; i < ap[PlaceType.home].length; i++) ap[PlaceType.home][i].currentOccupants.reset();
+        for (let i = 0; i < ap[PlaceType.office].length; i++) ap[PlaceType.office][i].currentOccupants.reset();
+        for (let i = 0; i < ap[PlaceType.supermarket].length; i++) ap[PlaceType.supermarket][i].currentOccupants.reset();
     }
     // Allocate all the people to the places they will occupy for this timestep.
     occupyPlaces() {
@@ -812,11 +818,11 @@ export class Sim {
 
 // Alloc typed array to be shared between C++ and JS code.
 // Returns JS typed array and C++ pointer.
-function allocUint32Array(moduleInstance:any, size: number) : [Uint32Array, number] {
+function allocUint32Array(moduleInstance: any, size: number): [Uint32Array, number] {
     const BYTES_PER_ELEMENT = 4;
     const LOG2_BYTES_PER_ELEMENT = 2;
     let ptr;
-    let jsArray:Uint32Array;
+    let jsArray: Uint32Array;
     try {
         // Allocate some space in the heap for the data (making sure to use the appropriate memory size of the elements)
         ptr = moduleInstance._malloc(size * BYTES_PER_ELEMENT);
@@ -842,24 +848,24 @@ function testWasmArraySharing(moduleInstance: any) {
     let ll = new moduleInstance.LowLevel();
     ll.test();
 
-    const arrayDataToPass = [1,2,3,4,5];
+    const arrayDataToPass = [1, 2, 3, 4, 5];
     let buffer;
     let error;
     let result;
     try {
         // Init the typed array with the same length as the number of items in the array parameter
-        const typedArray = new Float32Array(arrayDataToPass.length)
+        const typedArray = new Float32Array(arrayDataToPass.length);
 
         // Populate the array with the values
-        for (let i=0; i<arrayDataToPass.length; i++) {
-            typedArray[i] = arrayDataToPass[i]
+        for (let i = 0; i < arrayDataToPass.length; i++) {
+            typedArray[i] = arrayDataToPass[i];
         }
 
         // Allocate some space in the heap for the data (making sure to use the appropriate memory size of the elements)
-        buffer = moduleInstance._malloc(typedArray.length * typedArray.BYTES_PER_ELEMENT)
+        buffer = moduleInstance._malloc(typedArray.length * typedArray.BYTES_PER_ELEMENT);
 
         // Assign the data to the heap - Keep in mind bytes per element
-        moduleInstance.HEAPF32.set(typedArray, buffer >> 2)
+        moduleInstance.HEAPF32.set(typedArray, buffer >> 2);
         var floatPtr = moduleInstance.HEAPF32.subarray(buffer >> 2, (buffer >> 2) + typedArray.length);
         floatPtr[0] = 6.0;
 
@@ -869,13 +875,12 @@ function testWasmArraySharing(moduleInstance: any) {
         console.log("made it through");
     } catch (e) {
         console.log("ERROR: " + e);
-        error = e
+        error = e;
     } finally {
         // To avoid memory leaks we need to always clear out the allocated heap data
         // This needs to happen in the finally block, otherwise thrown errors will stop code execution before this happens
-        moduleInstance._free(buffer)
+        moduleInstance._free(buffer);
     }
 
     console.log(result);
 }
-
