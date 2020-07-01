@@ -407,11 +407,11 @@ export class Person {
         return total;
     }
 
-    spreadInAPlace(occupants: number[], density: number, pop: Person[], rand: RandomFast, sim: Sim, seed: number) {
+    spreadInAPlace(occupants: util.FastArrayInt32, density: number, pop: Person[], rand: RandomFast, sim: Sim, seed: number) {
         let prob = sim.params.prob_baseline_timestep * this.probabilityMultiplierFromDensity(density);
         let numSpread = this.howManyCatchItInThisTimeStep(rand, prob, occupants.length);
         for (let i = 0; i < numSpread; i++) {
-            let targetIndex = occupants[rand.RandIntApprox(0, occupants.length)];
+            let targetIndex = occupants.buffer[rand.RandIntApprox(0, occupants.length)];
             if (pop[targetIndex].isVulnerable) pop[targetIndex].becomeSick(sim);
         }
     }

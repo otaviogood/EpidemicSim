@@ -25,9 +25,11 @@ class Place {
     xpos: number = 0;
     ypos: number = 0;
     residents: number[] = [];
-    currentOccupants: number[] = [];
+    currentOccupants: util.FastArrayInt32;
 
-    constructor(readonly lat: number, readonly lon: number, readonly capacity: number, readonly county: number = -1) {}
+    constructor(readonly lat: number, readonly lon: number, readonly capacity: number, readonly county: number = -1) {
+        this.currentOccupants = new util.FastArrayInt32(capacity);
+    }
 
     latLonToPos(sim: Sim) {
         [this.xpos, this.ypos] = sim.latLonToPos(this.lat, this.lon);
@@ -79,7 +81,7 @@ export class Sim {
     selectedCountyIndex = -1;
 
     wasmSim: any = null;
-    useWasmSim: boolean = true; // turn WASM sim backend on via this flag
+    useWasmSim: boolean = false; // turn WASM sim backend on via this flag
 
     // ---- visuals ----
     canvasWidth = 0;
@@ -213,7 +215,6 @@ export class Sim {
             person.hospitalIndex = source.hospitalIndex();
             person.age = source.age();
             person.maleFemale = source.maleFemale();
-            person.race = source.race();
             totalAge += source.age();
             let home = this.allHouseholds[person.homeIndex];
             home.residents.push(person.id);
@@ -350,9 +351,9 @@ export class Sim {
     }
 
     clearOccupants() {
-        for (let i = 0; i < this.allHouseholds.length; i++) this.allHouseholds[i].currentOccupants = [];
-        for (let i = 0; i < this.allOffices.length; i++) this.allOffices[i].currentOccupants = [];
-        for (let i = 0; i < this.allSuperMarkets.length; i++) this.allSuperMarkets[i].currentOccupants = [];
+        for (let i = 0; i < this.allHouseholds.length; i++) this.allHouseholds[i].currentOccupants.reset();
+        for (let i = 0; i < this.allOffices.length; i++) this.allOffices[i].currentOccupants.reset();
+        for (let i = 0; i < this.allSuperMarkets.length; i++) this.allSuperMarkets[i].currentOccupants.reset();
     }
     // Allocate all the people to the places they will occupy for this timestep.
     occupyPlaces() {
@@ -360,6 +361,14 @@ export class Sim {
         let currentStep = this.time_steps_since_start.getStepModDay();
         for (let i = 0; i < this.pop.length; i++) {
             let person = this.pop[i];
+            // person needs (each of these should be independent for cache reasons):
+            // currentRoutine (could be 16 bit index?)
+            // homeIndex (uint32) OR officeIndex (uint32) OR marketIndex (uint32)
+
+            // currentRoutine can be change to Uint8Array?
+
+            // allHouseholds OR allOffices OR allSuperMarkets (Should be combines to array of arrays<uint32>)
+
             // Sets activity for this time step
             let activity = person.getCurrentActivity(currentStep);
             // person.currentActivity = activity;

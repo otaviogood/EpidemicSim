@@ -191,3 +191,35 @@ export class ProbabilityDistribution {
         }
     }
 }
+
+export class FastArrayInt32 {
+    public buffer: Int32Array;
+    public length: number = 0;
+    constructor(capacity: number = 8) {
+        this.buffer = new Int32Array(capacity);
+    }
+    push(a: number) {
+        if (this.length >= this.buffer.length) {
+            // reallocate and copy to a bigger array.
+            var newBuffer = new Int32Array(this.buffer.length * 2);
+            newBuffer.set(this.buffer);
+            this.buffer = newBuffer;
+        }
+        this.buffer[this.length] = a;
+        ++this.length;
+    }
+    reset() {
+        this.length = 0;
+    }
+    static test() {
+        let test = new FastArrayInt32(2);
+        console.log(test.length);
+        test.push(12);
+        test.push(34);
+        console.log(test.length);
+        test.push(56);
+        console.log(test.length);
+        console.log(test.buffer);
+    }
+}
+// FastArrayInt32.test();
