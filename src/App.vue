@@ -178,7 +178,7 @@
 import Vue from "vue";
 import moment from "moment";
 import { Spatial, Grid } from "./spatial";
-import { Person, ActivityType } from "./person";
+import { Person, PlaceType } from "./person";
 import { Sim } from "./sim";
 import { TestPerson, StatsRecord } from "./test_person";
 import { CountyStats, GraphType } from "./county-stats";
@@ -279,16 +279,16 @@ export default Vue.extend({
                 ["c", "Car"],
                 ["t", "Train"],
             ]);
-            let act = p.getCurrentActivity(currentStep);
+            let act = p.getCurrentActivityChar(currentStep);
             // let act = p.currentActivity;
             let details = "";
-            if (act == "h") details = ", occupants " + sim.allHouseholds[p.homeIndex].currentOccupants.length + " / " + sim.allHouseholds[p.homeIndex].residents.length;
-            if (act == "s") details = sim.supermarketJSON[p.marketIndex][2];
+            if (act == "h") details = ", occupants " + sim.allPlaces[PlaceType.home][p.placeIndex[PlaceType.home]].currentOccupants.length + " / " + sim.allPlaces[PlaceType.home][p.placeIndex[PlaceType.home]].residents.length;
+            if (act == "s") details = sim.supermarketJSON[p.placeIndex[PlaceType.supermarket]][2];
             self.person.location = icons.get(act).toString() + " " + labels.get(act).toString() + details;
             self.person.routine = "";
             for (let i = 0; i < 24; i++) {
                 if (i == currentStep) self.person.routine += "<span style='background-color:#f41; height:18px;display:inline-block;border-radius:4px'>";
-                self.person.routine += icons.get(p.getCurrentActivity(i)).toString();
+                self.person.routine += icons.get(p.getCurrentActivityChar(i)).toString();
                 if (i == currentStep) self.person.routine += "</span>";
             }
             self.person.status = "🙂 Happily not sick";

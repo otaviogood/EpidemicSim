@@ -4,29 +4,35 @@ import RandomFast from "./random-fast";
 // var MersenneTwister = require("mersenne-twister");
 
 import { Sim } from "./sim";
-import { Spatial, Grid } from "./spatial";
+import { Spatial, Grid, Place } from "./spatial";
 import { GraphType } from "./county-stats";
 import * as Params from "./params";
 import * as util from "./util";
 
-// hospital, school, supermarket, retirement community, prison
-// TODO: why are these strings? Slow???
-export enum ActivityType {
-    home = "h",
-    work = "w",
-    shopping = "s",
-    hospital = "o",
-    car = "c",
-    train = "t",
+// ---------------- Place info ----------------
+// This is the number of actually fully implemented places.
+export let numPlaceTypes = 3;
+// hospital, school, supermarket, retirement community, prison, train, etc.
+export enum PlaceType {
+    home = 0,
+    office,
+    supermarket,
+    hospital,
+    car,
+    train,
 }
-let ActivityMap = new Map([
-    ["h", ActivityType.home],
-    ["w", ActivityType.work],
-    ["s", ActivityType.shopping],
-    ["o", ActivityType.hospital],
-    ["c", ActivityType.car],
-    ["t", ActivityType.train],
+
+export let PlaceTypeToChar: string[] = ["h", "w", "s", "o", "c", "t"];
+
+let ActivityMap2 = new Map<string, number>([
+    ["h", PlaceType.home],
+    ["w", PlaceType.office],
+    ["s", PlaceType.supermarket],
+    ["o", PlaceType.hospital],
+    ["c", PlaceType.car],
+    ["t", PlaceType.train],
 ]);
+// --------------------------------------------
 
 export enum SymptomsLevels {
     // 0 none, 1 is mild to moderate (80%), 2 is severe (14%), 3 is critical (6%)
@@ -103,41 +109,17 @@ export class Person {
     set isolationTrigger(x: number) { if (!this.useWasmSim) { this._isolationTrigger = x; return; } this.wasmPerson.isolationTrigger = x; }
 
 
-    // lots of sets of 24-hour periods of different behaviors that represent different people's lifestyles
-    // TODO: are weekends different? Does it matter?
-    static readonly activitiesNormal = [
-        "hhhhhhhhcwwwswwwwwchhhhh", // needs to be 24-long
-        "hhhhhhhhcshhshhhhhshhhhh",
-        "hhhhhhhccsschhhhhshhhhhh",
-        // shifted duplicates - hacky way of getting variety. placeholder.
-        "hhhhhhhcwwwswwwwwchhhhhh", // << 1
-        "hhhhhhhcshhshhhhhshhhhhh",
-        "hhhhhhccsschhhhhshhhhhhh",
-        "hhhhhhcwwwswwwwwchhhhhhh", // << 2
-        "hhhhhhcshhshhhhhshhhhhhh",
-        "hhhhhccsschhhhhshhhhhhhh",
-        "hhhhhhhhhcwwwswwwwwchhhh", // >> 1
-        "hhhhhhhhhcshhshhhhhshhhh",
-        "hhhhhhhhccsschhhhhshhhhh",
-        "hhhhhhhhhhcwwwswwwwwchhh", // >> 2
-        "hhhhhhhhhhcshhshhhhhshhh",
-        "hhhhhhhhhccsschhhhhshhhh",
-    ];
-    static readonly activitiesWhileSick = [
-        "hhhhhhhhhhhhcshhhhhhhhhh",
-        // "oooooooooooooooooooooooo",  // Hospitalized
-    ];
+    static activitiesNormalByte: Array<Uint8Array> = [];
+    static activitiesWhileSickByte: Array<Uint8Array> = [];
 
     id: number = -1;
     time_since_infected: number = -1;
     xpos: number = 0; // Are these needed since you can get x, y of the place you are in?
     ypos: number = 0;
-    homeIndex = -1;
-    officeIndex = -1;
-    marketIndex = -1;
-    hospitalIndex = -1;
-    currentRoutine: string = Person.activitiesNormal[0];
-    // currentActivity: ActivityType = ActivityType.home;
+    // placeIndex: Int32Array = new Int32Array(numPlaceTypes);  // This is way slower. why? Maybe array out of bounds?
+    placeIndex: number[] = [];
+    // This is the hourly activity / place array of where the person goes during the day
+    currentRoutine: Uint8Array;
     county = -1;
     // Demogaphic info
     age = -1;
@@ -157,6 +139,45 @@ export class Person {
 
     constructor(params: Params.Base, rand: RandomFast, id: number) {
         this.id = id;
+        // Initialize static tables
+        if (Person.activitiesNormalByte.length == 0) {
+            // lots of sets of 24-hour periods of different behaviors that represent different people's lifestyles
+            // TODO: use real world data to set this
+            const activitiesNormal = [
+                "hhhhhhhhcwwwswwwwwchhhhh", // needs to be 24-long
+                "hhhhhhhhcshhshhhhhshhhhh",
+                "hhhhhhhccsschhhhhshhhhhh",
+                // shifted duplicates - hacky way of getting variety. placeholder.
+                "hhhhhhhcwwwswwwwwchhhhhh", // << 1
+                "hhhhhhhcshhshhhhhshhhhhh",
+                "hhhhhhccsschhhhhshhhhhhh",
+                "hhhhhhcwwwswwwwwchhhhhhh", // << 2
+                "hhhhhhcshhshhhhhshhhhhhh",
+                "hhhhhccsschhhhhshhhhhhhh",
+                "hhhhhhhhhcwwwswwwwwchhhh", // >> 1
+                "hhhhhhhhhcshhshhhhhshhhh",
+                "hhhhhhhhccsschhhhhshhhhh",
+                "hhhhhhhhhhcwwwswwwwwchhh", // >> 2
+                "hhhhhhhhhhcshhshhhhhshhh",
+                "hhhhhhhhhccsschhhhhshhhh",
+            ];
+            const activitiesWhileSick = [
+                "hhhhhhhhhhhhcshhhhhhhhhh",
+                // "oooooooooooooooooooooooo",  // Hospitalized
+            ];
+            // Convert activities from human-readable chars to bytes for fast indexing later.
+            for (let i = 0; i < activitiesNormal.length; i++) {
+                let act = activitiesNormal[i];
+                Person.activitiesNormalByte[i] = new Uint8Array(act.length);
+                for (let j = 0; j < act.length; j++) Person.activitiesNormalByte[i][j] = ActivityMap2.get(act[j])!;
+            }
+            for (let i = 0; i < activitiesWhileSick.length; i++) {
+                let act = activitiesWhileSick[i];
+                Person.activitiesWhileSickByte[i] = new Uint8Array(act.length);
+                for (let j = 0; j < act.length; j++) Person.activitiesWhileSickByte[i][j] = ActivityMap2.get(act[j])!;
+            }
+        }
+        this.currentRoutine = Person.activitiesNormalByte[0];
     }
 
     init(params: Params.Base, rand: RandomFast) {
@@ -232,11 +253,11 @@ export class Person {
     }
 
     getPersonDefaultRoutineIndex(): number {
-        return RandomFast.HashIntApprox(this.id, 0, Person.activitiesNormal.length);
+        return RandomFast.HashIntApprox(this.id, 0, Person.activitiesNormalByte.length);
     }
 
-    getPersonDefaultRoutine(): string {
-        return Person.activitiesNormal[this.getPersonDefaultRoutineIndex()];
+    getPersonDefaultRoutine(): Uint8Array {
+        return Person.activitiesNormalByte[this.getPersonDefaultRoutineIndex()];
     }
 
     get hashId() {
@@ -343,7 +364,7 @@ export class Person {
 
     becomeIsolated() {
         this.isolating = true;
-        this.currentRoutine = Person.activitiesWhileSick[RandomFast.HashIntApprox(this.id, 0, Person.activitiesWhileSick.length)];
+        this.currentRoutine = Person.activitiesWhileSickByte[RandomFast.HashIntApprox(this.id, 0, Person.activitiesWhileSickByte.length)];
     }
 
     inRange(condition: boolean, start: number, end: number) {
@@ -416,38 +437,44 @@ export class Person {
         }
     }
 
-    getCurrentActivity(currentHour: number): ActivityType {
-        // return this.currentRoutine[currentHour] as ActivityType;
-        return ActivityMap.get(this.currentRoutine[currentHour])!;
+    getCurrentActivityChar(currentHour: number): string {
+        let reverse = PlaceTypeToChar[this.currentRoutine[currentHour]];
+        return reverse!;
+    }
+    getCurrentActivityInt(currentHour: number): number {
+        return this.currentRoutine[currentHour];
     }
 
     spread(time_steps_since_start: Params.TimeStep, index: number, pop: Person[], rand: RandomFast, sim: Sim) {
         if (this.isContagious) {
             let currentStep = sim.time_steps_since_start.getStepModDay();
-            let activity = this.getCurrentActivity(currentStep);
+            let activity = this.getCurrentActivityInt(currentStep);
             // let activity = this.currentActivity;
             let seed = Math.trunc(time_steps_since_start.raw * 4096 + index); // Unique for time step and each person
-            if (activity == ActivityType.home) {
+            if (activity == PlaceType.home) {
+                let placeIndex = this.placeIndex[activity];
                 this.spreadInAPlace(
-                    sim.allHouseholds[this.homeIndex].currentOccupants,
+                    sim.allPlaces[activity][placeIndex].currentOccupants,
                     sim.params.home_density,
                     pop,
                     rand,
                     sim,
                     seed
                 );
-            } else if (activity == ActivityType.work) {
+            } else if (activity == PlaceType.office) {
+                let placeIndex = this.placeIndex[activity];
                 this.spreadInAPlace(
-                    sim.allOffices[this.officeIndex].currentOccupants,
+                    sim.allPlaces[activity][placeIndex].currentOccupants,
                     sim.params.office_density,
                     pop,
                     rand,
                     sim,
                     seed
                 );
-            } else if (activity == ActivityType.shopping) {
+            } else if (activity == PlaceType.supermarket) {
+                let placeIndex = this.placeIndex[activity];
                 this.spreadInAPlace(
-                    sim.allSuperMarkets[this.marketIndex].currentOccupants,
+                    sim.allPlaces[activity][placeIndex].currentOccupants,
                     sim.params.shopping_density,
                     pop,
                     rand,

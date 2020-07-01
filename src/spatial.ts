@@ -1,7 +1,7 @@
 import RandomFast from "./random-fast";
 import MersenneTwister from "mersenne-twister";
 
-import { Person, ActivityType } from "./person";
+import { Person } from "./person";
 
 export class Place {
     xpos: number = 0;
