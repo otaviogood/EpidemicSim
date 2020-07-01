@@ -108,6 +108,30 @@ export class Person {
     get isolationTrigger(): number { if (!this.useWasmSim) return this._isolationTrigger; return <number>this.wasmPerson.isolationTrigger; }
     set isolationTrigger(x: number) { if (!this.useWasmSim) { this._isolationTrigger = x; return; } this.wasmPerson.isolationTrigger = x; }
 
+    // lots of sets of 24-hour periods of different behaviors that represent different people's lifestyles
+    // TODO: use real world data to set this
+    static readonly activitiesNormal = [
+        "hhhhhhhhcwwwswwwwwchhhhh", // needs to be 24-long
+        "hhhhhhhhcshhshhhhhshhhhh",
+        "hhhhhhhccsschhhhhshhhhhh",
+        // shifted duplicates - hacky way of getting variety. placeholder.
+        "hhhhhhhcwwwswwwwwchhhhhh", // << 1
+        "hhhhhhhcshhshhhhhshhhhhh",
+        "hhhhhhccsschhhhhshhhhhhh",
+        "hhhhhhcwwwswwwwwchhhhhhh", // << 2
+        "hhhhhhcshhshhhhhshhhhhhh",
+        "hhhhhccsschhhhhshhhhhhhh",
+        "hhhhhhhhhcwwwswwwwwchhhh", // >> 1
+        "hhhhhhhhhcshhshhhhhshhhh",
+        "hhhhhhhhccsschhhhhshhhhh",
+        "hhhhhhhhhhcwwwswwwwwchhh", // >> 2
+        "hhhhhhhhhhcshhshhhhhshhh",
+        "hhhhhhhhhccsschhhhhshhhh",
+    ];
+    static readonly activitiesWhileSick = [
+        "hhhhhhhhhhhhcshhhhhhhhhh",
+        // "oooooooooooooooooooooooo",  // Hospitalized
+    ];
 
     static activitiesNormalByte: Array<Uint8Array> = [];
     static activitiesWhileSickByte: Array<Uint8Array> = [];
@@ -141,38 +165,14 @@ export class Person {
         this.id = id;
         // Initialize static tables
         if (Person.activitiesNormalByte.length == 0) {
-            // lots of sets of 24-hour periods of different behaviors that represent different people's lifestyles
-            // TODO: use real world data to set this
-            const activitiesNormal = [
-                "hhhhhhhhcwwwswwwwwchhhhh", // needs to be 24-long
-                "hhhhhhhhcshhshhhhhshhhhh",
-                "hhhhhhhccsschhhhhshhhhhh",
-                // shifted duplicates - hacky way of getting variety. placeholder.
-                "hhhhhhhcwwwswwwwwchhhhhh", // << 1
-                "hhhhhhhcshhshhhhhshhhhhh",
-                "hhhhhhccsschhhhhshhhhhhh",
-                "hhhhhhcwwwswwwwwchhhhhhh", // << 2
-                "hhhhhhcshhshhhhhshhhhhhh",
-                "hhhhhccsschhhhhshhhhhhhh",
-                "hhhhhhhhhcwwwswwwwwchhhh", // >> 1
-                "hhhhhhhhhcshhshhhhhshhhh",
-                "hhhhhhhhccsschhhhhshhhhh",
-                "hhhhhhhhhhcwwwswwwwwchhh", // >> 2
-                "hhhhhhhhhhcshhshhhhhshhh",
-                "hhhhhhhhhccsschhhhhshhhh",
-            ];
-            const activitiesWhileSick = [
-                "hhhhhhhhhhhhcshhhhhhhhhh",
-                // "oooooooooooooooooooooooo",  // Hospitalized
-            ];
             // Convert activities from human-readable chars to bytes for fast indexing later.
-            for (let i = 0; i < activitiesNormal.length; i++) {
-                let act = activitiesNormal[i];
+            for (let i = 0; i < Person.activitiesNormal.length; i++) {
+                let act = Person.activitiesNormal[i];
                 Person.activitiesNormalByte[i] = new Uint8Array(act.length);
                 for (let j = 0; j < act.length; j++) Person.activitiesNormalByte[i][j] = ActivityMap2.get(act[j])!;
             }
-            for (let i = 0; i < activitiesWhileSick.length; i++) {
-                let act = activitiesWhileSick[i];
+            for (let i = 0; i < Person.activitiesWhileSick.length; i++) {
+                let act = Person.activitiesWhileSick[i];
                 Person.activitiesWhileSickByte[i] = new Uint8Array(act.length);
                 for (let j = 0; j < act.length; j++) Person.activitiesWhileSickByte[i][j] = ActivityMap2.get(act[j])!;
             }

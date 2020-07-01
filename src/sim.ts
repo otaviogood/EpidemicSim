@@ -342,6 +342,9 @@ export class Sim {
 
         this.wasmSim.prepare();
 
+        // ************************ DEBUGGING TEST ***********************
+        testWasmArraySharing(moduleInstance);
+
         console.log("associateWasmSimAndInit finish");
     }
 
@@ -802,3 +805,77 @@ export class Sim {
         this.draw();
     }
 }
+
+// ****************************************************************************
+// **                        WASM EXPERIMENTS WIP                            **
+// ****************************************************************************
+
+// Alloc typed array to be shared between C++ and JS code.
+// Returns JS typed array and C++ pointer.
+function allocUint32Array(moduleInstance:any, size: number) : [Uint32Array, number] {
+    const BYTES_PER_ELEMENT = 4;
+    const LOG2_BYTES_PER_ELEMENT = 2;
+    let ptr;
+    let jsArray:Uint32Array;
+    try {
+        // Allocate some space in the heap for the data (making sure to use the appropriate memory size of the elements)
+        ptr = moduleInstance._malloc(size * BYTES_PER_ELEMENT);
+        jsArray = moduleInstance.HEAPU32.subarray(ptr >> LOG2_BYTES_PER_ELEMENT, (ptr >> LOG2_BYTES_PER_ELEMENT) + size);
+
+        // Finally, call the function with "number" parameter type for the array (the pointer), and an extra length parameter
+        // result = moduleInstance.ccall("addNums", null, ["number", "number"], [ptr, arrayDataToPass.length])
+        // result = ll.addNums(ptr, arrayDataToPass.length);
+    } catch (e) {
+        console.log("ERROR: " + e);
+        moduleInstance._free(ptr);
+        jsArray = new Uint32Array();
+    } finally {
+        // To avoid memory leaks we need to always clear out the allocated heap data
+        // This needs to happen in the finally block, otherwise thrown errors will stop code execution before this happens
+        // moduleInstance._free(ptr)
+    }
+
+    return [jsArray, ptr];
+}
+
+function testWasmArraySharing(moduleInstance: any) {
+    let ll = new moduleInstance.LowLevel();
+    ll.test();
+
+    const arrayDataToPass = [1,2,3,4,5];
+    let buffer;
+    let error;
+    let result;
+    try {
+        // Init the typed array with the same length as the number of items in the array parameter
+        const typedArray = new Float32Array(arrayDataToPass.length)
+
+        // Populate the array with the values
+        for (let i=0; i<arrayDataToPass.length; i++) {
+            typedArray[i] = arrayDataToPass[i]
+        }
+
+        // Allocate some space in the heap for the data (making sure to use the appropriate memory size of the elements)
+        buffer = moduleInstance._malloc(typedArray.length * typedArray.BYTES_PER_ELEMENT)
+
+        // Assign the data to the heap - Keep in mind bytes per element
+        moduleInstance.HEAPF32.set(typedArray, buffer >> 2)
+        var floatPtr = moduleInstance.HEAPF32.subarray(buffer >> 2, (buffer >> 2) + typedArray.length);
+        floatPtr[0] = 6.0;
+
+        // Finally, call the function with "number" parameter type for the array (the pointer), and an extra length parameter
+        // result = moduleInstance.ccall("addNums", null, ["number", "number"], [buffer, arrayDataToPass.length])
+        result = ll.addNums(buffer, arrayDataToPass.length);
+        console.log("made it through");
+    } catch (e) {
+        console.log("ERROR: " + e);
+        error = e
+    } finally {
+        // To avoid memory leaks we need to always clear out the allocated heap data
+        // This needs to happen in the finally block, otherwise thrown errors will stop code execution before this happens
+        moduleInstance._free(buffer)
+    }
+
+    console.log(result);
+}
+

@@ -22,7 +22,7 @@
 
 #include "random_fast.cc"
 
-// constructor in global namespace. 
+// constructor in global namespace.
 // TODO: a huge vector of char[24] skips a pointer indirection.
 std::vector<std::string> activitiesNormal;
 std::vector<std::string> activitiesWhileSick;
@@ -60,19 +60,19 @@ namespace EpidemicSimCore {
         train = 't'
     };
     uint8_t ActivityMap[128] = {
-        255,255,255,255,255,255,255,255,255,255,  // 0
-        255,255,255,255,255,255,255,255,255,255,  // 10
-        255,255,255,255,255,255,255,255,255,255,  // 20
-        255,255,255,255,255,255,255,255,255,255,  // 30
-        255,255,255,255,255,255,255,255,255,255,  // 40
-        255,255,255,255,255,255,255,255,255,255,  // 50
-        255,255,255,255,255,255,255,255,255,255,  // 60
-        255,255,255,255,255,255,255,255,255,255,  // 70
-        255,255,255,255,255,255,255,255,255,255,  // 80
-        255,255,255,255,255,255,255,255,255,255,  // 90
-        255,255,255,255,255,255,255,255,255,255,  // 100
-        255,255,255,255,255,255,255,255,255,255,  // 110
-        255,255,255,255,255,255,255,255,  // 120
+        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 0
+        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 10
+        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 20
+        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 30
+        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 40
+        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 50
+        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 60
+        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 70
+        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 80
+        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 90
+        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 100
+        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, // 110
+        255, 255, 255, 255, 255, 255, 255, 255,           // 120
     };
 
     struct PersonCore;
@@ -109,12 +109,12 @@ namespace EpidemicSimCore {
         }
 
         int random_int(int a, int b) {
-            std::uniform_int_distribution<int> distribution(a, b-1);
+            std::uniform_int_distribution<int> distribution(a, b - 1);
             return distribution(m_generator);
         }
 
         int hash_int_approx(int seed, int from, int to_exclusive) {
-            return random_int(from, to_exclusive+1);
+            return random_int(from, to_exclusive + 1);
         }
 
         std::random_device rd;
@@ -150,7 +150,7 @@ namespace EpidemicSimCore {
         short activityIndex = 0;
         bool isolating = false; // TODO: sync with PersonCore
 
-        PersonPlaceOnly(const PersonCore& p);
+        PersonPlaceOnly(const PersonCore &p);
 
         char getActivity(int hour) const {
             if (isolating) {
@@ -163,20 +163,20 @@ namespace EpidemicSimCore {
     };
 
     struct OccupantCounter {
-        Sim* sim = nullptr;
+        Sim *sim = nullptr;
         std::vector<PersonPlaceOnly> personPlaceInfo;
 
-        OccupantCounter(Sim* sim, int nPersons);
-        int getOccupantCount(const std::string& activityType, int index) const;
+        OccupantCounter(Sim *sim, int nPersons);
+        int getOccupantCount(const std::string &activityType, int index) const;
         void countOnly(int hour);
         void countAndFillLists(int hour);
-        std::vector<unsigned int> getNRandomOccupants(RNG::seed_int_t seed, const std::string& activityType, int index, int count);
-        std::vector<unsigned int> getOccupants(const std::string& activityType, int index);
+        std::vector<unsigned int> getNRandomOccupants(RNG::seed_int_t seed, const std::string &activityType, int index, int count);
+        std::vector<unsigned int> getOccupants(const std::string &activityType, int index);
         void prepare();
 
     private:
         // counts and optionally fills lists
-        template<bool fillLists>
+        template <bool fillLists>
         void doCount(int hour);
     };
 
@@ -197,7 +197,7 @@ namespace EpidemicSimCore {
         int totalDead = 0;
         int totalInfected = 0;
         params_t params;
-        OccupantCounter* occupantCounter;
+        OccupantCounter *occupantCounter;
 
         OccupantCounter* getOccupantCounter() {
             return occupantCounter;
@@ -210,11 +210,11 @@ namespace EpidemicSimCore {
         Sim(int nPersons);
         ~Sim();
 
-        static void registerNormalActivitySchedule(const std::string& activityScheduleString);
-        static void registerSickActivitySchedule(const std::string& activityScheduleString);
-        void setNumberOfPlacesForActivity(const std::string& activityType_s, int count, float density);
+        static void registerNormalActivitySchedule(const std::string &activityScheduleString);
+        static void registerSickActivitySchedule(const std::string &activityScheduleString);
+        void setNumberOfPlacesForActivity(const std::string &activityType_s, int count, float density);
 
-        void addPerson(const PersonCore& p);
+        void addPerson(const PersonCore &p);
         void updatePersonIsolating(int personId, bool sickMode);
         void prepare();
         void runPopulationStep(unsigned int time_steps_since_start);
@@ -239,7 +239,7 @@ namespace EpidemicSimCore {
 
 
 
-    // This could be embedded inside the javascript person object, to avoid duplication of code and data. 
+    // This could be embedded inside the javascript person object, to avoid duplication of code and data.
     // Just essential topology data, like this person's places indices.
     struct PersonCore {
         int placeIndex[PERSON_MAX_PLACE_TYPES];
@@ -257,7 +257,7 @@ namespace EpidemicSimCore {
         double severeTrigger = INT32_MAX;
         double isolationTrigger = INT32_MAX; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
         int symptomsCurrent = SymptomsLevels::none;
-        
+
         bool recovered = false;
         bool dead = false;
         bool contagious = false;
@@ -266,7 +266,7 @@ namespace EpidemicSimCore {
         bool criticalIfSevere = false;
         bool infected = false;
 
-        PersonCore(unsigned int id, const std::vector<int>& placeIndexes, int activityIndex)
+        PersonCore(unsigned int id, const std::vector<int> &placeIndexes, int activityIndex)
             : id(id), activityIndex(activityIndex) {
             if (placeIndexes.size() > PERSON_MAX_PLACE_TYPES) throw std::runtime_error("overflow: placeIndexes larger than PERSON_MAX_PLACE_TYPES");
             memset(placeIndex, 0, sizeof(placeIndex));
@@ -284,12 +284,12 @@ namespace EpidemicSimCore {
             }
         }
 
-        bool stepTime(Sim* sim, RNG& rand);
-        void spread(long long int time_steps_since_start, int index, std::vector<PersonCore>& pop, RNG& rand, Sim& sim);
+        bool stepTime(Sim *sim, RNG &rand);
+        void spread(long long int time_steps_since_start, int index, std::vector<PersonCore> &pop, RNG &rand, Sim &sim);
 
-        void becomeSick(Sim* sim);
-        void becomeRecovered(Sim* sim);
-        void becomeDead(Sim* sim);
+        void becomeSick(Sim *sim);
+        void becomeRecovered(Sim *sim);
+        void becomeDead(Sim *sim);
 
     private:
 
@@ -305,25 +305,25 @@ namespace EpidemicSimCore {
         void endSymptoms();
         void endContagious();
         void becomeSevereOrCritical();
-        void becomeIsolated(Sim* sim);
+        void becomeIsolated(Sim *sim);
         bool inRange(bool condition, int start, int end) {
             return condition && time_since_infected >= start && time_since_infected < end;
         }
 
         // spreading
         float probabilityMultiplierFromDensity(float density);
-        int howManyCatchItInThisTimeStep(RNG& rand, float prob, size_t popSize, size_t maxPeopleYouCanSpreadItToInYourRadius);
-        void spreadInAPlace(long long int time_steps_since_start, const std::string& activityType, int placeIndex, float density, std::vector<PersonCore>& pop, RNG& rand, Sim& sim);
+        int howManyCatchItInThisTimeStep(RNG &rand, float prob, size_t popSize, size_t maxPeopleYouCanSpreadItToInYourRadius);
+        void spreadInAPlace(long long int time_steps_since_start, const std::string &activityType, int placeIndex, float density, std::vector<PersonCore> &pop, RNG &rand, Sim &sim);
 
     };
 
 
-    template<bool fillLists>
+    template <bool fillLists>
     void OccupantCounter::doCount(int hour) {
         if(verbose > 0) printf("OccupantCounter::doCount personPlaceInfo.size=%zu\n", personPlaceInfo.size());
 
         for (size_t index = 0; index < sim->placesByType.size(); index++) {
-            Sim::PlaceSet& ps = sim->placesByType[index];
+            Sim::PlaceSet &ps = sim->placesByType[index];
             std::fill(ps.occupantCount.begin(), ps.occupantCount.end(), 0);
             if (fillLists) {
                 for (size_t iPlace = 0; iPlace < ps.occupantCount.size(); iPlace++) {
@@ -335,12 +335,12 @@ namespace EpidemicSimCore {
         auto sizePP = personPlaceInfo.size();
         auto sizePlaces = sim->placesByType.size();
         for (size_t i = 0; i < sizePP; i++) {
-            const PersonPlaceOnly& p = personPlaceInfo[i];
+            const PersonPlaceOnly &p = personPlaceInfo[i];
             const char personActivity = p.getActivity(hour);
 
-            size_t index = ActivityMap[personActivity];  // This can be done as a pre-process so we just look up an in instead of char->int. Also, getActivity() can be faster and return the int.
+            size_t index = ActivityMap[personActivity]; // This can be done as a pre-process so we just look up an in instead of char->int. Also, getActivity() can be faster and return the int.
             if (index == 255) continue;
-            Sim::PlaceSet& ps = sim->placesByType[index];
+            Sim::PlaceSet &ps = sim->placesByType[index];
             int personPlaceIndex = p.placeIndex[index];
             if (fillLists) {
                 ps.occupantList[personPlaceIndex].push_back((unsigned int)i);
@@ -458,7 +458,7 @@ namespace EpidemicSimCore {
 
     void PersonCore::becomeContagious() {
         if (symptomsCurrent != SymptomsLevels::none) {
-            printf("becomeSymptomy %d %d - %d %d\n", contagiousTrigger, endContagiousTrigger, endContagiousTrigger, endSymptomsTrigger);
+            printf("becomeSymptomy %d %d - %d %d\n", (int)contagiousTrigger, (int)endContagiousTrigger, (int)endContagiousTrigger, (int)endSymptomsTrigger);
         }
 
         util_assert(infected, "ERROR: contagious without being infected." + std::to_string(id));
@@ -505,7 +505,7 @@ namespace EpidemicSimCore {
 
     void PersonCore::becomeSevereOrCritical() {
         if (symptomsCurrent == SymptomsLevels::none) {
-            printf("becomeSevereOrCritical severe %d - symptomsTrigger %d %d\n", severeTrigger, symptomsTrigger, endSymptomsTrigger);
+            printf("becomeSevereOrCritical severe %d - symptomsTrigger %d %d\n", (int)severeTrigger, (int)symptomsTrigger, (int)endSymptomsTrigger);
         }
         util_assert(infected, "ERROR: severe without being infected." + std::to_string(id));
         util_assert(symptomsCurrent != SymptomsLevels::none, "ERROR: must have symptoms to be severe." + std::to_string(id));
@@ -542,7 +542,7 @@ namespace EpidemicSimCore {
         if (placesByType.size() >= PERSON_MAX_PLACE_TYPES) {
             throw std::runtime_error("maximum number of place types reached. plase change the macro PERSON_MAX_PLACE_TYPE." + std::to_string(placesByType.size()));
         }
-            
+
         activityToPlaceSetIndex[activityType] = placesByType.size();
         activityDensity[activityType] = density;
 
@@ -570,7 +570,7 @@ namespace EpidemicSimCore {
 
         occupantCounter->prepare();
     }
-    
+
     void OccupantCounter::prepare() {
 
         personPlaceInfo.clear();
@@ -582,7 +582,7 @@ namespace EpidemicSimCore {
         example_javascript_c_api((int)personPlaceInfo.size());
 
         for (size_t index = 0; index < sim->placesByType.size(); index++) {
-            Sim::PlaceSet& ps = sim->placesByType[index];
+            Sim::PlaceSet &ps = sim->placesByType[index];
 
             size_t nPlaces = ps.occupantCount.size();
             ps.occupantList.resize(nPlaces);
@@ -594,7 +594,7 @@ namespace EpidemicSimCore {
             }
 
             for (size_t i = 0; i < personPlaceInfo.size(); i++) {
-                const PersonPlaceOnly& p = personPlaceInfo[i];
+                const PersonPlaceOnly &p = personPlaceInfo[i];
                 int personPlaceIndex = p.placeIndex[index];
                 ps.residentsList[personPlaceIndex].push_back(i);
             }
@@ -636,7 +636,7 @@ namespace EpidemicSimCore {
     // this minimizes copies
     std::vector<unsigned int> OccupantCounter::getNRandomOccupants(RNG::seed_int_t seed, const std::string& activityType, int index, int count) {
         std::vector<unsigned int> ret;
-        const auto& wholeList = sim->placesByType[sim->activityToPlaceSetIndex.at(activityType[0])].occupantList[index];
+        const auto &wholeList = sim->placesByType[sim->activityToPlaceSetIndex.at(activityType[0])].occupantList[index];
         for (int i = 0; i < count; i++) {
             //int j = sim->rng.random_int(0, wholeList.size());
             int j = sim->rng.rand_int_approx(0, wholeList.size());
@@ -677,9 +677,9 @@ namespace EpidemicSimCore {
         int nOccupants = sim.occupantCounter->getOccupantCount(activityType, placeIndex);
         int numSpread = howManyCatchItInThisTimeStep(rand, prob, nOccupants, 30);
 
-        RNG::seed_int_t seed = time_steps_since_start_raw * 4096 + id; // Unique for time step and each person
+        RNG::seed_int_t seed = time_steps_since_start_raw * 4096 + id;                                                                // Unique for time step and each person
         std::vector<unsigned int> spreatToList = sim.occupantCounter->getNRandomOccupants(seed, activityType, placeIndex, numSpread); // selects n random occupants
-        
+
         if (numSpread > 0 && verbose > 0) {
             printf("id=%u spread numSpread=%d nOccupants=%d prob=%e\n", id, numSpread, nOccupants, prob);
         }
@@ -691,7 +691,7 @@ namespace EpidemicSimCore {
     }
 
     void PersonCore::spread(long long int time_steps_since_start, int index, std::vector<PersonCore>& pop, RNG& rand, Sim& sim) {
-        
+
         if (isContagious()) {
             //printf("id=%u spread isContagious=%d sick=%d infected=%d\n", id, isContagious(), isSick(), infected);
             TimeStep ts(time_steps_since_start);
@@ -710,19 +710,45 @@ namespace EpidemicSimCore {
                     sim.activityDensity[activity],
                     pop,
                     rand,
-                    sim
-                );
+                    sim);
             }
         }
     }
 
+    struct LowLevel
+    {
+        int a = 0;
 
-};
+        LowLevel()
+        {
+            printf("tessst consturtor\n");
+        }
+        void test()
+        {
+            printf("tessst\n");
+        }
+
+        float addNums(uintptr_t buffer, size_t bufSize)
+        {
+            // embind doesn't suppport pointers... https://stackoverflow.com/questions/20355880/emscripten-how-can-i-solve-unboundtypeerror
+            const float* ptr = reinterpret_cast<float*>(buffer);
+            float total = 0;
+            for (int i = 0; i < bufSize; i++) total += ptr[i];
+            return total;
+        }
+    };
+
+}; // namespace EpidemicSimCore
 
 #if HAS_EMSCRIPTEN
 EMSCRIPTEN_BINDINGS(OccupantCounterModule) {
     emscripten::register_vector<int>("int_vector");
     emscripten::register_vector<unsigned int>("uint_vector");
+
+    emscripten::class_<EpidemicSimCore::LowLevel>("LowLevel")
+        .constructor()
+        .function("test", &EpidemicSimCore::LowLevel::test)
+        .function("addNums", &EpidemicSimCore::LowLevel::addNums);//, emscripten::allow_raw_pointers());
 
     emscripten::class_<EpidemicSimCore::PersonCore>("PersonCore")
         .constructor<unsigned int, std::vector<int>, int>()
