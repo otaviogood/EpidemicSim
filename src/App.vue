@@ -1,176 +1,193 @@
 <template>
     <div>
         <div style="font-size:32px; padding:6px; color: #ff8811;"><strong>YÆS:</strong> Yet Another Epidemic Simulator</div>
-        <span style="display:inline-block">
-            <span class="card">
-                <div style="position:relative">
-                    <canvas
-                        style="display:block;background-color:#123456;"
-                        width="1024px"
-                        height="768px"
-                        id="map-canvas"
-                        @click="clicked"
-                        @wheel="mouseWheel"
-                        @mousedown="handleMouseDown"
-                        @mousemove="handleMouseMove"
-                        @mouseup="handleMouseUp"
-                        @touchstart="handleTouchStart"
-                        @touchmove="handleTouchMove"
-                        @touchend="handleTouchEnd"
-                    ></canvas>
-                    <label>
-                        <select
-                            style="position: absolute;top:8px;font-size:16px;background-color:#cceeff50;border:1px solid #ffffff80;border-radius: 10px;padding: 4px;margin-left: 8px;"
-                            @change="changeCounty"
-                        >
-                            <option :value="null" hidden>Select County</option>
-                            <option value="-1">None</option>
-                            <option
-                                v-for="(countyName, index) in $mapBounds.info[$mapBounds.defaultPlace].includedCounties"
-                                v-bind:key="index"
-                                :value="index"
-                                >{{ countyName[0] + ", " + countyName[1] }}</option
+        <div class="grid-container">
+            <div class="grid-item">
+                <div class="card">
+                    <div style="position:relative">
+                        <canvas
+                            style="display:block;background-color:#123456;"
+                            width="1024px"
+                            height="768px"
+                            id="map-canvas"
+                            @click="clicked"
+                            @wheel="mouseWheel"
+                            @mousedown="handleMouseDown"
+                            @mousemove="handleMouseMove"
+                            @mouseup="handleMouseUp"
+                            @touchstart="handleTouchStart"
+                            @touchmove="handleTouchMove"
+                            @touchend="handleTouchEnd"
+                        ></canvas>
+                        <label>
+                            <select
+                                style="position: absolute;top:8px;font-size:16px;background-color:#cceeff50;border:1px solid #ffffff80;border-radius: 10px;padding: 4px;margin-left: 8px;"
+                                @change="changeCounty"
                             >
-                        </select>
-                    </label>
+                                <option :value="null" hidden>Select County</option>
+                                <option value="-1">None</option>
+                                <option
+                                    v-for="(countyName, index) in $mapBounds.info[$mapBounds.defaultPlace].includedCounties"
+                                    v-bind:key="index"
+                                    :value="index"
+                                    >{{ countyName[0] + ", " + countyName[1] }}</option
+                                >
+                            </select>
+                        </label>
 
-                    <div class="vis" :class="visFlag(1)" style="top:40px" @mousedown.prevent="visToggle(1)">Pop / 10</div>
-                    <div class="vis" :class="visFlag(2)" style="top:72px" @mousedown.prevent="visToggle(2)">Homes</div>
-                    <div class="vis" :class="visFlag(4)" style="top:104px" @mousedown.prevent="visToggle(4)">Offices</div>
-                    <div class="vis" :class="visFlag(8)" style="top:136px" @mousedown.prevent="visToggle(8)">Hospitals</div>
-                    <div class="vis" :class="visFlag(16)" style="top:168px" @mousedown.prevent="visToggle(16)">Supermarkets</div>
-                    <div class="vis" :class="visFlag(32)" style="top:232px" @mousedown.prevent="visToggle(32)">Susceptible</div>
-                    <div class="vis" :class="visFlag(64)" style="top:264px" @mousedown.prevent="visToggle(64)">Infected</div>
-                    <div class="vis" :class="visFlag(128)" style="top:296px" @mousedown.prevent="visToggle(128)">Recovered</div>
-                    <div class="vis" :class="visFlag(256)" style="top:360px" @mousedown.prevent="visToggle(256)">Traces</div>
-                    <div class="vis" :class="visFlag(512)" style="top:392px" @mousedown.prevent="visToggle(512)">Person</div>
-                </div>
-                <p style="margin:8px;">
-                    <span
-                        style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
-                        >{{
-                            ["🕛", "🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚"][hoursElapsed % 12 | 0]
-                        }}</span
-                    >
-                    <button
-                        type="button"
-                        class=""
-                        style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
-                        @click="fastForward"
-                    >
-                        ⏩
-                    </button>
-                    <button
-                        type="button"
-                        class=""
-                        style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
-                        @click="playPause"
-                    >
-                        ⏯️
-                    </button>
-                    <button
-                        type="button"
-                        class=""
-                        style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
-                        @click="stepForward"
-                    >
-                        ⤵️
-                    </button>
-                    <span style="float:right"
-                        >Sim Time (Milliseconds): {{ Math.round(milliseconds) }}, total 20 days: {{ timerAccum.toFixed(0) }}</span
-                    >
-                </p></span
-            ></span
-        ><span style="display:inline-block;width:384px;float:right"
-            ><div class="card">
-                <div style="text-align:center;font-size:28px;margin-bottom:4px">📈 {{ county }}</div>
-                <canvas
-                    style="display:block;background-color:#123456;margin-bottom:4px"
-                    width="365px"
-                    height="256px"
-                    id="graph-canvas"
-                ></canvas>
-                <span class="stats" style="width:128px;display:inline-block">Hours: {{ hoursElapsed }}</span>
-                <span class="stats" style="width:120px;display:inline-block">Days: {{ Math.floor(hoursElapsed / 24) }}</span>
-                <span class="stats" style="display:inline-block">{{ date }}</span>
-            </div>
-            <div class="card" style="margin-top:16px">
-                <div style="width:365px;text-align:center;font-size:28px;">
-                    <span style="display:inline-block;">👤 Person info</span>
-                    <label for="ticketNum">#</label>
-                    <input
-                        id="personIndex"
-                        type="number"
-                        value="0"
-                        min="0"
-                        style="width:80px;font-size:24px"
-                        @change="changePersonIndex"
-                    />
+                        <div class="vis" :class="visFlag(1)" style="top:40px" @mousedown.prevent="visToggle(1)">Pop / 10</div>
+                        <div class="vis" :class="visFlag(2)" style="top:72px" @mousedown.prevent="visToggle(2)">Homes</div>
+                        <div class="vis" :class="visFlag(4)" style="top:104px" @mousedown.prevent="visToggle(4)">Offices</div>
+                        <div class="vis" :class="visFlag(8)" style="top:136px" @mousedown.prevent="visToggle(8)">Hospitals</div>
+                        <div class="vis" :class="visFlag(16)" style="top:168px" @mousedown.prevent="visToggle(16)">
+                            Supermarkets
+                        </div>
+                        <div class="vis" :class="visFlag(32)" style="top:232px" @mousedown.prevent="visToggle(32)">
+                            Susceptible
+                        </div>
+                        <div class="vis" :class="visFlag(64)" style="top:264px" @mousedown.prevent="visToggle(64)">Infected</div>
+                        <div class="vis" :class="visFlag(128)" style="top:296px" @mousedown.prevent="visToggle(128)">
+                            Recovered
+                        </div>
+                        <div class="vis" :class="visFlag(256)" style="top:360px" @mousedown.prevent="visToggle(256)">Traces</div>
+                        <div class="vis" :class="visFlag(512)" style="top:392px" @mousedown.prevent="visToggle(512)">Person</div>
+                    </div>
+                    <p style="margin:8px;">
+                        <span
+                            style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
+                            >{{
+                                ["🕛", "🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚"][hoursElapsed % 12 | 0]
+                            }}</span
+                        >
+                        <button
+                            type="button"
+                            class=""
+                            style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
+                            @click="fastForward"
+                        >
+                            ⏩
+                        </button>
+                        <button
+                            type="button"
+                            class=""
+                            style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
+                            @click="playPause"
+                        >
+                            ⏯️
+                        </button>
+                        <button
+                            type="button"
+                            class=""
+                            style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
+                            @click="stepForward"
+                        >
+                            ⤵️
+                        </button>
+                        <span style="float:right"
+                            >Sim Time (Milliseconds): {{ Math.round(milliseconds) }}, total 20 days:
+                            {{ timerAccum.toFixed(0) }}</span
+                        >
+                    </p>
                 </div>
 
-                <div class="stats" style="font-size:10px">Day: <span v-html="person.routine"></span></div>
-                <div class="stats">Place: {{ person.location }}</div>
-                <div class="stats">Health: {{ person.status }}</div>
-                <div class="stats">Age: {{ person.age }}, {{ person.maleFemale == 0 ? "Male" : "Female" }}</div>
-                <div class="stats">asymptomatic overall? {{ person.asymptomaticOverall }}</div>
-                <div class="stats">Symptom level: {{ person.symptoms }}</div>
-                <div class="stats">Isolating? <span v-html="person.isolating"></span></div>
-                <div class="stats">
+                <div class="card" style="margin-top:16px;margin-bottom:16px">
+                    <div style="text-align:center;font-size:28px;margin-bottom:4px">
+                        <span style="display:inline-block;">Disease Model Statistics (1000 samples)</span>
+                    </div>
+                    <table id="stats-table" style="width:100%">
+                        <tr>
+                            <th v-for="i in this.statsFields" v-bind:key="i">
+                                {{ i }}
+                            </th>
+                        </tr>
+                        <tr v-for="i in this.stats" v-bind:key="i.name">
+                            <td @mouseover="statsHover(i.name, '')" @mouseleave="statsHover('')">{{ i.name }}</td>
+                            <td @mouseover="statsHover(i.name, 'median')" @mouseleave="statsHover('')">
+                                {{ i.median.toFixed(2) }}
+                            </td>
+                            <td @mouseover="statsHover(i.name, 'mean')" @mouseleave="statsHover('')">{{ i.mean.toFixed(2) }}</td>
+                            <td @mouseover="statsHover(i.name, 'std')" @mouseleave="statsHover('')">{{ i.std.toFixed(2) }}</td>
+                            <td @mouseover="statsHover(i.name, 'min')" @mouseleave="statsHover('')">{{ i.min.toFixed(2) }}</td>
+                            <td @mouseover="statsHover(i.name, 'max')" @mouseleave="statsHover('')">{{ i.max.toFixed(2) }}</td>
+                            <td @mouseover="statsHover(i.name, 'occurrence')" @mouseleave="statsHover('')">
+                                {{ i.occurrence.toFixed(5) }}
+                            </td>
+                        </tr>
+                    </table>
+
                     <canvas
                         style="display:block;background-color:#123456;margin:0px;padding:0px;border:0px"
-                        width="365px"
-                        height="32px"
-                        id="timeline-canvas"
+                        width="1024px"
+                        height="256px"
+                        id="statistics-canvas"
                     ></canvas>
                 </div>
             </div>
-            <div class="card" style="margin-top:16px">
-                <div style="width:365px;text-align:center;font-size:28px;">
-                    <span style="display:inline-block;">📅 Events &amp; Policy Timeline</span>
-                </div>
-
-                <div class="scrolly" style="width:365px;height:124px;overflow:hidden; overflow-y:scroll;">
-                    <div v-for="i in interventions" v-bind:key="i.time">
-                        <div class="stats"><span v-html="i"></span></div>
+            <div class="grid-item">
+                <span style="display:inline-block;width:384px;float:right"
+                    ><div class="card">
+                        <div style="text-align:center;font-size:28px;margin-bottom:4px">📈 {{ county }}</div>
+                        <canvas
+                            style="display:block;background-color:#123456;margin-bottom:4px"
+                            width="365px"
+                            height="256px"
+                            id="graph-canvas"
+                        ></canvas>
+                        <span class="stats" style="width:128px;display:inline-block">Hours: {{ hoursElapsed }}</span>
+                        <span class="stats" style="width:120px;display:inline-block"
+                            >Days: {{ Math.floor(hoursElapsed / 24) }}</span
+                        >
+                        <span class="stats" style="display:inline-block">{{ date }}</span>
                     </div>
-                </div>
-            </div>
-        </span>
-        <span class="card" style="margin-top:16px;margin-bottom:16px">
-            <div style="text-align:center;font-size:28px;margin-bottom:4px">
-                <span style="display:inline-block;">Disease Model Statistics (1000 samples)</span>
-            </div>
-            <table id="stats-table" style="width:100%">
-                <tr>
-                    <th v-for="i in this.statsFields" v-bind:key="i">
-                        {{ i }}
-                    </th>
-                </tr>
-                <tr v-for="i in this.stats" v-bind:key="i.name">
-                    <td @mouseover="statsHover(i.name, '')" @mouseleave="statsHover('')">{{ i.name }}</td>
-                    <td @mouseover="statsHover(i.name, 'median')" @mouseleave="statsHover('')">{{ i.median.toFixed(2) }}</td>
-                    <td @mouseover="statsHover(i.name, 'mean')" @mouseleave="statsHover('')">{{ i.mean.toFixed(2) }}</td>
-                    <td @mouseover="statsHover(i.name, 'std')" @mouseleave="statsHover('')">{{ i.std.toFixed(2) }}</td>
-                    <td @mouseover="statsHover(i.name, 'min')" @mouseleave="statsHover('')">{{ i.min.toFixed(2) }}</td>
-                    <td @mouseover="statsHover(i.name, 'max')" @mouseleave="statsHover('')">{{ i.max.toFixed(2) }}</td>
-                    <td @mouseover="statsHover(i.name, 'occurrence')" @mouseleave="statsHover('')">
-                        {{ i.occurrence.toFixed(5) }}
-                    </td>
-                </tr>
-            </table>
+                    <div class="card" style="margin-top:16px">
+                        <div style="width:365px;text-align:center;font-size:28px;">
+                            <span style="display:inline-block;">👤 Person info</span>
+                            <label for="ticketNum">#</label>
+                            <input
+                                id="personIndex"
+                                type="number"
+                                value="0"
+                                min="0"
+                                style="width:80px;font-size:24px"
+                                @change="changePersonIndex"
+                            />
+                        </div>
 
-            <canvas
-                style="display:block;background-color:#123456;margin:0px;padding:0px;border:0px"
-                width="1024px"
-                height="256px"
-                id="statistics-canvas"
-            ></canvas>
-        </span>
-        <div
-            v-if="!loadedSim"
-            style="position:absolute;top:calc(50% - 64px); left:calc(50% - 220px); background-color:#4680b0;color:white;font-size:96px;border-radius:64px;border:2px solid #ffccbb;padding:24px"
-        >
-            Loading...
+                        <div class="stats" style="font-size:10px">Day: <span v-html="person.routine"></span></div>
+                        <div class="stats">Place: {{ person.location }}</div>
+                        <div class="stats">Health: {{ person.status }}</div>
+                        <div class="stats">Age: {{ person.age }}, {{ person.maleFemale == 0 ? "Male" : "Female" }}</div>
+                        <div class="stats">asymptomatic overall? {{ person.asymptomaticOverall }}</div>
+                        <div class="stats">Symptom level: {{ person.symptoms }}</div>
+                        <div class="stats">Isolating? <span v-html="person.isolating"></span></div>
+                        <div class="stats">
+                            <canvas
+                                style="display:block;background-color:#123456;margin:0px;padding:0px;border:0px"
+                                width="365px"
+                                height="32px"
+                                id="timeline-canvas"
+                            ></canvas>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-top:16px">
+                        <div style="width:365px;text-align:center;font-size:28px;">
+                            <span style="display:inline-block;">📅 Events &amp; Policy Timeline</span>
+                        </div>
+
+                        <div class="scrolly" style="width:365px;height:124px;overflow:hidden; overflow-y:scroll;">
+                            <div v-for="i in interventions" v-bind:key="i.time">
+                                <div class="stats"><span v-html="i"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                </span>
+            </div>
+            <div
+                v-if="!loadedSim"
+                style="position:absolute;top:calc(50% - 64px); left:calc(50% - 220px); background-color:#4680b0;color:white;font-size:96px;border-radius:64px;border:2px solid #ffccbb;padding:24px"
+            >
+                Loading...
+            </div>
         </div>
     </div>
 </template>
@@ -589,5 +606,14 @@ td {
 table td:hover {
     color: #ffffff;
     background-color: #123456;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: auto 384px;
+}
+
+.grid-item {
+    /* border: 1px solid rgba(0, 0, 0, 0.8); */
 }
 </style>
