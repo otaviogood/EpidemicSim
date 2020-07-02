@@ -42,7 +42,31 @@ export enum SymptomsLevels {
     critical = 3,
 }
 
+// This should be part of the Person class, but I separated it for cache reasons. I wish there was a cleaner way to do this. :/
+// It could be even better for the cache if the placeIndex array was packed in instead of a pointer. But that seems hard.
+// currentRoutine could be a 16 bit index instead of a 64 bit pointer if that would help anything.
+export class PersonTight {
+    // This is the hourly activity / place array of where the person goes during the day
+    currentRoutine: Uint8Array;
+    // placeIndex: Int32Array = new Int32Array(numPlaceTypes);  // This is way slower. why? Maybe array out of bounds?
+    // This is like homeIndex, officeIndex, etc...
+    placeIndex: number[] = [];
+
+    constructor() {
+        this.currentRoutine = Person.activitiesNormalByte[0];
+    }
+
+    getCurrentActivityChar(currentHour: number): string {
+        let reverse = PlaceTypeToChar[this.currentRoutine[currentHour]];
+        return reverse!;
+    }
+    getCurrentActivityInt(currentHour: number): number {
+        return this.currentRoutine[currentHour];
+    }
+}
+
 export class Person {
+    tight:PersonTight;
     // flags
     _infected = false;
     _contagious = false;
@@ -139,10 +163,6 @@ export class Person {
     time_since_infected: number = -1;
     xpos: number = 0; // Are these needed since you can get x, y of the place you are in?
     ypos: number = 0;
-    // placeIndex: Int32Array = new Int32Array(numPlaceTypes);  // This is way slower. why? Maybe array out of bounds?
-    placeIndex: number[] = [];
-    // This is the hourly activity / place array of where the person goes during the day
-    currentRoutine: Uint8Array;
     county = -1;
     // Demogaphic info
     age = -1;
@@ -159,8 +179,9 @@ export class Person {
         this.init(params, rand);
     }
 
-    constructor(params: Params.Base, rand: RandomFast, id: number) {
+    constructor(params: Params.Base, rand: RandomFast, id: number, tight:PersonTight) {
         this.id = id;
+        this.tight = tight;
         // Initialize static tables
         if (Person.activitiesNormalByte.length == 0) {
             // Convert activities from human-readable chars to bytes for fast indexing later.
@@ -175,14 +196,13 @@ export class Person {
                 for (let j = 0; j < act.length; j++) Person.activitiesWhileSickByte[i][j] = ActivityMap2.get(act[j])!;
             }
         }
-        this.currentRoutine = Person.activitiesNormalByte[0];
     }
 
     init(params: Params.Base, rand: RandomFast) {
         // Initialization needs to happen after we create the WASM sim, that needs to happen after we know how many persons there are, so initialization has been moved out of constuctor
 
         // Find person's main activity (what they do during the day)
-        this.currentRoutine = this.getPersonDefaultRoutine();
+        this.tight.currentRoutine = this.getPersonDefaultRoutine();
 
         // ---- Generate trigger times when sickness events will happen ----
         [this.contagiousTrigger] = util.RandGaussian(
@@ -332,7 +352,7 @@ export class Person {
         this.symptomsCurrent = 0;
         this.contagious = false;
         this.isolating = false;
-        this.currentRoutine = this.getPersonDefaultRoutine();
+        this.tight.currentRoutine = this.getPersonDefaultRoutine();
         if (sim && this.county >= 0) sim.countyStats.counters[this.county][GraphType.currentInfected]--;
     }
 
@@ -362,7 +382,7 @@ export class Person {
 
     becomeIsolated() {
         this.isolating = true;
-        this.currentRoutine =
+        this.tight.currentRoutine =
             Person.activitiesWhileSickByte[RandomFast.HashIntApprox(this.id, 0, Person.activitiesWhileSickByte.length)];
     }
 
@@ -436,22 +456,14 @@ export class Person {
         }
     }
 
-    getCurrentActivityChar(currentHour: number): string {
-        let reverse = PlaceTypeToChar[this.currentRoutine[currentHour]];
-        return reverse!;
-    }
-    getCurrentActivityInt(currentHour: number): number {
-        return this.currentRoutine[currentHour];
-    }
-
     spread(time_steps_since_start: Params.TimeStep, index: number, pop: Person[], rand: RandomFast, sim: Sim) {
         if (this.isContagious) {
             let currentStep = sim.time_steps_since_start.getStepModDay();
-            let activity = this.getCurrentActivityInt(currentStep);
+            let activity = this.tight.getCurrentActivityInt(currentStep);
             // let activity = this.currentActivity;
             let seed = Math.trunc(time_steps_since_start.raw * 4096 + index); // Unique for time step and each person
             if (activity == PlaceType.home) {
-                let placeIndex = this.placeIndex[activity];
+                let placeIndex = this.tight.placeIndex[activity];
                 this.spreadInAPlace(
                     sim.allPlaces[activity][placeIndex].currentOccupants,
                     sim.params.home_density,
@@ -461,7 +473,7 @@ export class Person {
                     seed
                 );
             } else if (activity == PlaceType.office) {
-                let placeIndex = this.placeIndex[activity];
+                let placeIndex = this.tight.placeIndex[activity];
                 this.spreadInAPlace(
                     sim.allPlaces[activity][placeIndex].currentOccupants,
                     sim.params.office_density,
@@ -471,7 +483,7 @@ export class Person {
                     seed
                 );
             } else if (activity == PlaceType.supermarket) {
-                let placeIndex = this.placeIndex[activity];
+                let placeIndex = this.tight.placeIndex[activity];
                 this.spreadInAPlace(
                     sim.allPlaces[activity][placeIndex].currentOccupants,
                     sim.params.shopping_density,

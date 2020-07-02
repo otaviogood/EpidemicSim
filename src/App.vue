@@ -258,6 +258,7 @@ export default Vue.extend({
             let self = this;
             let currentStep = sim.time_steps_since_start.getStepModDayOffset(-1); // Show results for timestep that just passed, not future timestep.
             let p = sim.pop[sim.selectedPersonIndex];
+            let pTight = p.tight;
             self.person.timeSinceInfected = p.time_since_infected;
             self.person.asymptomaticOverall = !p.symptomaticOverall;
             self.person.isolating = p.isolating ? "<strong>YES</strong>" : "No";
@@ -279,16 +280,16 @@ export default Vue.extend({
                 ["c", "Car"],
                 ["t", "Train"],
             ]);
-            let act = p.getCurrentActivityChar(currentStep);
+            let act = pTight.getCurrentActivityChar(currentStep);
             // let act = p.currentActivity;
             let details = "";
-            if (act == "h") details = ", occupants " + sim.allPlaces[PlaceType.home][p.placeIndex[PlaceType.home]].currentOccupants.length + " / " + sim.allPlaces[PlaceType.home][p.placeIndex[PlaceType.home]].residents.length;
-            if (act == "s") details = sim.supermarketJSON[p.placeIndex[PlaceType.supermarket]][2];
+            if (act == "h") details = ", occupants " + sim.allPlaces[PlaceType.home][pTight.placeIndex[PlaceType.home]].currentOccupants.length + " / " + sim.allPlaces[PlaceType.home][pTight.placeIndex[PlaceType.home]].residents.length;
+            if (act == "s") details = sim.supermarketJSON[pTight.placeIndex[PlaceType.supermarket]][2];
             self.person.location = icons.get(act).toString() + " " + labels.get(act).toString() + details;
             self.person.routine = "";
             for (let i = 0; i < 24; i++) {
                 if (i == currentStep) self.person.routine += "<span style='background-color:#f41; height:18px;display:inline-block;border-radius:4px'>";
-                self.person.routine += icons.get(p.getCurrentActivityChar(i)).toString();
+                self.person.routine += icons.get(pTight.getCurrentActivityChar(i)).toString();
                 if (i == currentStep) self.person.routine += "</span>";
             }
             self.person.status = "🙂 Happily not sick";

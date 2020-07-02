@@ -1,6 +1,6 @@
 import "@babel/polyfill"; // This is for using ES2017 features, like async/await.
 import moment from "moment";
-import { Person, PlaceType, numPlaceTypes } from "./person";
+import { Person, PersonTight, PlaceType, numPlaceTypes } from "./person";
 import { Spatial, Grid } from "./spatial";
 import { CountyStats, GraphType } from "./county-stats";
 import * as Params from "./params";
@@ -57,7 +57,10 @@ export function loadImage(url: string) {
 export class Sim {
     params: Params.Base;
     rand: RandomFast;
+    // These store all the Person info for the whole population.
+    // Have 2 parallel arrays for cache reasons.
     pop: Person[] = [];
+    popTight: PersonTight[] = [];
 
     // Array of arrays of arrays
     // each outer array is a different kind of place, like home, office, supermarket.
@@ -208,26 +211,29 @@ export class Sim {
         let personfb = FlatbufPeople.PersonArray.getRootAsPersonArray(buf);
         let peopleLen = personfb.peopleLength();
         this.pop = [];
+        this.popTight = [];
         let totalAge = 0;
         // Allocate people to their houses and offices.
         for (let i = 0; i < peopleLen; i++) {
-            let person = new Person(this.params, this.rand, this.pop.length);
+            let personTight = new PersonTight();
+            let person = new Person(this.params, this.rand, this.pop.length, personTight);
             let source = personfb.people(i);
             person.county = source.countyIndex();
-            person.placeIndex[PlaceType.home] = source.homeIndex();
-            person.placeIndex[PlaceType.office] = source.officeIndex();
-            person.placeIndex[PlaceType.supermarket] = source.supermarketIndex();
-            person.placeIndex[PlaceType.hospital] = source.hospitalIndex();
+            personTight.placeIndex[PlaceType.home] = source.homeIndex();
+            personTight.placeIndex[PlaceType.office] = source.officeIndex();
+            personTight.placeIndex[PlaceType.supermarket] = source.supermarketIndex();
+            personTight.placeIndex[PlaceType.hospital] = source.hospitalIndex();
             person.age = source.age();
             person.maleFemale = source.maleFemale();
             totalAge += source.age();
-            let home = this.allPlaces[PlaceType.home][person.placeIndex[PlaceType.home]];
+            let home = this.allPlaces[PlaceType.home][personTight.placeIndex[PlaceType.home]];
             home.residents.push(person.id);
             person.xpos = home.xpos;
             person.ypos = home.ypos;
-            this.allPlaces[PlaceType.office][person.placeIndex[PlaceType.office]].residents.push(person.id);
-            this.allPlaces[PlaceType.supermarket][person.placeIndex[PlaceType.supermarket]].residents.push(person.id);
-            this.allPlaces[PlaceType.hospital][person.placeIndex[PlaceType.hospital]].residents.push(person.id);
+            this.allPlaces[PlaceType.office][personTight.placeIndex[PlaceType.office]].residents.push(person.id);
+            this.allPlaces[PlaceType.supermarket][personTight.placeIndex[PlaceType.supermarket]].residents.push(person.id);
+            this.allPlaces[PlaceType.hospital][personTight.placeIndex[PlaceType.hospital]].residents.push(person.id);
+            this.popTight.push(personTight);
             this.pop.push(person);
             if (person.county >= 0) this.countyStats.counters[person.county][GraphType.startingPopulation]++;
         }
@@ -329,10 +335,11 @@ export class Sim {
 
         for (var j = 0; j < this.pop.length; j++) {
             let person: Person = this.pop[j];
+            let personTight: PersonTight = this.popTight[j];
             var placeIndexArray = new moduleInstance.int_vector();
-            placeIndexArray.push_back(person.placeIndex[PlaceType.home]);
-            placeIndexArray.push_back(person.placeIndex[PlaceType.office]);
-            placeIndexArray.push_back(person.placeIndex[PlaceType.supermarket]);
+            placeIndexArray.push_back(personTight.placeIndex[PlaceType.home]);
+            placeIndexArray.push_back(personTight.placeIndex[PlaceType.office]);
+            placeIndexArray.push_back(personTight.placeIndex[PlaceType.supermarket]);
             this.wasmSim.addPerson(
                 new moduleInstance.PersonCore(person.id, placeIndexArray, person.getPersonDefaultRoutineIndex())
             );
@@ -362,25 +369,26 @@ export class Sim {
 
     clearOccupants() {
         const ap = this.allPlaces;
-        for (let i = 0; i < ap[PlaceType.home].length; i++) ap[PlaceType.home][i].currentOccupants.reset();
-        for (let i = 0; i < ap[PlaceType.office].length; i++) ap[PlaceType.office][i].currentOccupants.reset();
-        for (let i = 0; i < ap[PlaceType.supermarket].length; i++) ap[PlaceType.supermarket][i].currentOccupants.reset();
+        for (let i = 0; i < numPlaceTypes; i++) {
+            const placeList = ap[i];
+            for (let j = 0; j < placeList.length; j++) placeList[j].currentOccupants.reset();
+        }
     }
     // Allocate all the people to the places they will occupy for this timestep.
     occupyPlaces() {
         this.clearOccupants();
         const currentStep = this.time_steps_since_start.getStepModDay();
-        const t_pop = this.pop;
+        const t_pop = this.popTight;
         const t_allPlaces = this.allPlaces;
         for (let i = 0; i < t_pop.length; i++) {
-            let person = t_pop[i];
+            let personTight = t_pop[i];
             // Can make allPlaces into 2 structs for cache happy
 
             // Sets activity for this time step
-            let activity = person.currentRoutine[currentStep];
+            let activity = personTight.currentRoutine[currentStep];
             if (activity >= numPlaceTypes) continue;
-            // person.currentActivity = activity;
-            let placeIndex = person.placeIndex[activity];
+            // personTight.currentActivity = activity;
+            let placeIndex = personTight.placeIndex[activity];
             t_allPlaces[activity][placeIndex].currentOccupants.push(i);
         }
     }
@@ -552,8 +560,9 @@ export class Sim {
                 for (let i = 0; i < hh.residents.length; i++) {
                     let popIndex = hh.residents[i];
                     let person: Person = this.pop[popIndex];
-                    let office = this.allPlaces[PlaceType.office][person.placeIndex[PlaceType.office]];
-                    let market = this.allPlaces[PlaceType.supermarket][person.placeIndex[PlaceType.supermarket]];
+                    let personTight: PersonTight = this.popTight[popIndex];
+                    let office = this.allPlaces[PlaceType.office][personTight.placeIndex[PlaceType.office]];
+                    let market = this.allPlaces[PlaceType.supermarket][personTight.placeIndex[PlaceType.supermarket]];
                     this.drawLine(
                         ctx,
                         hh.xpos + RandomFast.HashFloat(i) * 0.02 - 0.01,
@@ -567,13 +576,14 @@ export class Sim {
             // ---- Draw selected *person*'s places ----
             if (this.selectedPersonIndex >= 0) {
                 let p: Person = this.pop[this.selectedPersonIndex];
-                let market = this.allPlaces[PlaceType.supermarket][p.placeIndex[PlaceType.supermarket]];
-                let house = this.allPlaces[PlaceType.home][p.placeIndex[PlaceType.home]];
-                let office = this.allPlaces[PlaceType.office][p.placeIndex[PlaceType.office]];
-                let hospital = this.allPlaces[PlaceType.hospital][p.placeIndex[PlaceType.hospital]];
+                let pTight: PersonTight = this.popTight[this.selectedPersonIndex];
+                let market = this.allPlaces[PlaceType.supermarket][pTight.placeIndex[PlaceType.supermarket]];
+                let house = this.allPlaces[PlaceType.home][pTight.placeIndex[PlaceType.home]];
+                let office = this.allPlaces[PlaceType.office][pTight.placeIndex[PlaceType.office]];
+                let hospital = this.allPlaces[PlaceType.hospital][pTight.placeIndex[PlaceType.hospital]];
 
                 let currentStep = this.time_steps_since_start.getStepModDay(); // Should this be time_step - 1????
-                let activity = p.getCurrentActivityInt(currentStep);
+                let activity = pTight.getCurrentActivityInt(currentStep);
                 let localx: number = house.xpos;
                 let localy: number = house.ypos;
                 if (activity == PlaceType.office) (localx = office.xpos), (localy = office.ypos);
@@ -600,20 +610,21 @@ export class Sim {
                 let skip = 10;
                 for (let i = 0; i < this.pop.length; i += skip) {
                     let person = this.pop[i];
+                    let personTight: PersonTight = this.popTight[i];
                     let pos = [person.xpos, person.ypos];
                     let currentStep = this.time_steps_since_start.getStepModDay(); // Should this be time_step - 1????
-                    let activity = person.getCurrentActivityInt(currentStep);
+                    let activity = personTight.getCurrentActivityInt(currentStep);
                     // let activity = person.currentActivity;
                     if (activity == PlaceType.home) {
-                        let p = this.allPlaces[PlaceType.home][person.placeIndex[PlaceType.home]];
+                        let p = this.allPlaces[PlaceType.home][personTight.placeIndex[PlaceType.home]];
                         pos = [p.xpos, p.ypos];
                         ctx.fillStyle = "#ccbb50";
                     } else if (activity == PlaceType.office) {
-                        let p = this.allPlaces[PlaceType.office][person.placeIndex[PlaceType.office]];
+                        let p = this.allPlaces[PlaceType.office][personTight.placeIndex[PlaceType.office]];
                         pos = [p.xpos, p.ypos];
                         ctx.fillStyle = "#00bbff";
                     } else if (activity == PlaceType.supermarket) {
-                        let p = this.allPlaces[PlaceType.supermarket][person.placeIndex[PlaceType.supermarket]];
+                        let p = this.allPlaces[PlaceType.supermarket][personTight.placeIndex[PlaceType.supermarket]];
                         pos = [p.xpos, p.ypos];
                         ctx.fillStyle = "#88ff88";
                     } else {

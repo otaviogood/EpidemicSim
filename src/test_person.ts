@@ -9,7 +9,7 @@ import MersenneTwister from "mersenne-twister";
 // var MersenneTwister = require("mersenne-twister");
 
 import { Sim } from "./sim";
-import { Person, SymptomsLevels } from "./person";
+import { Person, PersonTight, SymptomsLevels } from "./person";
 import * as Params from "./params";
 import * as util from "./util";
 
@@ -141,7 +141,8 @@ export class TestPerson {
         );
 
         for (let i = 0; i < TestPerson.numSamples; i++) {
-            let p = new Person(params, rand, i);
+            let pTight = new PersonTight();
+            let p = new Person(params, rand, i, pTight);
             p.init(params, rand);
             p.becomeSick(null);
 
