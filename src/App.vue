@@ -34,21 +34,16 @@
                         </select>
                     </label>
 
-                    <div
-                        class="mapkey"
-                        :class="visualsFlag(1) ? 'highlight' : ''"
-                        style="top:40px"
-                        @mousedown.prevent="mapkeyHover(1)"
-                    >
-                        Pop / 10
-                    </div>
-                    <div class="mapkey" style="top:72px" @mousedown.prevent="mapkeyHover(2)">Homes</div>
-                    <div class="mapkey" style="top:104px" @mousedown.prevent="mapkeyHover(4)">Offices</div>
-                    <div class="mapkey" style="top:136px" @mousedown.prevent="mapkeyHover(8)">Hospitals</div>
-                    <div class="mapkey" style="top:168px" @mousedown.prevent="mapkeyHover(16)">Supermarkets</div>
-                    <div class="mapkey" style="top:232px" @mousedown.prevent="mapkeyHover(32)">Susceptible</div>
-                    <div class="mapkey" style="top:264px" @mousedown.prevent="mapkeyHover(64)">Infected</div>
-                    <div class="mapkey" style="top:296px" @mousedown.prevent="mapkeyHover(128)">Recovered</div>
+                    <div class="vis" :class="visFlag(1)" style="top:40px" @mousedown.prevent="visToggle(1)">Pop / 10</div>
+                    <div class="vis" :class="visFlag(2)" style="top:72px" @mousedown.prevent="visToggle(2)">Homes</div>
+                    <div class="vis" :class="visFlag(4)" style="top:104px" @mousedown.prevent="visToggle(4)">Offices</div>
+                    <div class="vis" :class="visFlag(8)" style="top:136px" @mousedown.prevent="visToggle(8)">Hospitals</div>
+                    <div class="vis" :class="visFlag(16)" style="top:168px" @mousedown.prevent="visToggle(16)">Supermarkets</div>
+                    <div class="vis" :class="visFlag(32)" style="top:232px" @mousedown.prevent="visToggle(32)">Susceptible</div>
+                    <div class="vis" :class="visFlag(64)" style="top:264px" @mousedown.prevent="visToggle(64)">Infected</div>
+                    <div class="vis" :class="visFlag(128)" style="top:296px" @mousedown.prevent="visToggle(128)">Recovered</div>
+                    <div class="vis" :class="visFlag(256)" style="top:360px" @mousedown.prevent="visToggle(256)">Traces</div>
+                    <div class="vis" :class="visFlag(512)" style="top:392px" @mousedown.prevent="visToggle(512)">Person</div>
                 </div>
                 <p style="margin:8px;">
                     <span
@@ -62,7 +57,9 @@
                         class=""
                         style="font-size:48px;float:left;margin-right:16px;padding:0px;border:0px;background-color:#00000000;"
                         @click="fastForward"
-                    >⏩</button>
+                    >
+                        ⏩
+                    </button>
                     <button
                         type="button"
                         class=""
@@ -169,7 +166,12 @@
                 id="statistics-canvas"
             ></canvas>
         </span>
-        <div v-if="!loadedSim" style="position:absolute;top:calc(50% - 64px); left:calc(50% - 220px); background-color:#dd3311;color:white;font-size:96px;border-radius:64px;border:2px solid #ffccbb;padding:24px">Loading...</div>
+        <div
+            v-if="!loadedSim"
+            style="position:absolute;top:calc(50% - 64px); left:calc(50% - 220px); background-color:#4680b0;color:white;font-size:96px;border-radius:64px;border:2px solid #ffccbb;padding:24px"
+        >
+            Loading...
+        </div>
     </div>
 </template>
 
@@ -227,6 +229,7 @@ export default Vue.extend({
             },
             stepSize: 1,
             loadedSim: false,
+            buttonHighlight: 0,
         };
     },
     created: function() {
@@ -283,12 +286,19 @@ export default Vue.extend({
             let act = pTight.getCurrentActivityChar(currentStep);
             // let act = p.currentActivity;
             let details = "";
-            if (act == "h") details = ", occupants " + sim.allPlaces[PlaceType.home][pTight.placeIndex[PlaceType.home]].currentOccupants.length + " / " + sim.allPlaces[PlaceType.home][pTight.placeIndex[PlaceType.home]].residents.length;
+            if (act == "h")
+                details =
+                    ", occupants " +
+                    sim.allPlaces[PlaceType.home][pTight.placeIndex[PlaceType.home]].currentOccupants.length +
+                    " / " +
+                    sim.allPlaces[PlaceType.home][pTight.placeIndex[PlaceType.home]].residents.length;
             if (act == "s") details = sim.supermarketJSON[pTight.placeIndex[PlaceType.supermarket]][2];
             self.person.location = icons.get(act).toString() + " " + labels.get(act).toString() + details;
             self.person.routine = "";
             for (let i = 0; i < 24; i++) {
-                if (i == currentStep) self.person.routine += "<span style='background-color:#f41; height:18px;display:inline-block;border-radius:4px'>";
+                if (i == currentStep)
+                    self.person.routine +=
+                        "<span style='background-color:#f41; height:18px;display:inline-block;border-radius:4px'>";
                 self.person.routine += icons.get(pTight.getCurrentActivityChar(i)).toString();
                 if (i == currentStep) self.person.routine += "</span>";
             }
@@ -345,7 +355,12 @@ export default Vue.extend({
         },
         tickAnim: function() {
             let self = this;
-            if (sim && (sim.pop.length > 0) && (sim.countyStats.currentInfected() > 0 || sim.countyStats.totalInfected() == 0) && !sim.paused) {
+            if (
+                sim &&
+                sim.pop.length > 0 &&
+                (sim.countyStats.currentInfected() > 0 || sim.countyStats.totalInfected() == 0) &&
+                !sim.paused
+            ) {
                 self.singleStepSim();
             }
 
@@ -381,13 +396,15 @@ export default Vue.extend({
             this.updatePerson();
             sim.draw();
         },
-        mapkeyHover: function(flag) {
+        visToggle: function(flag) {
             sim.visualsFlag ^= flag;
+            this.buttonHighlight = sim.visualsFlag;
             sim.draw();
         },
-        visualsFlag: function(flag) {
+        visFlag: function(flag) {
             if (!sim) return false;
-            return (sim.visualsFlag & flag) != 0;
+            this.buttonHighlight = sim.visualsFlag;
+            return (this.buttonHighlight & flag) != 0 ? "highlight" : "";
         },
         statsHover: function(name, col) {
             tests.selected = name;
@@ -542,7 +559,7 @@ body {
     }
 }
 
-.mapkey {
+.vis {
     position: absolute;
     top: 0px;
     color: white;
@@ -552,15 +569,14 @@ body {
     margin-left: 8px;
     cursor: default;
 }
-.mapkey:hover {
+.vis:hover {
     background-color: #23507880;
     color: white;
     cursor: default;
 }
 .highlight {
-    background-color: #e0e0e0;
-    color: #000000;
     cursor: default;
+    border: 1px solid #f2bb07;
 }
 table#stats-table,
 th,

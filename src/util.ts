@@ -12,6 +12,8 @@ export enum VizFlags {
     susceptible = 32,
     infected = 64,
     recovered = 128,
+    traces = 256,
+    person = 512,
 }
 
 let alreadyAlerted = false;

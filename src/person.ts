@@ -161,8 +161,10 @@ export class Person {
 
     id: number = -1;
     time_since_infected: number = -1;
-    xpos: number = 0; // Are these needed since you can get x, y of the place you are in?
+    xpos: number = 0; // Just for visuals. Barely needed.
     ypos: number = 0;
+    infectedX: number = -1;  // Where the person got infected
+    infectedY: number = -1;
     county = -1;
     // Demogaphic info
     age = -1;
@@ -278,6 +280,21 @@ export class Person {
         return Person.activitiesNormalByte[this.getPersonDefaultRoutineIndex()];
     }
 
+    getCurrentLocation(sim: Sim, timeOffset=0): [number, number] {
+        let currentStep = sim.time_steps_since_start.getStepModDayOffset(timeOffset);
+        let activity = this.tight.getCurrentActivityInt(currentStep);
+        let market = sim.allPlaces[PlaceType.supermarket][this.tight.placeIndex[PlaceType.supermarket]];
+        let house = sim.allPlaces[PlaceType.home][this.tight.placeIndex[PlaceType.home]];
+        let office = sim.allPlaces[PlaceType.office][this.tight.placeIndex[PlaceType.office]];
+        let hospital = sim.allPlaces[PlaceType.hospital][this.tight.placeIndex[PlaceType.hospital]];
+        let localx: number = house.xpos;
+        let localy: number = house.ypos;
+        if (activity == PlaceType.office) (localx = office.xpos), (localy = office.ypos);
+        if (activity == PlaceType.supermarket) (localx = market.xpos), (localy = market.ypos);
+        if (activity == PlaceType.hospital) (localx = hospital.xpos), (localy = hospital.ypos);
+        return [localx, localy];
+    }
+
     get hashId() {
         return RandomFast.HashInt32(this.id);
     }
@@ -304,7 +321,8 @@ export class Person {
         this.time_since_infected = 0.0;
         this.infected = true;
         if (sim) {
-            let info: [number, number, Params.TimeStep] = [this.xpos, this.ypos, sim.time_steps_since_start.clone()];
+            let [x, y] = this.getCurrentLocation(sim);
+            let info: [number, number, Params.TimeStep] = [x, y, sim.time_steps_since_start.clone()];
             sim.infectedVisuals.push(info);
             if (this.county >= 0) {
                 sim.countyStats.counters[this.county][GraphType.totalInfected]++;
@@ -452,7 +470,13 @@ export class Person {
         let numSpread = this.howManyCatchItInThisTimeStep(rand, prob, occupants.length);
         for (let i = 0; i < numSpread; i++) {
             let targetIndex = occupants.buffer[rand.RandIntApprox(0, occupants.length)];
-            if (pop[targetIndex].isVulnerable) pop[targetIndex].becomeSick(sim);
+            let target = pop[targetIndex];
+            if (target.isVulnerable) {
+                target.becomeSick(sim);
+                // Save off visualization info about where people got infected
+                [target.infectedX, target.infectedY] = this.getCurrentLocation(sim);
+                sim.infectionTraces.push([this.infectedX, this.infectedY, target.infectedX, target.infectedY]);
+            }
         }
     }
 

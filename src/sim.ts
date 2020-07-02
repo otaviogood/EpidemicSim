@@ -95,7 +95,8 @@ export class Sim {
     scaley = 1;
     paused = false;
     infectedVisuals: any[][] = [];
-    visualsFlag = 0;
+    infectionTraces: any[] = [];
+    visualsFlag = util.VizFlags.traces | util.VizFlags.person;
     countyStats: CountyStats = new CountyStats();
 
     constructor(params: Params.Base) {
@@ -230,6 +231,8 @@ export class Sim {
             home.residents.push(person.id);
             person.xpos = home.xpos;
             person.ypos = home.ypos;
+            person.infectedX = home.xpos;
+            person.infectedY = home.ypos;
             this.allPlaces[PlaceType.office][personTight.placeIndex[PlaceType.office]].residents.push(person.id);
             this.allPlaces[PlaceType.supermarket][personTight.placeIndex[PlaceType.supermarket]].residents.push(person.id);
             this.allPlaces[PlaceType.hospital][personTight.placeIndex[PlaceType.hospital]].residents.push(person.id);
@@ -545,7 +548,7 @@ export class Sim {
                 }
                 ctx.closePath();
                 ctx.fill();
-                ctx.strokeStyle = "#ff700a";
+                ctx.strokeStyle = "#f2bb07";
                 ctx.stroke();
                 ctx.lineWidth = 1.0;
             }
@@ -574,7 +577,7 @@ export class Sim {
                 }
             }
             // ---- Draw selected *person*'s places ----
-            if (this.selectedPersonIndex >= 0) {
+            if ((this.visualsFlag & util.VizFlags.person) != 0 && this.selectedPersonIndex >= 0) {
                 let p: Person = this.pop[this.selectedPersonIndex];
                 let pTight: PersonTight = this.popTight[this.selectedPersonIndex];
                 let market = this.allPlaces[PlaceType.supermarket][pTight.placeIndex[PlaceType.supermarket]];
@@ -582,17 +585,11 @@ export class Sim {
                 let office = this.allPlaces[PlaceType.office][pTight.placeIndex[PlaceType.office]];
                 let hospital = this.allPlaces[PlaceType.hospital][pTight.placeIndex[PlaceType.hospital]];
 
-                let currentStep = this.time_steps_since_start.getStepModDay(); // Should this be time_step - 1????
-                let activity = pTight.getCurrentActivityInt(currentStep);
-                let localx: number = house.xpos;
-                let localy: number = house.ypos;
-                if (activity == PlaceType.office) (localx = office.xpos), (localy = office.ypos);
-                if (activity == PlaceType.supermarket) (localx = market.xpos), (localy = market.ypos);
-                if (activity == PlaceType.hospital) (localx = hospital.xpos), (localy = hospital.ypos);
-                p.xpos = (p.xpos + localx) * 0.5;
-                p.ypos = (p.ypos + localy) * 0.5;
-                let px = p.xpos;
-                let py = p.ypos;
+                let [localx, localy] = p.getCurrentLocation(this, -1);
+                // p.xpos = (p.xpos + localx) * 0.5;
+                // p.ypos = (p.ypos + localy) * 0.5;
+                let px = localx;
+                let py = localy;
 
                 this.drawLine(ctx, px, py, market.xpos, market.ypos, "rgba(60, 255, 60, 0.5)");
                 this.drawLine(ctx, px, py, house.xpos, house.ypos, "rgba(0, 0, 0, 0.5)");
@@ -672,13 +669,13 @@ export class Sim {
             if ((this.visualsFlag & util.VizFlags.infected) != 0) {
                 for (let i = 0; i < this.pop.length; i++) {
                     let person = this.pop[i];
-                    if (person.isSick) ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 2, 2);
+                    if (person.isSick) ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 1, 1);
                 }
             }
             if ((this.visualsFlag & util.VizFlags.recovered) != 0) {
                 for (let i = 0; i < this.pop.length; i++) {
                     let person = this.pop[i];
-                    if (person.isRecovered) ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 2, 2);
+                    if (person.isRecovered) ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 1, 1);
                 }
             }
             // for (let i = 0; i < businessJSON.length; i++) {
@@ -700,23 +697,33 @@ export class Sim {
             // [x, y] = this.latLonToPos(37.708787, -122.374493);  // east candlestick point
             // this.drawCircle(ctx, x, y, 2, "rgb(160, 255, 40)");
 
-            // Animate infection circles and delete things from the list that are old.
-            let tempIV: number[][] = [];
-            ctx.lineWidth = 1.5;
-            for (let i = 0; i < this.infectedVisuals.length; i++) {
-                let t = (this.time_steps_since_start.hours - this.infectedVisuals[i][2].hours) / 2;
-                let alpha = Math.max(0, 60 - t) / 60.0;
-                if (alpha > 0.0) tempIV.push(this.infectedVisuals[i]);
+            if ((this.visualsFlag & util.VizFlags.traces) != 0) {
+                // Animate infection circles and delete things from the list that are old.
+                let tempIV: number[][] = [];
+                ctx.lineWidth = 1.5;
+                for (let i = 0; i < this.infectedVisuals.length; i++) {
+                    let t = (this.time_steps_since_start.hours - this.infectedVisuals[i][2].hours) / 2;
+                    let alpha = Math.max(0, 60 - t) / 60.0;
+                    if (alpha > 0.0) tempIV.push(this.infectedVisuals[i]);
 
-                const maxDraws = 32; // Limit the number of circles that can be drawn for performance.
-                if (i > this.infectedVisuals.length - maxDraws) {
-                    let x = this.infectedVisuals[i][0];
-                    let y = this.infectedVisuals[i][1];
-                    this.drawCircle(ctx, x, y, t + 2, "rgba(255,100,10," + alpha.toString() + ")", false);
+                    const maxDraws = 32; // Limit the number of circles that can be drawn for performance.
+                    if (i > this.infectedVisuals.length - maxDraws) {
+                        let x = this.infectedVisuals[i][0];
+                        let y = this.infectedVisuals[i][1];
+                        this.drawCircle(ctx, x, y, t + 2, "rgba(255,100,10," + alpha.toString() + ")", false);
+                    }
+                }
+                this.infectedVisuals = tempIV;
+                ctx.lineWidth = 1.0;
+
+                // Draw lines connecting where people got infected.
+                if (this.infectionTraces.length > 64) this.infectionTraces = this.infectionTraces.slice(this.infectionTraces.length - 64);  // fifo queue
+                for (let i = 0; i < this.infectionTraces.length; i++) {
+                    let trace = this.infectionTraces[i];
+                    if (trace[0] == trace[2] && trace[1] == trace[3]) this.drawRect(ctx, trace[0] - 0.001, trace[1] - 0.001, 0.002, 0.002, "#ffff00");
+                    else this.drawLine(ctx, trace[0], trace[1], trace[2], trace[3], "#ff680a");
                 }
             }
-            this.infectedVisuals = tempIV;
-            ctx.lineWidth = 1.0;
 
             // Draw map lat/lon extents around the map
             this.drawText(ctx, 0.45, -0.01, "max lat: " + this.latMax);
@@ -752,6 +759,7 @@ export class Sim {
         }
     }
     controllerClick(x: number, y: number) {
+        return;
         x = (x / this.scalex) * this.canvasWidth;
         y = (y / this.scaley) * this.canvasHeight;
         // If we're not actively dragging something, let people drag the phone screen.
