@@ -21,7 +21,7 @@ const boundsLatMax = allBounds.get("-1")["max"][0];
 const boundsLonMin = allBounds.get("-1")["min"][1];
 const boundsLonMax = allBounds.get("-1")["max"][1];
 
-const noCacheHack = false; // Use this for very large files... It can be fixed better, but this is placeholder.
+const noCacheHack = true; // Use this for very large files... It can be fixed better, but this is placeholder.
 
 if (noCacheHack) var nodeMap = new bigmap.BigMap();
 else var nodeMap = new Map();

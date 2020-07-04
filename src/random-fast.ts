@@ -45,7 +45,7 @@ export default class RandomFast {
 
     // This will be biased...
     RandIntApprox(a: number, b: number) {
-        if (b - a > 2000000) alert("random range too big");
+        if (b - a > 8000000) alert("random range too big");
         this.randomState = RandomFast.SmallHashA(this.randomState);
         let tempState = ((this.randomState << 13) | (this.randomState >>> 19)) >>> 0;
         tempState = RandomFast.SmallHashB(tempState);

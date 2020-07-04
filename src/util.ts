@@ -2,6 +2,7 @@ import RandomFast from "./random-fast";
 import MersenneTwister from "mersenne-twister";
 
 export const MAX_32BIT_INTEGER = 0x7fffffff;
+export const MAX_TIME_STEPS = 0x7fff;
 
 export enum VizFlags {
     pop10 = 1,
@@ -24,6 +25,14 @@ export function assert(condition: boolean, message: string = "ERROR") {
         alreadyAlerted = true;
     }
     // throw message || "Assertion failed";
+}
+
+// Round a number up or down randomly, weighted by the fractional component
+export function roundRandom(rand: RandomFast, x:number) {
+    let frac = x % 1;
+    let r = rand.RandFloat();
+    if (r < frac) return Math.floor(x) + 1;
+    else return Math.floor(x);
 }
 
 // Biased, but not much for small ranges.

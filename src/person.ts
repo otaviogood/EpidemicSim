@@ -67,24 +67,44 @@ export class PersonTight {
 
 export class Person {
     tight:PersonTight;
-    // flags
-    _infected = false;
-    _contagious = false;
-    _symptomsCurrent = SymptomsLevels.none; // 0 undefined, 1 is mild to moderate (80%), 2 is severe (14%), 3 is critical (6%)
-    _symptomaticOverall = true;
-    _dead = false;
-    _recovered = false;
-    _criticalIfSevere = false;
-    _isolating = false;
+    // flags -> I was running out of memory on SF Bay Area, so I'm packing the Person data real tight.
+    // JS is super inefficient for memory. This also makes performance better because we are memory-cache-bound.
+    _flags = 0;
+    private setFlagInt(x: number, pos:number, mask:number) { this._flags = (this._flags & (~(mask << pos))) | (x << pos); }  // prettier-ignore
+    private getFlagInt(pos:number, mask:number) : number { return (this._flags >>> pos) & mask; }  // prettier-ignore
+    get _infected() : boolean { return (this._flags & 1) != 0; }  // prettier-ignore
+    set _infected(x: boolean) { this._flags = (this._flags & (~1)) | (x?1:0); }  // prettier-ignore
+    get _contagious() : boolean { return (this._flags & 2) != 0; }  // prettier-ignore
+    set _contagious(x: boolean) { this._flags = (this._flags & (~2)) | (x?2:0); }  // prettier-ignore
+    get _dead() : boolean { return (this._flags & 4) != 0; }  // prettier-ignore
+    set _dead(x: boolean) { this._flags = (this._flags & (~4)) | (x?4:0); }  // prettier-ignore
+    get _recovered() : boolean { return (this._flags & 8) != 0; }  // prettier-ignore
+    set _recovered(x: boolean) { this._flags = (this._flags & (~8)) | (x?8:0); }  // prettier-ignore
+    get _criticalIfSevere() : boolean { return (this._flags & 16) != 0; }  // prettier-ignore
+    set _criticalIfSevere(x: boolean) { this._flags = (this._flags & (~16)) | (x?16:0); }  // prettier-ignore
+    get _isolating() : boolean { return (this._flags & 32) != 0; }  // prettier-ignore
+    set _isolating(x: boolean) { this._flags = (this._flags & (~32)) | (x?32:0); }  // prettier-ignore
+    get _symptomaticOverall() : boolean { return (this._flags & 64) != 0; }  // prettier-ignore
+    set _symptomaticOverall(x: boolean) { this._flags = (this._flags & (~64)) | (x?64:0); }  // prettier-ignore
+    // 2 bit int
+    get _symptomsCurrent() : SymptomsLevels { return this.getFlagInt(8, 3); }  // prettier-ignore
+    set _symptomsCurrent(x: SymptomsLevels) { this.setFlagInt(x, 8, 3); }  // prettier-ignore
+    // _infected = false;
+    // _contagious = false;
+    // _dead = false;
+    // _recovered = false;
+    // _criticalIfSevere = false;
+    // _isolating = false;
+    // _symptomaticOverall = true;
+    // _symptomsCurrent = SymptomsLevels.none; // 0 undefined, 1 is mild to moderate (80%), 2 is severe (14%), 3 is critical (6%)
 
-    // These are times of onset of various things
-    _contagiousTrigger = util.MAX_32BIT_INTEGER;
-    _endContagiousTrigger = util.MAX_32BIT_INTEGER;
-    _symptomsTrigger = util.MAX_32BIT_INTEGER;
-    _endSymptomsTrigger = util.MAX_32BIT_INTEGER;
-    _deadTrigger = util.MAX_32BIT_INTEGER;
-    _severeTrigger = util.MAX_32BIT_INTEGER;
-    _isolationTrigger = util.MAX_32BIT_INTEGER; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
+    _contagiousTrigger = util.MAX_TIME_STEPS;
+    _endContagiousTrigger = util.MAX_TIME_STEPS;
+    _symptomsTrigger = util.MAX_TIME_STEPS;
+    _endSymptomsTrigger = util.MAX_TIME_STEPS;
+    _deadTrigger = util.MAX_TIME_STEPS;
+    _severeTrigger = util.MAX_TIME_STEPS;
+    _isolationTrigger = util.MAX_TIME_STEPS; // That moment they decide they are sick af and they need to isolate better (Any data for this???)
 
     get infected(): boolean { if (!this.useWasmSim) return this._infected; return <boolean>this.wasmPerson.infected; } // prettier-ignore
     set infected(x: boolean) { if (!this.useWasmSim) { this._infected = x; return; } this.wasmPerson.infected = x; } // prettier-ignore
@@ -165,10 +185,17 @@ export class Person {
     ypos: number = 0;
     infectedX: number = -1;  // Where the person got infected
     infectedY: number = -1;
-    county = -1;
+    // county = -1;
     // Demogaphic info
-    age = -1;
-    maleFemale = -1;
+    get age() : number { return this.getFlagInt(10, 0x7f); }  // prettier-ignore
+    set age(x: number) { this.setFlagInt(x, 10, 0x7f); }  // prettier-ignore
+    get maleFemale() : number { return this.getFlagInt(17, 0x1); }  // prettier-ignore
+    set maleFemale(x: number) { this.setFlagInt(x, 17, 0x1); }  // prettier-ignore
+    get county() : number { return this.getFlagInt(18, 0xff); }  // prettier-ignore
+    set county(x: number) { this.setFlagInt(x, 18, 0xff); }  // prettier-ignore
+
+    // age = -1;
+    // maleFemale = -1;
 
     useWasmSim = false;
 
@@ -198,6 +225,7 @@ export class Person {
                 for (let j = 0; j < act.length; j++) Person.activitiesWhileSickByte[i][j] = ActivityMap2.get(act[j])!;
             }
         }
+        this.symptomaticOverall = true;
     }
 
     init(params: Params.Base, rand: RandomFast) {
@@ -206,34 +234,35 @@ export class Person {
         // Find person's main activity (what they do during the day)
         this.tight.currentRoutine = this.getPersonDefaultRoutine();
 
+        let fTemp = 0.0;
         // ---- Generate trigger times when sickness events will happen ----
-        [this.contagiousTrigger] = util.RandGaussian(
+        [fTemp] = util.RandGaussian(
             rand,
             params.mean_time_till_contagious.hours,
             params.contagious_range.hours * 0.5
         );
-        // Clamp to range.
-        this.contagiousTrigger = util.clamp(
-            this.contagiousTrigger,
+        // Clamp to range, convert to int.
+        this.contagiousTrigger = Math.round(util.clamp(
+            fTemp,
             params.mean_time_till_contagious.hours - params.contagious_range.hours * 0.5,
             params.mean_time_till_contagious.hours + params.contagious_range.hours * 0.5
-        );
+        ));
 
-        [this.endContagiousTrigger] = util.RandGaussian(rand, params.median_time_virus_is_communicable.hours, util.fromHours(30));
-        this.endContagiousTrigger = this.endContagiousTrigger + this.contagiousTrigger;
+        [fTemp] = util.RandGaussian(rand, params.median_time_virus_is_communicable.hours, util.fromHours(30));
+        this.endContagiousTrigger = Math.round(fTemp + this.contagiousTrigger);
 
         // Skewed distribution
-        [this.symptomsTrigger] = util.RandGaussian(rand, 0.0, 0.5); // Include 2 standard deviations before clamping.
-        this.symptomsTrigger = util.clamp(this.symptomsTrigger, -1.0, 1.0) * 0.5 + 0.5; //  Now show be [0..1] range
-        this.symptomsTrigger = Math.pow(this.symptomsTrigger, 4.5); // skew the distribution, still [0..1] range.
+        [fTemp] = util.RandGaussian(rand, 0.0, 0.5); // Include 2 standard deviations before clamping.
+        fTemp = util.clamp(fTemp, -1.0, 1.0) * 0.5 + 0.5; //  Now show be [0..1] range
+        fTemp = Math.pow(fTemp, 4.5); // skew the distribution, still [0..1] range.
         // Apply new mean and std sorta...
         this.symptomsTrigger =
-            this.symptomsTrigger * util.fromDays(7.25) + params.mean_time_till_symptoms.hours - util.fromDays(1.0);
+        Math.round(fTemp * util.fromDays(7.25) + params.mean_time_till_symptoms.hours - util.fromDays(1.0));
         this.symptomsTrigger = Math.min(this.symptomsTrigger, this.endContagiousTrigger - util.fromDays(1.0));
 
         // See if this person is overall asymptomatic and if so, backtrack the symptom onset.
         this.symptomaticOverall = util.Bernoulli(rand, 1.0 - params.prob_fully_asymptomatic);
-        if (!this.symptomaticOverall) this.symptomsTrigger = util.MAX_32BIT_INTEGER; // Never trigger symptoms for asymptomatic people
+        if (!this.symptomaticOverall) this.symptomsTrigger = util.MAX_TIME_STEPS; // Never trigger symptoms for asymptomatic people
 
         // TODO: When do symptoms end? I couldn't find numbers for this so I made something up.
         if (this.symptomaticOverall)
@@ -245,30 +274,29 @@ export class Person {
 
         shouldDie = shouldDie && this.symptomaticOverall; // TODO: check - Maybe people won't die if they don't have syptoms??? How to apply this along with IFR?
         if (shouldDie) {
-            [this.deadTrigger] = util.RandGaussian(rand, 0.0, 0.93);
-            this.deadTrigger = util.clamp(this.deadTrigger, -1.0, 1.0) * 0.5 + 0.5; //  Now show be [0..1] range
+            [fTemp] = util.RandGaussian(rand, 0.0, 0.93);
+            fTemp = util.clamp(fTemp, -1.0, 1.0) * 0.5 + 0.5; //  Now show be [0..1] range
             let span: number =
                 params.range_time_till_death_relative_to_syptoms[1].hours -
                 params.range_time_till_death_relative_to_syptoms[0].hours;
-            // console.log(this.deadTrigger);
 
             util.assert(this.symptomsTrigger >= 0, "just double checking");
-            util.assert(this.symptomsTrigger < util.MAX_32BIT_INTEGER, "just double checking");
+            util.assert(this.symptomsTrigger < util.MAX_TIME_STEPS, "just double checking");
             // TODO: This span doesn't match the other data. Get things consistent. :/
-            this.deadTrigger = this.symptomsTrigger + this.deadTrigger * span; // This will often get clamped down by the next line.
+            this.deadTrigger = Math.round(this.symptomsTrigger + fTemp * span); // This will often get clamped down by the next line.
             this.deadTrigger = Math.min(this.deadTrigger, this.endContagiousTrigger - 1); // Make sure if you are meant to die, you do it before getting better.
         }
 
         // Severe disease
         if (this.symptomaticOverall && util.Bernoulli(rand, params.prob_severe_or_critical)) {
-            this.severeTrigger = (this.symptomsTrigger + this.endSymptomsTrigger) * 0.5; // TODO: Fix me. Didn't find numbers that fit with other numbers.
+            this.severeTrigger = Math.round((this.symptomsTrigger + this.endSymptomsTrigger) * 0.5); // TODO: Fix me. Didn't find numbers that fit with other numbers.
             this.severeTrigger = util.clamp(this.severeTrigger, this.symptomsTrigger, this.endSymptomsTrigger);
             this.criticalIfSevere = util.Bernoulli(rand, params.prob_critical_given_severe_or_critical);
         }
 
         if (this.symptomaticOverall) {
             let [temp] = util.RandGaussian(rand, this.symptomsTrigger + util.fromDays(2), util.fromDays(1));
-            this.isolationTrigger = util.clamp(temp, this.symptomsTrigger, this.endSymptomsTrigger);
+            this.isolationTrigger = Math.round(util.clamp(temp, this.symptomsTrigger, this.endSymptomsTrigger));
         }
     }
 
@@ -532,7 +560,7 @@ export class Person {
 
         util.drawText(ctx, 252, 16, "Infection timeline", 14, "#aaaaaa");
         if (this.symptomaticOverall) {
-            if (this.severeTrigger < util.MAX_32BIT_INTEGER) {
+            if (this.severeTrigger < util.MAX_TIME_STEPS) {
                 if (this.criticalIfSevere)
                     util.drawRect(
                         ctx,
@@ -584,11 +612,11 @@ export class Person {
                 "#ff4040"
             );
         }
-        if (this.deadTrigger < util.MAX_32BIT_INTEGER) {
+        if (this.deadTrigger < util.MAX_TIME_STEPS) {
             util.drawRect(ctx, this.deadTrigger * scale, 0, 2, height, "#ffffff");
             util.drawText(ctx, this.deadTrigger * scale - 9, 16, "☠️", 16);
         }
-        if (this.isolationTrigger < util.MAX_32BIT_INTEGER) {
+        if (this.isolationTrigger < util.MAX_TIME_STEPS) {
             util.drawRect(ctx, this.isolationTrigger * scale, 0, 2, height, "#ff5f1f");
             util.drawText(ctx, this.isolationTrigger * scale - 9, 14, "😷", 14);
         }

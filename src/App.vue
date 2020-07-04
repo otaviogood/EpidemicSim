@@ -142,8 +142,9 @@
                     </a>
                 </div>
 
-                <span style="display:inline-block;width:384px;float:right"
-                    ><div class="card">
+                <span style="display:inline-block;width:384px;float:right">
+                    <!-- county info graph -->
+                    <div class="card">
                         <div style="text-align:center;font-size:28px;margin-bottom:4px">📈 {{ county }}</div>
                         <canvas
                             style="display:block;background-color:#123456;margin-bottom:4px"
@@ -157,6 +158,19 @@
                         >
                         <span class="stats" style="display:inline-block">{{ date }}</span>
                     </div>
+                    <!-- Event & policy timeline -->
+                    <div class="card" style="margin-top:16px">
+                        <div style="width:365px;text-align:center;font-size:28px;">
+                            <span style="display:inline-block;">📅 Events &amp; Policy Timeline</span>
+                        </div>
+
+                        <div class="scrolly" style="width:365px;height:124px;overflow:hidden; overflow-y:scroll;">
+                            <div v-for="i in interventions" v-bind:key="i.time">
+                                <div class="stats"><span v-html="i"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Person info -->
                     <div class="card" style="margin-top:16px">
                         <div style="width:365px;text-align:center;font-size:28px;">
                             <span style="display:inline-block;">👤 Person info</span>
@@ -185,17 +199,6 @@
                                 height="32px"
                                 id="timeline-canvas"
                             ></canvas>
-                        </div>
-                    </div>
-                    <div class="card" style="margin-top:16px">
-                        <div style="width:365px;text-align:center;font-size:28px;">
-                            <span style="display:inline-block;">📅 Events &amp; Policy Timeline</span>
-                        </div>
-
-                        <div class="scrolly" style="width:365px;height:124px;overflow:hidden; overflow-y:scroll;">
-                            <div v-for="i in interventions" v-bind:key="i.time">
-                                <div class="stats"><span v-html="i"></span></div>
-                            </div>
                         </div>
                     </div>
                 </span>

@@ -96,7 +96,7 @@ export class Sim {
     paused = false;
     infectedVisuals: any[][] = [];
     infectionTraces: any[] = [];
-    visualsFlag = util.VizFlags.traces | util.VizFlags.person;
+    visualsFlag = util.VizFlags.traces;
     countyStats: CountyStats = new CountyStats();
 
     constructor(params: Params.Base) {
@@ -137,31 +137,41 @@ export class Sim {
         img = await loadImage("datafiles/" + mapBounds.info[mapBounds.defaultPlace].mapImage);
 
         // -------- Load county polygon info --------
-        let jsonTemp0 = await fetch("datafiles/" + mapBounds.defaultPlace + "_CountyPolygons.json");
-        this.countyPolygons = await jsonTemp0.json();
+        {
+            let jsonTemp0 = await fetch("datafiles/" + mapBounds.defaultPlace + "_CountyPolygons.json");
+            this.countyPolygons = await jsonTemp0.json();
+        }
 
         // -------- Load HOUSE position and size data --------
-        let jsonTempA = await fetch("datafiles/" + mapBounds.defaultPlace + "_Supermarkets.json");
-        this.supermarketJSON = await jsonTempA.json();
+        {
+            let jsonTempA = await fetch("datafiles/" + mapBounds.defaultPlace + "_Supermarkets.json");
+            this.supermarketJSON = await jsonTempA.json();
+        }
 
         let jsonTempB = await fetch("datafiles/" + mapBounds.defaultPlace + "_Hospitals.json");
         let hospitalJSON = await jsonTempB.json();
 
         // -------- Load HOUSE position and size data --------
-        let timer = performance.now();
-        let fetchTemp = await fetch("datafiles/" + mapBounds.defaultPlace + "_Households.fb"); // flatbuffer
-        let homeDataAB = await fetchTemp.arrayBuffer();
-        let buf = new flatbuffers.ByteBuffer(new Uint8Array(homeDataAB));
-        // Get an accessor to the root object inside the buffer.
-        let hhi = FlatbufPlaces.PlaceArray.getRootAsPlaceArray(buf);
-        let placeLen = hhi.placeLength();
-        this.allPlaces[PlaceType.home] = [];
-        for (let i = 0; i < placeLen; i++) {
-            let one = hhi.place(i);
-            this.allPlaces[PlaceType.home].push(new Place(one.lat(), one.lon(), one.capacity(), one.countyIndex()));
+        {
+            let timer = performance.now();
+            let fetchTemp = await fetch("datafiles/" + mapBounds.defaultPlace + "_Households.fb"); // flatbuffer
+            let homeDataAB = await fetchTemp.arrayBuffer();
+            let buf = new flatbuffers.ByteBuffer(new Uint8Array(homeDataAB));
+            // Get an accessor to the root object inside the buffer.
+            let hhi = FlatbufPlaces.PlaceArray.getRootAsPlaceArray(buf);
+            let placeLen = hhi.placeLength();
+            this.allPlaces[PlaceType.home] = [];
+            for (let i = 0; i < placeLen; i++) {
+                let one = hhi.place(i);
+                this.allPlaces[PlaceType.home].push(new Place(one.lat(), one.lon(), one.capacity(), one.countyIndex()));
+            }
+            let totalHomeCapacity = hhi.totalHomeCapacity();
+            console.log("loaded homes in: " + (performance.now() - timer).toFixed(0) + "ms");
+
+            console.log("Total home capacity from file: " + totalHomeCapacity);
+            console.log("Total households: " + this.allPlaces[PlaceType.home].length);
+            console.log("Average household size: " + totalHomeCapacity / this.allPlaces[PlaceType.home].length);
         }
-        let totalHomeCapacity = hhi.totalHomeCapacity();
-        console.log("loaded homes in: " + (performance.now() - timer).toFixed(0) + "ms");
 
         // let timer = performance.now();
         // let jsonTemp = await fetch("datafiles/" + mapBounds.defaultPlace + "_Households.json");
@@ -174,22 +184,20 @@ export class Sim {
         // }
         // console.log("loaded homes in: " + (performance.now() - timer).toFixed(0) + "ms");
 
-        console.log("Total home capacity from file: " + totalHomeCapacity);
-        console.log("Total households: " + this.allPlaces[PlaceType.home].length);
-        console.log("Average household size: " + totalHomeCapacity / this.allPlaces[PlaceType.home].length);
-
         // -------- Load OFFICE position and size data --------
-        let jsonTempJ = await fetch("datafiles/" + mapBounds.defaultPlace + "_Offices.json");
-        let officeDataJSON = await jsonTempJ.json();
-        this.allPlaces[PlaceType.office] = [];
-        let totalOfficeCapacity = 0;
-        for (const p of officeDataJSON) {
-            this.allPlaces[PlaceType.office].push(new Place(p[0], p[1], p[2]));
-            totalOfficeCapacity += p[2];
+        {
+            let jsonTempJ = await fetch("datafiles/" + mapBounds.defaultPlace + "_Offices.json");
+            let officeDataJSON = await jsonTempJ.json();
+            this.allPlaces[PlaceType.office] = [];
+            let totalOfficeCapacity = 0;
+            for (const p of officeDataJSON) {
+                this.allPlaces[PlaceType.office].push(new Place(p[0], p[1], p[2]));
+                totalOfficeCapacity += p[2];
+            }
+            console.log("Total office capacity from file: " + totalOfficeCapacity);
+            console.log("Total offices: " + this.allPlaces[PlaceType.office].length);
+            console.log("Average office size: " + totalOfficeCapacity / this.allPlaces[PlaceType.office].length);
         }
-        console.log("Total office capacity from file: " + totalOfficeCapacity);
-        console.log("Total offices: " + this.allPlaces[PlaceType.office].length);
-        console.log("Average office size: " + totalOfficeCapacity / this.allPlaces[PlaceType.office].length);
 
         this.allPlaces[PlaceType.supermarket] = [];
         this.allPlaces[PlaceType.hospital] = [];
@@ -204,10 +212,10 @@ export class Sim {
 
         // -------- Load PEOPLE info from flatbuffer --------
         console.log("Generating people data...");
-        timer = performance.now();
+        let timer = performance.now();
         let tempF = await fetch("datafiles/" + mapBounds.defaultPlace + "_FinalPeople.fb");
         let peopleDataAB = await tempF.arrayBuffer();
-        buf = new flatbuffers.ByteBuffer(new Uint8Array(peopleDataAB));
+        let buf = new flatbuffers.ByteBuffer(new Uint8Array(peopleDataAB));
         // Get an accessor to the root object inside the buffer.
         let personfb = FlatbufPeople.PersonArray.getRootAsPersonArray(buf);
         let peopleLen = personfb.peopleLength();
@@ -760,32 +768,32 @@ export class Sim {
     }
     controllerClick(x: number, y: number) {
         return;
-        x = (x / this.scalex) * this.canvasWidth;
-        y = (y / this.scaley) * this.canvasHeight;
-        // If we're not actively dragging something, let people drag the phone screen.
-        // if (this.mouse.mode != -1) event.preventDefault();
-        // console.log(x.toString() + "   " + y.toString());
-        let bestIndex = -1;
-        let bestDist = Number.MAX_VALUE;
-        for (let i = 0; i < this.allPlaces[PlaceType.home].length; i++) {
-            let hh = this.allPlaces[PlaceType.home][i];
-            let xp = hh.xpos;
-            let yp = hh.ypos;
-            let dx = xp - x;
-            let dy = yp - y;
-            let distSq = dx * dx + dy * dy;
-            if (distSq < bestDist && hh.residents.length > 0) {
-                bestDist = distSq;
-                bestIndex = i;
-            }
-        }
-        this.selectedHouseholdIndex = bestIndex;
-        let hh = this.allPlaces[PlaceType.home][this.selectedHouseholdIndex];
-        console.log("capactity: " + hh.capacity + ",    residents: " + hh.residents.length);
+        // x = (x / this.scalex) * this.canvasWidth;
+        // y = (y / this.scaley) * this.canvasHeight;
+        // // If we're not actively dragging something, let people drag the phone screen.
+        // // if (this.mouse.mode != -1) event.preventDefault();
+        // // console.log(x.toString() + "   " + y.toString());
+        // let bestIndex = -1;
+        // let bestDist = Number.MAX_VALUE;
+        // for (let i = 0; i < this.allPlaces[PlaceType.home].length; i++) {
+        //     let hh = this.allPlaces[PlaceType.home][i];
+        //     let xp = hh.xpos;
+        //     let yp = hh.ypos;
+        //     let dx = xp - x;
+        //     let dy = yp - y;
+        //     let distSq = dx * dx + dy * dy;
+        //     if (distSq < bestDist && hh.residents.length > 0) {
+        //         bestDist = distSq;
+        //         bestIndex = i;
+        //     }
+        // }
+        // this.selectedHouseholdIndex = bestIndex;
+        // let hh = this.allPlaces[PlaceType.home][this.selectedHouseholdIndex];
+        // console.log("capactity: " + hh.capacity + ",    residents: " + hh.residents.length);
 
-        this.lastMouseX = x;
-        this.lastMouseY = y;
-        this.draw();
+        // this.lastMouseX = x;
+        // this.lastMouseY = y;
+        // this.draw();
     }
     playPause() {
         if (this.paused) this.paused = false;
