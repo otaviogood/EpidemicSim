@@ -20,7 +20,7 @@
                         >
                         <span style="display:inline-block"><button
                             type="button"
-                            class="vis"
+                            class="button"
                             style="position:relative;font-size:20px"
                             @click="fastForward"
                         >
@@ -28,7 +28,7 @@
                         </button></span>
                         <span class="" style="display:inline-block"><button
                             type="button"
-                            class="vis"
+                            class="button-green"
                             style="position:relative;font-size:20px"
                             @click="playPause"
                         >
@@ -36,7 +36,7 @@
                         </button></span>
                         <span style="display:inline-block"><button
                             type="button"
-                            class="vis"
+                            class="button"
                             style="position:relative;font-size:20px"
                             @click="stepForward"
                         >
@@ -661,6 +661,40 @@ body {
     cursor: default;
     border: 1px solid #f2bb07;
 }
+
+.button {
+    position: absolute;
+    top: 0px;
+    color: white;
+    background-color: #999999;
+    border-radius: 10px;
+    padding: 5px;
+    margin-left: 8px;
+    cursor: default;
+    border:1px solid #ffffff;
+}
+.button:hover {
+    background-color: #23507880;
+    color: white;
+    cursor: default;
+}
+.button-green {
+    position: absolute;
+    top: 0px;
+    color: white;
+    background-color: #40a050;
+    border-radius: 10px;
+    padding: 5px;
+    margin-left: 8px;
+    cursor: default;
+    border:1px solid #ffffff;
+}
+.button-green:hover {
+    background-color: #408050;
+    color: white;
+    cursor: default;
+}
+
 table#stats-table,
 th,
 td {
