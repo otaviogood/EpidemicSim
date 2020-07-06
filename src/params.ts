@@ -216,7 +216,7 @@ export class SantaCruzModel extends Base {
         this.makeEvent("2020-03-10", (sim: Sim) => sim.seedInfection(0), "1 become sick");
         this.makeEvent("2020-03-12", (sim: Sim) => sim.seedInfection(0), "1 become sick");
         // These are just do-nothing examples for now...
-        this.makeEvent("2020-03-11", () => (this.environmental_transmission_fraction = 0.0), "50% transit level");
-        this.makeEvent("2020-03-14", () => (this.environmental_transmission_fraction = 0.0), "20% transit level");
+        this.makeEvent("2020-03-11", () => (this.environmental_transmission_fraction = 0.0), "50% transit level (TODO)");
+        this.makeEvent("2020-03-14", () => (this.environmental_transmission_fraction = 0.0), "20% transit level (TODO)");
     }
 }

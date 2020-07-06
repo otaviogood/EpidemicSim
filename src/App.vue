@@ -11,7 +11,43 @@
                     >
                 </div>
                 <div class="card">
-                    <div style="position:relative">
+                    <p style="margin:8px;">
+                        <span
+                            style="display:inline-block;font-size:36px;margin-top:-16px;padding:0px;border:0px;background-color:#00000000;"
+                            >{{
+                                ["🕛", "🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚"][hoursElapsed % 12 | 0]
+                            }}</span
+                        >
+                        <span style="display:inline-block"><button
+                            type="button"
+                            class="vis"
+                            style="position:relative;font-size:20px"
+                            @click="fastForward"
+                        >
+                            Fast Forward
+                        </button></span>
+                        <span class="" style="display:inline-block"><button
+                            type="button"
+                            class="vis"
+                            style="position:relative;font-size:20px"
+                            @click="playPause"
+                        >
+                            Play / Pause
+                        </button></span>
+                        <span style="display:inline-block"><button
+                            type="button"
+                            class="vis"
+                            style="position:relative;font-size:20px"
+                            @click="stepForward"
+                        >
+                            Single Step
+                        </button></span>
+                        <span style="float:right"
+                            >Sim Time (Milliseconds): {{ Math.round(milliseconds) }}, total 20 days:
+                            {{ timerAccum.toFixed(0) }}</span
+                        >
+                    </p>
+                    <div class="clearfix" style="position:relative">
                         <canvas
                             style="display:block;background-color:#123456;"
                             width="1024px"
@@ -59,42 +95,6 @@
                         <div class="vis" :class="visFlag(256)" style="top:360px" @mousedown.prevent="visToggle(256)">Traces</div>
                         <div class="vis" :class="visFlag(512)" style="top:392px" @mousedown.prevent="visToggle(512)">Person</div>
                     </div>
-                    <p style="margin:8px;">
-                        <span
-                            style="font-size:48px;float:left;margin:0px 16px;padding:0px;border:0px;background-color:#00000000;"
-                            >{{
-                                ["🕛", "🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚"][hoursElapsed % 12 | 0]
-                            }}</span
-                        >
-                        <span style="display:inline-block"><button
-                            type="button"
-                            class=""
-                            style="font-size:48px;float:left;margin:0px 16px;padding:0px;border:0px;background-color:#00000000;"
-                            @click="fastForward"
-                        >
-                            ⏩
-                        </button></span>
-                        <span class="pulse-rep-block" style="display:inline-block"><button
-                            type="button"
-                            class=""
-                            style="font-size:48px;float:left;margin:0px 16px;padding:0px;border:0px;background-color:#00000000;"
-                            @click="playPause"
-                        >
-                            ⏯️
-                        </button></span>
-                        <span style="display:inline-block"><button
-                            type="button"
-                            class=""
-                            style="font-size:48px;float:left;margin:0px 16px;padding:0px;border:0px;background-color:#00000000;"
-                            @click="stepForward"
-                        >
-                            ⤵️
-                        </button></span>
-                        <span style="float:right"
-                            >Sim Time (Milliseconds): {{ Math.round(milliseconds) }}, total 20 days:
-                            {{ timerAccum.toFixed(0) }}</span
-                        >
-                    </p>
                 </div>
                 <div></div>
 
@@ -164,7 +164,7 @@
                             <span style="display:inline-block;">📅 Events &amp; Policy Timeline</span>
                         </div>
 
-                        <div class="scrolly" style="width:365px;height:124px;overflow:hidden; overflow-y:scroll;">
+                        <div class="scrolly" style="width:365px;height:192px;overflow:hidden; overflow-y:scroll;">
                             <div v-for="i in interventions" v-bind:key="i.time">
                                 <div class="stats"><span v-html="i"></span></div>
                             </div>
@@ -608,7 +608,7 @@ body {
 }
 .pulse-block {
     animation-name: pulse-anim;
-    animation-duration: 4s;
+    animation-duration: 6s;
     animation-fill-mode: forwards;
     border: 2px solid #00ff00ff;
 }
@@ -650,6 +650,7 @@ body {
     padding: 5px;
     margin-left: 8px;
     cursor: default;
+    border:0px;
 }
 .vis:hover {
     background-color: #23507880;
@@ -689,5 +690,10 @@ table td:hover {
 }
 a {
     color: #88ccff;
+}
+.clearfix::after {
+  content: "";
+  clear: both;
+  display: table;
 }
 </style>
