@@ -141,20 +141,39 @@ async function doEverything() {
         hh.residentCount++;
         [person.xpos, person.ypos] = latLonToPos(hh.lat, hh.lon);
         person.homeIndex = householdIndex;
-        person.county = hh.county;
+        person.county = hh.countyIndex;
 
         // Assign a random office
-        let randOff = randint(rand, 0, allOffices.length);
-        let office = allOffices[randOff];
-        // If the office is over capacity, do one extra try to find another office.
-        // This will let offices go over capacity sometimes, but that's probably ok.
-        if (office.residentCount >= office.capacity) {
-            randOff = randint(rand, 0, allOffices.length);
-            office = allOffices[randOff];
+        // let randOff = randint(rand, 0, allOffices.length);
+        // let office = allOffices[randOff];
+        // // If the office is over capacity, do one extra try to find another office.
+        // // This will let offices go over capacity sometimes, but that's probably ok.
+        // if (office.residentCount >= office.capacity) {
+        //     randOff = randint(rand, 0, allOffices.length);
+        //     office = allOffices[randOff];
+        // }
+        // // office.residents.push(allPeople.length);
+        // office.residentCount++;
+
+        let randOffice = randint(rand, 0, allOffices.length);
+        let officeDist = Number.MAX_VALUE;
+        // Gotta get spatial data structure to work so i can query for nearest things. This is a hacky patchy job for now...
+        for (let j = 0; j < allOffices.length / 20000 + 1; j++) {
+            let office = allOffices[randOffice];
+            let dx = person.xpos - office.xpos;
+            let dy = person.ypos - office.ypos;
+            let distSq = dx * dx + dy * dy;
+            if (distSq < officeDist) {
+                officeDist = distSq;
+                person.officeIndex = randOffice;
+            }
+            randOffice = randint(rand, 0, allOffices.length);
         }
-        // office.residents.push(allPeople.length);
-        office.residentCount++;
-        person.officeIndex = randOff;
+        // allOffices[randOffice].residents.push(allPeople.length);
+        allOffices[person.officeIndex].residentCount++;
+
+
+        // person.officeIndex = randOff;
         let officePos = allOffices[person.officeIndex];
         let homePos = allHouseholds[person.homeIndex];
         totalCommuteDistance += latLonDistKm(officePos.lat, officePos.lon, homePos.lat, homePos.lon);
@@ -163,7 +182,7 @@ async function doEverything() {
         let randMarket = randint(rand, 0, allSuperMarkets.length);
         let marketDist = Number.MAX_VALUE;
         // Gotta get spatial data structure to work so i can query for nearest things. This is a hacky patchy job for now...
-        for (let j = 0; j < 20; j++) {
+        for (let j = 0; j < allSuperMarkets.length / 4 + 1; j++) {
             let market = allSuperMarkets[randMarket];
             let dx = person.xpos - market.xpos;
             let dy = person.ypos - market.ypos;
@@ -175,13 +194,13 @@ async function doEverything() {
             randMarket = randint(rand, 0, allSuperMarkets.length);
         }
         // allSuperMarkets[randMarket].residents.push(allPeople.length);
-        allSuperMarkets[randMarket].residentCount++;
+        allSuperMarkets[person.marketIndex].residentCount++;
 
         // Assign a semi-random, but close-to-your-house hospital as your favorite place to go
         let randHospital = randint(rand, 0, allHospitals.length);
         let hospitalDist = Number.MAX_VALUE;
         // Gotta get spatial data structure to work so i can query for nearest things. This is a hacky patchy job for now...
-        for (let j = 0; j < 5; j++) {
+        for (let j = 0; j < allHospitals.length / 8 + 1; j++) {
             let hospital = allHospitals[randHospital];
             assert(hospital.xpos >= 0);
             assert(hospital.xpos <= 1.0);
@@ -237,7 +256,7 @@ async function doEverything() {
             p.officeIndex,
             p.marketIndex,
             p.hospitalIndex,
-            p.countyIndex,
+            p.county,
             0,
             p.age,
             p.maleFemale,

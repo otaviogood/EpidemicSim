@@ -44,7 +44,7 @@ class Place {
 }
 
 var img: any;
-export function loadImage(url: string) {
+export function loadImage(url: string):any {
     return new Promise(r => {
         console.log("Loading: " + url);
         let i = new Image();
@@ -256,7 +256,7 @@ export class Sim {
         if (this.useWasmSim) {
             await this.initWasmSim();
         } else {
-            for (var j = 0; j < this.pop.length; j++) {
+            for (let j = 0; j < this.pop.length; j++) {
                 this.pop[j].init(this.params, this.rand);
             }
         }

@@ -162,19 +162,19 @@ class CountyInfo {
     // American community survey data
     acsPopulation = 0;
     fractionMale = 0.5;
-    fractionAge0_4 = 0;
-    fractionAge5_9 = 0;
-    fractionAge10_14 = 0;
-    fractionAge15_19 = 0;
-    fractionAge20_24 = 0;
-    fractionAge25_34 = 0;
-    fractionAge35_44 = 0;
-    fractionAge45_54 = 0;
-    fractionAge55_59 = 0;
-    fractionAge60_64 = 0;
-    fractionAge65_74 = 0;
-    fractionAge75_84 = 0;
-    fractionAge85_up = 0;
+    fractionAge0_4 = 0.05;
+    fractionAge5_9 = 0.05;
+    fractionAge10_14 = 0.05;
+    fractionAge15_19 = 0.05;
+    fractionAge20_24 = 0.05;
+    fractionAge25_34 = 0.1;
+    fractionAge35_44 = 0.1;
+    fractionAge45_54 = 0.1;
+    fractionAge55_59 = 0.05;
+    fractionAge60_64 = 0.05;
+    fractionAge65_74 = 0.1;
+    fractionAge75_84 = 0.1;
+    fractionAge85_up = 0.1;
     // Race TODO: What data is there on race and covid, so what race categories should there be?
 
     async readCensusCSV(countyName, stateAbbr, countyIndex) {
@@ -236,8 +236,7 @@ class CountyInfo {
     async readAmericanCommunitySurveyCSV(countyName, stateAbbr, countyIndex) {
         if (!this.acsInfo.has(countyIndex)) this.acsInfo.set(countyIndex, new Map());
         let countyStateNumber = getStateNumber(stateAbbr);
-        console.log("-------- Loading American Community Survey data for county state number " + countyStateNumber + " --------");
-        console.log(stateAbbr);
+        console.log("-------- Loading American Community Survey data for " + countyName + ", county state number " + countyStateNumber + ", " + stateAbbr + " --------");
         const csvString = fs.readFileSync("../sourceData/Profiles0502004.csv", "utf8");
         let csvResult = await papa.parsePromise(csvString);
         csvResult = csvResult.data;
@@ -289,6 +288,8 @@ class CountyInfo {
                 }
             }
         }
+        if (this.acsPopulation < 1) console.log("**** WARNING: " + countyName + " not found in ACS Data. ****");
+        assert(this.acsPopulation > 0);
         // console.log(this.acsInfo);
     }
 

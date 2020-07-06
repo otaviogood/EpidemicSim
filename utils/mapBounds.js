@@ -11,6 +11,10 @@ const info = {
         "mapImage": "santaCruz_map.jpg",
         "includedCounties": [["Santa Cruz County", "CA"]],
     },
+    "test": {
+        "mapImage": "sfBayArea_map.jpg",
+        "includedCounties": [["Santa Cruz County", "CA"], ["Napa County", "CA"]],
+    },
     "sfBayArea": {
         "mapImage": "sfBayArea_map.png",
         "includedCounties": [

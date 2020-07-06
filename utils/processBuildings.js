@@ -29,7 +29,9 @@ async function doEverything() {
     misc.shuffleArrayInPlace(buildingPositionsJSON, rand);
 
     // Append the county ID onto each location in the list.
+    assert(buildingPositionsJSON[0].length == 3);
     buildingPositionsJSON = await countyStuff.tagListWithCountyIndexAndFilter(buildingPositionsJSON);
+    assert(buildingPositionsJSON[0].length == 4);
 
     // Count the populations per county from the facebook population density data
     // so that we can correct it to match the census data.
