@@ -101,29 +101,29 @@ emcc --js-library lib.js --closure 1 --llvm-lto 1 --profiling --bind -s WASM=1 -
 ```
 
 #### Currently hosted on Google cloud storage as a static site
-https://cloud.google.com/storage/docs/hosting-static-website#gsutil_1
-To list gcloud accounts:
-gcloud auth list
-To login a new user:
-gcloud auth login
-To set the active account, run
-gcloud config set account <account>
+https://cloud.google.com/storage/docs/hosting-static-website#gsutil_1  
+To list gcloud accounts:  
+gcloud auth list  
+To login a new user:  
+gcloud auth login  
+To set the active account, run  
+gcloud config set account <account>  
 
-To sync all files:
-gsutil rsync -R dist gs://www.yaes.live
-OR (without CDN cache):
-gsutil -m -h "Cache-Control:no-cache" rsync -R dist gs://www.yaes.live
-To set permissions to public for all files:
-gsutil iam ch allUsers:objectViewer gs://www.yaes.live
+To sync all files:  
+gsutil rsync -R dist gs://www.yaes.live  
+OR (without CDN cache):  
+gsutil -m -h "Cache-Control:no-cache" rsync -R dist gs://www.yaes.live  
+To set permissions to public for all files:  
+gsutil iam ch allUsers:objectViewer gs://www.yaes.live  
 
-Set index.html as default and a 404 page:
-gsutil web set -m index.html -e 404.html gs://www.yaes.live
+Set index.html as default and a 404 page:  
+gsutil web set -m index.html -e 404.html gs://www.yaes.live  
 
 
 # Contributors
 
-So far, this was written mostly by [Otavio Good](https://github.com/otaviogood), with help from [Francesco Rossi](https://github.com/redsh).
-Otavio's email is the same as my github username, but @yahoo.com. I suck at email though.
+So far, this was written mostly by [Otavio Good](https://github.com/otaviogood), with help from [Francesco Rossi](https://github.com/redsh).  
+Otavio's email is the same as my github username, but @yahoo.com. I suck at email though.  
 
 
 Initially made with [createapp.dev](https://createapp.dev/)
