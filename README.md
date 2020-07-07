@@ -3,6 +3,8 @@ This project is incomplete and uncalibrated. It should not be used for anything 
 
 https://yaes.live
 
+![Screenshot of the simulator](screenshots/EpidemicSim09.png)
+
 This project is an attempt to simulate COVID-19 spreading in a major metropolitan area. It is an experiment.
 
 The simulation loads county-level populations with the correct population and some demographic data. The people in the simulation spend their days going between places, where they spread the virus to other occupants of the places based on a simple density formula.
