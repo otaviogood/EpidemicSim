@@ -185,8 +185,10 @@ export class Person {
     ypos: number = 0;
     infectedX: number = -1;  // Where the person got infected
     infectedY: number = -1;
-    // county = -1;
     // Demogaphic info
+    // age = -1;
+    // maleFemale = -1;
+    // county = -1;
     get age() : number { return this.getFlagInt(10, 0x7f); }  // prettier-ignore
     set age(x: number) { this.setFlagInt(x, 10, 0x7f); }  // prettier-ignore
     get maleFemale() : number { return this.getFlagInt(17, 0x1); }  // prettier-ignore
@@ -194,11 +196,7 @@ export class Person {
     get county() : number { return this.getFlagInt(18, 0xff); }  // prettier-ignore
     set county(x: number) { this.setFlagInt(x, 18, 0xff); }  // prettier-ignore
 
-    // age = -1;
-    // maleFemale = -1;
-
     static useWasmSim = false;
-
     wasmPerson: any = null;
 
     associateWasmSimAndInit(wasmSim: any, params: Params.Base, rand: RandomFast) {
