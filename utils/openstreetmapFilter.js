@@ -178,6 +178,7 @@ async function doStuff() {
         mapBounds.defaultPlace + "_Hospitals.json"
     );
     await extractPlaces(["supermarket"], [], mapBounds.defaultPlace + "_Supermarkets.json");
+    await extractPlaces(["railway_platform", "bus_stop", "bus_station", "railway_station", "train_station", "tram_stop", "subway_station", "subway_stop", "subway_platform"], [], mapBounds.defaultPlace + "_Transit.json");
 }
 doStuff();
 

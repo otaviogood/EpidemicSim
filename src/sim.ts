@@ -668,6 +668,7 @@ export class Sim {
                     this.drawRect(ctx, market.xpos, market.ypos, 0.005, 0.005, "rgb(60, 255, 60)");
                 }
             }
+            ctx.fillStyle = "#ffffff";
             if ((this.visualsFlag & util.VizFlags.susceptible) != 0) {
                 for (let i = 0; i < this.pop.length; i++) {
                     let person = this.pop[i];
@@ -684,6 +685,15 @@ export class Sim {
                 for (let i = 0; i < this.pop.length; i++) {
                     let person = this.pop[i];
                     if (person.isRecovered) ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 1, 1);
+                }
+            }
+            if ((this.visualsFlag & util.VizFlags.sir) != 0) {
+                for (let i = 0; i < this.pop.length; i++) {
+                    let person = this.pop[i];
+                    if (person.isRecovered) ctx.fillStyle = "#20a0df";
+                    if (person.isSick) ctx.fillStyle = "#ff0000";
+                    if (person.isVulnerable) ctx.fillStyle = "#eeeeee";
+                    ctx.fillRect(person.xpos * this.scalex, person.ypos * this.scaley, 1, 1);
                 }
             }
             // for (let i = 0; i < businessJSON.length; i++) {

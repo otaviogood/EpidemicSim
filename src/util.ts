@@ -15,6 +15,7 @@ export enum VizFlags {
     recovered = 128,
     traces = 256,
     person = 512,
+    sir = 1024,
 }
 
 let alreadyAlerted = false;

@@ -21,7 +21,7 @@
                         <span style="display:inline-block"><button
                             type="button"
                             class="button"
-                            style="position:relative;font-size:20px"
+                            style="position:relative;font-size:28px"
                             @click="fastForward"
                         >
                             Fast Forward
@@ -29,7 +29,7 @@
                         <span class="" style="display:inline-block"><button
                             type="button"
                             class="button-green"
-                            style="position:relative;font-size:20px"
+                            style="position:relative;font-size:28px"
                             @click="playPause"
                         >
                             Play / Pause
@@ -37,7 +37,7 @@
                         <span style="display:inline-block"><button
                             type="button"
                             class="button"
-                            style="position:relative;font-size:20px"
+                            style="position:relative;font-size:28px"
                             @click="stepForward"
                         >
                             Single Step
@@ -85,15 +85,16 @@
                         <div class="vis" :class="visFlag(16)" style="top:168px" @mousedown.prevent="visToggle(16)">
                             Supermarkets
                         </div>
-                        <div class="vis" :class="visFlag(32)" style="top:232px" @mousedown.prevent="visToggle(32)">
+                        <div class="vis" :class="visFlag(1024)" style="top:232px" @mousedown.prevent="visToggle(1024)">SIR</div>
+                        <div class="vis" :class="visFlag(32)" style="top:264px" @mousedown.prevent="visToggle(32)">
                             Susceptible
                         </div>
-                        <div class="vis" :class="visFlag(64)" style="top:264px" @mousedown.prevent="visToggle(64)">Infected</div>
-                        <div class="vis" :class="visFlag(128)" style="top:296px" @mousedown.prevent="visToggle(128)">
+                        <div class="vis" :class="visFlag(64)" style="top:296px" @mousedown.prevent="visToggle(64)">Infected</div>
+                        <div class="vis" :class="visFlag(128)" style="top:328px" @mousedown.prevent="visToggle(128)">
                             Recovered
                         </div>
-                        <div class="vis" :class="visFlag(256)" style="top:360px" @mousedown.prevent="visToggle(256)">Traces</div>
-                        <div class="vis" :class="visFlag(512)" style="top:392px" @mousedown.prevent="visToggle(512)">Person</div>
+                        <div class="vis" :class="visFlag(256)" style="top:392px" @mousedown.prevent="visToggle(256)">Traces</div>
+                        <div class="vis" :class="visFlag(512)" style="top:424px" @mousedown.prevent="visToggle(512)">Person</div>
                     </div>
                 </div>
                 <div></div>
