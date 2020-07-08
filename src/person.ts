@@ -309,16 +309,13 @@ export class Person {
     getCurrentLocation(sim: Sim, timeOffset=0): [number, number] {
         let currentStep = sim.time_steps_since_start.getStepModDayOffset(timeOffset);
         let activity = this.tight.getCurrentActivityInt(currentStep);
-        let market = sim.allPlaces[PlaceType.supermarket][this.tight.placeIndex[PlaceType.supermarket]];
-        let house = sim.allPlaces[PlaceType.home][this.tight.placeIndex[PlaceType.home]];
-        let office = sim.allPlaces[PlaceType.office][this.tight.placeIndex[PlaceType.office]];
-        let hospital = sim.allPlaces[PlaceType.hospital][this.tight.placeIndex[PlaceType.hospital]];
-        let localx: number = house.xpos;
-        let localy: number = house.ypos;
-        if (activity == PlaceType.office) (localx = office.xpos), (localy = office.ypos);
-        if (activity == PlaceType.supermarket) (localx = market.xpos), (localy = market.ypos);
-        if (activity == PlaceType.hospital) (localx = hospital.xpos), (localy = hospital.ypos);
-        return [localx, localy];
+        if (activity < numPlaceTypes) {
+            let place = sim.allPlaces[activity][this.tight.placeIndex[activity]];
+            return [place.xpos, place.ypos];
+        } else {
+            let house = sim.allPlaces[PlaceType.home][this.tight.placeIndex[PlaceType.home]];
+            return [house.xpos, house.ypos];
+        }
     }
 
     get hashId() {
@@ -512,31 +509,11 @@ export class Person {
             let activity = this.tight.getCurrentActivityInt(currentStep);
             // let activity = this.currentActivity;
             let seed = Math.trunc(time_steps_since_start.raw * 4096 + index); // Unique for time step and each person
-            if (activity == PlaceType.home) {
+            if (activity < numPlaceTypes) {
                 let placeIndex = this.tight.placeIndex[activity];
                 this.spreadInAPlace(
                     sim.allPlaces[activity][placeIndex].currentOccupants,
-                    sim.params.home_density,
-                    pop,
-                    rand,
-                    sim,
-                    seed
-                );
-            } else if (activity == PlaceType.office) {
-                let placeIndex = this.tight.placeIndex[activity];
-                this.spreadInAPlace(
-                    sim.allPlaces[activity][placeIndex].currentOccupants,
-                    sim.params.office_density,
-                    pop,
-                    rand,
-                    sim,
-                    seed
-                );
-            } else if (activity == PlaceType.supermarket) {
-                let placeIndex = this.tight.placeIndex[activity];
-                this.spreadInAPlace(
-                    sim.allPlaces[activity][placeIndex].currentOccupants,
-                    sim.params.shopping_density,
+                    sim.params.placeDensities[activity],
                     pop,
                     rand,
                     sim,

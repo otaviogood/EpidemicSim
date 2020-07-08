@@ -335,12 +335,12 @@ export class Sim {
         }
 
         this.wasmSim = new moduleInstance.Sim(this.pop.length);
-        this.wasmSim.setNumberOfPlacesForActivity("h", this.allPlaces[PlaceType.home].length, this.params.home_density);
-        this.wasmSim.setNumberOfPlacesForActivity("w", this.allPlaces[PlaceType.office].length, this.params.office_density);
+        this.wasmSim.setNumberOfPlacesForActivity("h", this.allPlaces[PlaceType.home].length, this.params.placeDensities[PlaceType.home]);
+        this.wasmSim.setNumberOfPlacesForActivity("w", this.allPlaces[PlaceType.office].length, this.params.placeDensities[PlaceType.office]);
         this.wasmSim.setNumberOfPlacesForActivity(
             "s",
             this.allPlaces[PlaceType.supermarket].length,
-            this.params.shopping_density
+            this.params.placeDensities[PlaceType.supermarket]
         );
         // not used in reference js yet: this.occupantCounter.setNumberOfPlacesForActivity('o', this.allHospitals.length);
 

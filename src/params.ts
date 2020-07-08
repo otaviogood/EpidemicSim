@@ -1,4 +1,5 @@
 import moment from "moment";
+import { PlaceType, numPlaceTypes } from "./person";
 import { Sim } from "./sim";
 import * as util from "./util";
 
@@ -174,9 +175,15 @@ export class Base {
     // Temperature checks at schools / workplaces
     //
 
-    home_density: number = 0.5;
-    office_density: number = 1.75;
-    shopping_density: number = 1.5;
+    // For the spreading function, so each place spreads differently
+    placeDensities : number[] = [];
+
+    constructor() {
+        for (let i = 0; i < numPlaceTypes; i++) this.placeDensities[i] = 1.0;  // Set default
+        this.placeDensities[PlaceType.home] = 0.5;
+        this.placeDensities[PlaceType.office] = 1.75;
+        this.placeDensities[PlaceType.supermarket] = 1.5;
+    }
 
     // ========================================================================
     interventions: Intervention[] = [];
